@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: Guild Census
+## Notes: Pie charts of guild roles, professions, classes and levels, built from guild notes.
+## Author: Le0n1d45
+## Version: 0.2.0
+## SavedVariables: GuildCensusDB
+
+Parser.lua
+Census.lua
+Demo.lua
+Roster.lua
+PieChart.lua
+UI.lua
+GuildCensus.lua
