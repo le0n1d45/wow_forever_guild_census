@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # needed to delete old artifacts
+
+env:
+  ARTIFACT_PREFIX: GuildCensus-
+  KEEP_ARTIFACTS: 5
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
+      # zip's top-level folder without wrapping a zip inside a zip.
+      - name: Stage addon
+        run: |
+          mkdir dist
+          cp -r GuildCensus dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_PREFIX }}${{ github.run_number }}
+          path: dist
+          if-no-files-found: error
+
+      - name: Delete old artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.name | startswith(\"$ARTIFACT_PREFIX\")) | select(.expired | not) | [.created_at, .id] | @tsv" \
+            | sort -r \
+            | tail -n +$((KEEP_ARTIFACTS + 1)) \
+            | cut -f2 \
+            | xargs -r -I{} gh api -X DELETE "repos/$REPO/actions/artifacts/{}"
