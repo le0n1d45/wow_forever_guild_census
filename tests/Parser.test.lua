@@ -94,4 +94,60 @@ return function(ns)
             assert(not Parser.ContainsAny("alt", {}))
         end)
     end)
+
+    describe("Parser.SkillAfter", function()
+        local lw = Parser.ParseList("lw, leatherworker")
+
+        it("reads a number written after a keyword in the common formats", function()
+            assertEqual(Parser.SkillAfter("LW 260", lw), 260)
+            assertEqual(Parser.SkillAfter("lw: 260", lw), 260)
+            assertEqual(Parser.SkillAfter("LW-260", lw), 260)
+            assertEqual(Parser.SkillAfter("lw (260)", lw), 260)
+            assertEqual(Parser.SkillAfter("LW[260]", lw), 260)
+            assertEqual(Parser.SkillAfter("lw=260", lw), 260)
+            assertEqual(Parser.SkillAfter("LW260", lw), 260)
+            assertEqual(Parser.SkillAfter("LW - 260", lw), 260)
+        end)
+
+        it("takes the first number of 260/300 style notes", function()
+            assertEqual(Parser.SkillAfter("LW 260/300", lw), 260)
+        end)
+
+        it("works anywhere in the note and with any of the keywords", function()
+            assertEqual(Parser.SkillAfter("Tank, leatherworker 150, mining", lw), 150)
+        end)
+
+        it("returns nil when no number follows", function()
+            assertEqual(Parser.SkillAfter("LW", lw), nil)
+            assertEqual(Parser.SkillAfter("LW / Mining 300", lw), nil)
+            assertEqual(Parser.SkillAfter("tank 260 LW", lw), nil)
+            assertEqual(Parser.SkillAfter("", lw), nil)
+            assertEqual(Parser.SkillAfter(nil, lw), nil)
+        end)
+
+        it("ignores numbers that are not 1-3 digits", function()
+            assertEqual(Parser.SkillAfter("LW 2600", lw), nil)
+            assertEqual(Parser.SkillAfter("LW 0", lw), nil)
+        end)
+
+        it("skips an occurrence without a number and finds a later one", function()
+            assertEqual(Parser.SkillAfter("lw main, lw 225", lw), 225)
+        end)
+    end)
+
+    describe("Parser.Detect with skills", function()
+        local rules = Parser.Compile(Config.PROFESSIONS)
+
+        it("attaches a skill to each profession that has one", function()
+            local hits = Parser.Detect("LW 260, mining, BS: 310", rules, true)
+            local skills = {}
+            for _, h in ipairs(hits) do skills[h.key] = h.skill end
+            assertEqual(skills, { leatherworking = 260, blacksmith = 310 })
+            assertEqual(#hits, 3)
+        end)
+
+        it("does not look for skills unless asked", function()
+            assertEqual(Parser.Detect("LW 260", rules)[1].skill, nil)
+        end)
+    end)
 end

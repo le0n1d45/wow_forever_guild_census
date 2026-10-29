@@ -74,6 +74,25 @@ return function(ns)
             end
         end)
 
+        it("has skill levels for every profession, across the whole skill range", function()
+            local brackets = { { 1, 75 }, { 76, 150 }, { 151, 225 }, { 226, 300 } }
+            for _, def in ipairs(Config.PROFESSIONS) do
+                for _, b in ipairs(brackets) do
+                    local n = count({ profession = def.key, minSkill = b[1], maxSkill = b[2] })
+                    assert(n >= 3, string.format("%s has only %d at skill %d-%d", def.label, n, b[1], b[2]))
+                end
+                assert(count({ profession = def.key, minSkill = 225, onlineOnly = true }) >= 1,
+                    def.label .. " has nobody online at high skill")
+            end
+        end)
+
+        it("leaves some members without a written skill, so the filter has something to exclude", function()
+            for _, def in ipairs(Config.PROFESSIONS) do
+                assert(count({ profession = def.key }) > count({ profession = def.key, minSkill = 1 }),
+                    def.label .. " should include members with no written skill")
+            end
+        end)
+
         it("supports the full combination: dungeon + role + profession + online", function()
             local d = Dungeons.Get("deadmines")
             local n = count({ minLevel = d.minLevel, maxLevel = d.maxLevel, role = "tank",

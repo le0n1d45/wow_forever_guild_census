@@ -169,6 +169,15 @@ local function addClearButton(pane, x, y)
     pane.clearButton:SetScript("OnClick", function() pane:Reset() end)
 end
 
+-- "Leatherworking (260), Mining": each profession with its skill when the note gives one.
+local function professionText(details)
+    local parts = {}
+    for _, detail in ipairs(details) do
+        parts[#parts + 1] = detail.skill and string.format("%s (%d)", detail.label, detail.skill) or detail.label
+    end
+    return table.concat(parts, ", ")
+end
+
 -- Column headers and the pooled, scrolling results list. The finder must define
 -- pane:Criteria() and pane.summary first. Adds pane:Search() and pane:Update().
 local function addResults(pane, headerY, scrollY)
@@ -196,7 +205,7 @@ local function addResults(pane, headerY, scrollY)
             row.level:SetText(tostring(r.level or "?"))
             row.class:SetText(r.className or "?")
             row.roles:SetText(table.concat(r.roles, ", "))
-            row.professions:SetText(table.concat(r.professions, ", "))
+            row.professions:SetText(professionText(r.professionDetails))
             row:Show()
         end
         for i = shown + 1, #self.rows do
@@ -299,7 +308,8 @@ function Finder.CreateRoles(pane)
     return pane
 end
 
--- Profession Finder: fills `pane` with a profession selector and online-only. Level
+-- Profession Finder: fills `pane` with a profession selector, a skill-level range
+-- (for players who write their skill, e.g. "LW 260") and online-only. Player level
 -- ranges and roles are deliberately absent: when you want a crafter, only the
 -- profession matters. "Any profession" lists everyone with at least one profession.
 function Finder.CreateProfessions(pane)
@@ -321,25 +331,37 @@ function Finder.CreateProfessions(pane)
     addOnlineBox(pane, 262, -2)
     addClearButton(pane, 392, -2)
 
-    pane.summary = addLabel(pane, "", 480, -6)
+    -- Row 2: skill level, for players who put it in their note ("LW 260"). Members
+    -- who don't write their skill are left out once a bound is typed.
+    addLabel(pane, "Skill level:", 14, -38)
+    pane.minSkillBox = addLevelBox(pane, 90, -35, function() pane:Search() end)
+    addLabel(pane, "to", 134, -38)
+    pane.maxSkillBox = addLevelBox(pane, 154, -35, function() pane:Search() end)
 
+    pane.summary = addLabel(pane, "", 214, -38)
+
+    -- Empty boxes mean "no bound"; tonumber("") is nil.
     function pane:Criteria()
         local key = professionChoices[self.professionIndex].key
         return {
             profession = key,
             hasProfession = key == nil or nil,
+            minSkill = tonumber(self.minSkillBox:GetText()),
+            maxSkill = tonumber(self.maxSkillBox:GetText()),
             onlineOnly = self.onlineOnly or nil,
         }
     end
 
     function pane:Reset()
         self.professionIndex = 1
+        self.minSkillBox:SetText("")
+        self.maxSkillBox:SetText("")
         self.onlineOnly = false
         self.onlineBox:SetChecked(false)
         for _, selector in pairs(self.selectors) do selector:Refresh() end
         self:Search()
     end
 
-    addResults(pane, -34, -52)
+    addResults(pane, -66, -84)
     return pane
 end

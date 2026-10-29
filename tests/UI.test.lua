@@ -882,6 +882,132 @@ return function()
             assertEqual(openProfessions().summary.text, "No players found.")
         end)
 
+        -- Notes that write profession skill levels, the way players do.
+        local function skilledGuild(extra)
+            return { guild = {
+                { name = "Novice", level = 20, className = "Warrior", classFile = "WARRIOR", note = "LW 40", online = true },
+                { name = "Adept", level = 40, className = "Warrior", classFile = "WARRIOR", note = "LW 150, mining 120", online = false },
+                { name = "Master", level = 60, className = "Priest", classFile = "PRIEST", note = "healer, LW 300, BS: 275", online = true },
+                { name = "Quiet", level = 55, className = "Mage", classFile = "MAGE", note = "LW, mining", online = true },
+                { name = "Miner", level = 50, className = "Rogue", classFile = "ROGUE", note = "mining (225)", online = true },
+            }, dropdown = extra and extra.dropdown }
+        end
+
+        it("has a skill level range (not a player level range)", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            assert(pane.minSkillBox and pane.maxSkillBox, "needs skill boxes")
+            assertEqual(pane:Criteria().minSkill, nil)
+            type_(pane.minSkillBox, "100")
+            type_(pane.maxSkillBox, "280")
+            assertEqual(pane:Criteria().minSkill, 100)
+            assertEqual(pane:Criteria().maxSkill, 280)
+        end)
+
+        it("shows each profession with the skill written in the note", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            local byName = {}
+            for _, row in ipairs(visibleRows(pane)) do
+                byName[row.name.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")] = row.professions.text
+            end
+            assertEqual(byName.Master, "Leatherworking (300), Blacksmith (275)")
+            assertEqual(byName.Adept, "Leatherworking (150), Mining (120)")
+            assertEqual(byName.Miner, "Mining (225)")
+            assertEqual(byName.Quiet, "Leatherworking, Mining") -- no skill written
+        end)
+
+        it("the Role Finder shows skills too", function()
+            loadAddon(skilledGuild())
+            local pane = openRoles()
+            local texts = {}
+            for _, row in ipairs(visibleRows(pane)) do texts[#texts + 1] = row.professions.text end
+            local joined = table.concat(texts, " | ")
+            assert(joined:find("Leatherworking (300), Blacksmith (275)", 1, true), joined)
+        end)
+
+        it("filters the chosen profession by skill range as the boxes are typed", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            chooseProfession(pane, "Leatherworking")
+            assertEqual(pane.summary.text, "4 players found") -- Quiet writes no skill but is listed
+            type_(pane.minSkillBox, "100")
+            assertEqual(rowNames(pane), { "Master", "Adept" })
+            type_(pane.maxSkillBox, "200")
+            assertEqual(rowNames(pane), { "Adept" })
+            assertEqual(pane.summary.text, "1 player found")
+            type_(pane.minSkillBox, "")
+            assertEqual(rowNames(pane), { "Adept", "Novice" })
+            type_(pane.maxSkillBox, "")
+            assertEqual(pane.summary.text, "4 players found")
+        end)
+
+        it("members with no written skill drop out as soon as a bound is typed", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            chooseProfession(pane, "Leatherworking")
+            type_(pane.minSkillBox, "1")
+            assertEqual(rowNames(pane), { "Master", "Adept", "Novice" })
+        end)
+
+        it("with Any profession, any profession's skill can satisfy the range", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            type_(pane.minSkillBox, "225")
+            assertEqual(rowNames(pane), { "Master", "Miner" })
+            type_(pane.maxSkillBox, "250")
+            assertEqual(rowNames(pane), { "Miner" })
+        end)
+
+        it("the skill range combines with online only", function()
+            loadAddon(skilledGuild())
+            local pane = openProfessions()
+            chooseProfession(pane, "Mining")
+            type_(pane.minSkillBox, "100")
+            assertEqual(rowNames(pane), { "Miner", "Adept" })
+            checkOnline(pane, true)
+            assertEqual(rowNames(pane), { "Miner" })
+        end)
+
+        for _, mode in ipairs(MODES) do
+            it("Clear resets the skill range, profession and online only (" .. mode .. " client)", function()
+                loadAddon(skilledGuild({ dropdown = mode }))
+                local pane = openProfessions()
+                chooseProfession(pane, "Leatherworking")
+                type_(pane.minSkillBox, "100")
+                type_(pane.maxSkillBox, "200")
+                checkOnline(pane, true)
+                assertEqual(rowNames(pane), {})
+
+                click(pane.clearButton)
+
+                assertEqual(pane.minSkillBox.text, "")
+                assertEqual(pane.maxSkillBox.text, "")
+                assertEqual(pane.professionIndex, 1)
+                assertEqual(pane.onlineBox:GetChecked(), false)
+                assertEqual(displayedText(pane.selectors.profession), "Any profession")
+                assertEqual(pane.summary.text, "5 players found")
+            end)
+        end
+
+        it("skill ranges work on the demo roster and agree with the engine", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local pane = openProfessions()
+            local members = ns.Demo.Generate()
+            for _, def in ipairs(ns.Config.PROFESSIONS) do
+                chooseProfession(pane, def.label)
+                type_(pane.minSkillBox, "226")
+                type_(pane.maxSkillBox, "300")
+                local expected = #ns.Census.Find(members,
+                    { profession = def.key, minSkill = 226, maxSkill = 300 }, ns.settings)
+                assert(expected > 0, def.label .. " should have high-skill demo members")
+                assertEqual(#visibleRows(pane), math.min(expected, 300))
+                click(pane.clearButton)
+                assertEqual(pane.minSkillBox.text, "")
+            end
+        end)
+
         it("every profession has results in the demo roster, and online only narrows them", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")

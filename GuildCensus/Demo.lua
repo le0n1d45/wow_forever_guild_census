@@ -36,7 +36,7 @@ local STREAMS = {
 local PROFESSION_WORDS = {
     mining = { "Mining", "miner" }, blacksmith = { "BS", "Blacksmith" },
     herbalism = { "Herbalism", "herb" }, alchemy = { "Alchemy", "alch" },
-    skinning = { "Skinning", "skinner" }, leatherworking = { "LW", "Leatherworking" },
+    skinning = { "Skinning", "skinner" }, leatherworking = { "LW", "Leatherworker" },
     enchanting = { "Ench", "Enchanting" }, engineering = { "Engi", "Engineering" },
     tailor = { "Tailor", "Tailoring" },
 }
@@ -51,6 +51,9 @@ local PROFESSION_COMBOS = {
 }
 
 local SEPARATORS = { ", ", " / ", " - ", " " }
+
+-- How a skill level is written after a profession ("LW 260", "Mining (300)", ...).
+local SKILL_FORMATS = { " %d", " (%d)", ": %d", "-%d" }
 
 -- Members given deliberately contradictory notes so the Logs tab has entries
 -- (roughly one member in 25). A class means "make them this class".
@@ -122,6 +125,7 @@ local function buildStream(spec, streamIndex, count, rand, members)
     for k = 1, count do
         local classEntry = spec.classes[rand(#spec.classes)]
         local words = classEntry[2]
+        local level = k == count and 60 or 5 + math.floor((k - 1) * 56 / count)
 
         local parts = {}
         local roleWord = words[k % #words + 1]
@@ -129,7 +133,13 @@ local function buildStream(spec, streamIndex, count, rand, members)
         local combo = PROFESSION_COMBOS[(k * 5 + streamIndex * 3) % #PROFESSION_COMBOS + 1]
         for _, profession in ipairs(combo) do
             local spellings = PROFESSION_WORDS[profession]
-            parts[#parts + 1] = spellings[(k + #parts) % #spellings + 1]
+            local text = spellings[(k + #parts) % #spellings + 1]
+            -- About two in three members write their skill, roughly tracking their level.
+            if (k + #parts) % 3 ~= 0 then
+                local skill = math.min(300, math.max(1, math.floor(level * 4.6 + (k * 13 + #parts * 29) % 41)))
+                text = text .. string.format(SKILL_FORMATS[(k + #parts) % #SKILL_FORMATS + 1], skill)
+            end
+            parts[#parts + 1] = text
         end
         local note = table.concat(parts, SEPARATORS[k % #SEPARATORS + 1])
 
@@ -141,7 +151,7 @@ local function buildStream(spec, streamIndex, count, rand, members)
         end
 
         members[#members + 1] = {
-            level = k == count and 60 or 5 + math.floor((k - 1) * 56 / count),
+            level = level,
             classFile = classEntry[1],
             className = CLASS_NAMES[classEntry[1]],
             note = note,

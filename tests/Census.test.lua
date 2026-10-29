@@ -450,6 +450,95 @@ return function(ns)
                 { "Both", "Stitch" })
         end)
 
+        local smiths = {
+            member("Novice", 20, "WARRIOR", "LW 40", true),
+            member("Adept", 40, "WARRIOR", "LW 150, mining 120", false),
+            member("Master", 60, "PRIEST", "healer, LW 300, BS: 275", true),
+            member("Quiet", 55, "MAGE", "LW, mining", true),
+            member("Miner", 50, "ROGUE", "mining (225)", true),
+            member("None", 30, "DRUID", "resto", true),
+        }
+
+        it("reads skill levels from notes", function()
+            local rules = Census.Rules(Config.Defaults())
+            local a = Census.Analyze(smiths[3], rules)
+            local skills = {}
+            for _, hit in ipairs(a.professionHits) do skills[hit.key] = hit.skill end
+            assertEqual(skills, { leatherworking = 300, blacksmith = 275 })
+            assertEqual(Census.Analyze(smiths[4], rules).professionHits[1].skill, nil)
+        end)
+
+        it("filters a profession by skill range, inclusive", function()
+            assertEqual(names(Census.Find(smiths, { profession = "leatherworking", minSkill = 150 })),
+                { "Master", "Adept" })
+            assertEqual(names(Census.Find(smiths, { profession = "leatherworking", maxSkill = 150 })),
+                { "Adept", "Novice" })
+            assertEqual(names(Census.Find(smiths, { profession = "leatherworking", minSkill = 150, maxSkill = 150 })),
+                { "Adept" })
+            assertEqual(names(Census.Find(smiths, { profession = "leatherworking", minSkill = 41, maxSkill = 149 })), {})
+        end)
+
+        it("leaves out members who do not write their skill once a bound is set", function()
+            assertEqual(#Census.Find(smiths, { profession = "leatherworking" }), 4) -- no bound: Quiet is in
+            local inRange = names(Census.Find(smiths, { profession = "leatherworking", minSkill = 1 }))
+            assertEqual(inRange, { "Master", "Adept", "Novice" })
+        end)
+
+        it("applies the range to the chosen profession only", function()
+            -- Master is 300 in leatherworking and 275 in blacksmithing; Adept is 120 in mining.
+            assertEqual(names(Census.Find(smiths, { profession = "blacksmith", minSkill = 276 })), {})
+            assertEqual(names(Census.Find(smiths, { profession = "blacksmith", minSkill = 275 })), { "Master" })
+            assertEqual(names(Census.Find(smiths, { profession = "mining", minSkill = 200 })), { "Miner" })
+            assertEqual(names(Census.Find(smiths, { profession = "mining", maxSkill = 130 })), { "Adept" })
+        end)
+
+        it("without a profession, any detected profession's skill may satisfy the range", function()
+            assertEqual(names(Census.Find(smiths, { hasProfession = true, minSkill = 250 })), { "Master" })
+            assertEqual(names(Census.Find(smiths, { hasProfession = true, minSkill = 225 })),
+                { "Master", "Miner" })
+            assertEqual(names(Census.Find(smiths, { minSkill = 100, maxSkill = 130 })), { "Adept" })
+        end)
+
+        it("combines skill with online only, role and level range", function()
+            assertEqual(names(Census.Find(smiths, { profession = "leatherworking", minSkill = 100, onlineOnly = true })),
+                { "Master" })
+            assertEqual(names(Census.Find(smiths, { minSkill = 100, role = "healer" })), { "Master" })
+            assertEqual(names(Census.Find(smiths, { minSkill = 100, minLevel = 45 })), { "Master", "Miner" })
+        end)
+
+        it("matches nobody when minSkill is above maxSkill", function()
+            assertEqual(Census.Find(smiths, { profession = "leatherworking", minSkill = 200, maxSkill = 100 }), {})
+        end)
+
+        it("returns each profession with its skill", function()
+            local r = Census.Find(smiths, { profession = "blacksmith" })[1]
+            assertEqual(r.professions, { "Leatherworking", "Blacksmith" })
+            assertEqual(r.professionDetails, {
+                { key = "leatherworking", label = "Leatherworking", skill = 300 },
+                { key = "blacksmith", label = "Blacksmith", skill = 275 },
+            })
+            local quiet
+            for _, r in ipairs(Census.Find(smiths, { profession = "leatherworking" })) do
+                if r.name == "Quiet" then quiet = r end
+            end
+            -- no skill written: the detail has no skill field at all
+            assertEqual(quiet.professionDetails,
+                { { key = "leatherworking", label = "Leatherworking" }, { key = "mining", label = "Mining" } })
+        end)
+
+        it("uses custom profession keywords when reading skills", function()
+            local s = Config.Defaults()
+            s.professions.leatherworking = "hides"
+            local custom = { member("Tanner", 30, "ROGUE", "hides 200 LW 50") }
+            assertEqual(names(Census.Find(custom, { profession = "leatherworking", minSkill = 150 }, s)), { "Tanner" })
+        end)
+
+        it("does not change what the charts count", function()
+            local with = Census.Build({ member("A", 30, "MAGE", "LW 260") })
+            local without = Census.Build({ member("A", 30, "MAGE", "LW") })
+            assertEqual(with.professions, without.professions)
+        end)
+
         it("rejects an unknown profession", function()
             local ok, err = pcall(Census.Find, crew, { profession = "cooking" })
             assertEqual(ok, false)

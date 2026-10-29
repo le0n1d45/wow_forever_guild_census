@@ -74,8 +74,15 @@ Two tabs search the guild for people who fit a need. Both update as you change a
 - **Level:** a minimum and/or maximum level, inclusive; leave either empty for no limit.
 
 **Profession Finder** (`/gcensus professions`) is for finding a crafter. It only asks for a profession,
-because levels and roles don't matter when you want someone's profession. **Any profession** lists
-everyone with at least one profession.
+because player levels and roles don't matter when you want someone's profession. **Any profession**
+lists everyone with at least one profession. If players write their skill in their note, you can also
+filter by a **skill level** range (for example 225 to 300).
+
+Skill levels are read from the number written right after a profession keyword: `LW 260`, `BS: 310`,
+`Mining (300)` and `Alch-225` all work, and `LW 260/300` reads as 260. With a profession selected, that
+profession's skill must be in the range; with **Any profession**, any of the member's professions may
+be. Members who don't write a skill are left out as soon as you type a skill bound, since their skill
+is unknown. Skills show in the results next to the profession, for example `Leatherworking (260)`.
 
 Each row shows the player's name (in class colour), level, class, detected roles and professions,
 highest level first. Very large guilds show the first 300 matches.

@@ -123,7 +123,8 @@ end
 --   roleHits             note-detected roles: { key, label, word } (conflict checks use these)
 --   roles / roleKeys     roles to count: note hits plus DPS for pure-DPS classes, as a
 --                        label list and a { key = true } set
---   professionHits       { key, label, word }
+--   professionHits       { key, label, word, skill }; skill is the level written in
+--                        the note ("LW 260"), or nil when none is
 --   professionKeys       { key = true } set of the detected professions
 --   included             false when the alts/mains settings exclude this member
 function Census.Analyze(member, rules)
@@ -131,7 +132,7 @@ function Census.Analyze(member, rules)
     local mainWord = ns.Parser.FirstMatch(member.note, rules.identity.main)
     local altWord = ns.Parser.FirstMatch(member.note, rules.identity.alt)
     local roleHits = ns.Parser.Detect(member.note, rules.roles)
-    local professionHits = ns.Parser.Detect(member.note, rules.professions)
+    local professionHits = ns.Parser.Detect(member.note, rules.professions, true)
 
     local professionKeys = {}
     for _, hit in ipairs(professionHits) do
@@ -232,12 +233,17 @@ end
 --   maxLevel  inclusive upper bound; omit for no upper bound
 --   profession  a Config.PROFESSIONS key the member's note must list; omit for any
 --   hasProfession  true to require at least one detected profession (any of them)
+--   minSkill / maxSkill  inclusive bounds on a skill level written in the note
+--               ("LW 260"). With a profession, that profession's skill must fit;
+--               without one, any detected profession's skill may. Members whose
+--               skill isn't written are excluded once either bound is given.
 --   onlineOnly  true to return only members who are online (members whose online
 --               status is unknown are treated as offline)
 -- All given criteria must match. Members excluded by the alts/mains settings are never returned; members with
 -- logged conflicts still are (the log is informational). minLevel > maxLevel
 -- matches nobody. Results are sorted by level (highest first), then name.
--- Returns a list of { name, level, className, classFile, note, online, roles, professions }.
+-- Returns a list of { name, level, className, classFile, note, online, roles, professions,
+-- professionDetails }; professionDetails is { key, label, skill } per profession.
 function Census.Find(members, criteria, settings)
     criteria = criteria or {}
     if criteria.role and not labelFor(ns.Config.ROLES, criteria.role) then
@@ -251,6 +257,18 @@ function Census.Find(members, criteria, settings)
     local rules = Census.Rules(settings)
     local results = {}
 
+    local function skillFits(analysis)
+        if not criteria.minSkill and not criteria.maxSkill then return true end
+        for _, hit in ipairs(analysis.professionHits) do
+            if (not criteria.profession or hit.key == criteria.profession) and hit.skill
+                and (not criteria.minSkill or hit.skill >= criteria.minSkill)
+                and (not criteria.maxSkill or hit.skill <= criteria.maxSkill) then
+                return true
+            end
+        end
+        return false
+    end
+
     for _, member in ipairs(members) do
         local analysis = Census.Analyze(member, rules)
         local level = member.level
@@ -258,14 +276,16 @@ function Census.Find(members, criteria, settings)
             and (not criteria.role or analysis.roleKeys[criteria.role])
             and (not criteria.profession or analysis.professionKeys[criteria.profession])
             and (not criteria.hasProfession or #analysis.professionHits > 0)
+            and skillFits(analysis)
             and (not criteria.onlineOnly or member.online == true)
             and (not criteria.minLevel or (level and level >= criteria.minLevel))
             and (not criteria.maxLevel or (level and level <= criteria.maxLevel))
 
         if fits then
-            local professions = {}
+            local professions, professionDetails = {}, {}
             for _, hit in ipairs(analysis.professionHits) do
                 professions[#professions + 1] = hit.label
+                professionDetails[#professionDetails + 1] = { key = hit.key, label = hit.label, skill = hit.skill }
             end
             results[#results + 1] = {
                 name = member.name,
@@ -276,6 +296,7 @@ function Census.Find(members, criteria, settings)
                 online = member.online,
                 roles = analysis.roles,
                 professions = professions,
+                professionDetails = professionDetails,
             }
         end
     end

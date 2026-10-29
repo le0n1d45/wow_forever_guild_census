@@ -41,14 +41,40 @@ function Parser.ContainsAny(note, words)
     return Parser.FirstMatch(note, words) ~= nil
 end
 
--- Returns { key, label, word } for every rule with a keyword present in the
--- note, where `word` is the keyword that matched.
-function Parser.Detect(note, rules)
+-- Finds a skill level written right after any keyword, e.g. "LW 260", "BS: 310",
+-- "mining (300)" or "alch-225". Only spaces and : = - ( [ may sit between the keyword
+-- and the number, which must have 1-3 digits ("LW 260/300" reads as 260). Returns
+-- the first one found, or nil.
+function Parser.SkillAfter(note, words)
+    if type(note) ~= "string" or note == "" then return nil end
+    local lowered = string.lower(note)
+    for _, word in ipairs(words) do
+        local init = 1
+        while true do
+            local first, last = string.find(lowered, word, init, true)
+            if not first then break end
+            local digits = string.match(lowered, "^[%s:=%-%(%[]*(%d+)", last + 1)
+            if digits and #digits <= 3 and tonumber(digits) >= 1 then
+                return tonumber(digits)
+            end
+            init = first + 1
+        end
+    end
+    return nil
+end
+
+-- Returns { key, label, word, skill } for every rule with a keyword present in the
+-- note, where `word` is the keyword that matched. `skill` is only looked up (see
+-- Parser.SkillAfter) when `withSkill` is true, and is nil when none is written.
+function Parser.Detect(note, rules, withSkill)
     local hits = {}
     for _, rule in ipairs(rules) do
         local word = Parser.FirstMatch(note, rule.words)
         if word then
-            hits[#hits + 1] = { key = rule.key, label = rule.label, word = word }
+            hits[#hits + 1] = {
+                key = rule.key, label = rule.label, word = word,
+                skill = withSkill and Parser.SkillAfter(note, rule.words) or nil,
+            }
         end
     end
     return hits
