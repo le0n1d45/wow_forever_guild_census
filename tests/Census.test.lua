@@ -201,6 +201,39 @@ return function(ns)
             assertEqual(#census.conflicts, 1)
         end)
 
+        it("never drops conflicted members from the census (the log is informational)", function()
+            local census = Census.Build({
+                { name = "A", level = 60, classFile = "DRUID", className = "Druid", note = "mining skinning herb" },
+                { name = "B", level = 60, classFile = "MAGE", className = "Mage", note = "healer" },
+                { name = "C", level = 20, classFile = "PALADIN", className = "Paladin", note = "main, alt" },
+            })
+            assertEqual(#census.conflicts, 3)
+            assertEqual(census.total, 3)
+            -- all three detected professions are still counted
+            assertEqual(label(census.professions, "Mining"), 1)
+            assertEqual(label(census.professions, "Skinning"), 1)
+            assertEqual(label(census.professions, "Herbalism"), 1)
+            -- the impossible role is still counted, alongside the class's DPS default
+            assertEqual(label(census.roles, "Healer"), 1)
+            assertEqual(label(census.roles, "DPS"), 1)
+            -- and every member appears in the class and level charts
+            assertEqual(label(census.classes, "Druid") + label(census.classes, "Mage")
+                + label(census.classes, "Paladin"), 3)
+            assertEqual(label(census.levels, "51-60") + label(census.levels, "21-30")
+                + label(census.levels, "11-20"), 3)
+        end)
+
+        it("produces identical charts whether or not conflicts exist", function()
+            local conflicted = { name = "A", level = 60, classFile = "DRUID", className = "Druid", note = "mining skinning herb" }
+            local clean = { name = "A", level = 60, classFile = "DRUID", className = "Druid", note = "mining skinning herb" }
+            local a = Census.Build({ conflicted })
+            assertEqual(#a.conflicts, 1)
+            local b = Census.Build({ clean }, Config.Defaults())
+            assertEqual(a.professions, b.professions)
+            assertEqual(a.roles, b.roles)
+            assertEqual(a.total, b.total)
+        end)
+
         it("reports every conflict for a member and sorts by name", function()
             local census = Census.Build({
                 { name = "zed", level = 60, classFile = "MAGE", className = "Mage", note = "heal main alt" },
