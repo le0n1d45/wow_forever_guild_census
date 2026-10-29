@@ -16,6 +16,8 @@ It targets WoW Forever and also builds for Retail. Type `/gcensus` to open it.
 
 ## Features
 
+- **Role Finder and Profession Finder:** search the guild for a tank for a dungeon, or for a crafter
+  with a given skill level. See [Finder](#finder).
 - **Editable keyword lists:** the whole-word keywords used to spot roles, professions, and mains/alts are
   editable in the settings panel.
 - **Alts and mains:** leave out alts, or count only members whose note says they're a main.
@@ -73,6 +75,10 @@ Two tabs search the guild for people who fit a need. Both update as you change a
   dungeon guide (beta data, so they may change).
 - **Level:** a minimum and/or maximum level, inclusive; leave either empty for no limit.
 
+![The Role Finder looking for online tanks for Wailing Caverns](docs/GuildCensus_results_role_finder.png)
+
+*Online tanks for Wailing Caverns (levels 15-25): picking the dungeon filled in the level range.*
+
 **Profession Finder** (`/gcensus professions`) is for finding a crafter. It only asks for a profession,
 because player levels and roles don't matter when you want someone's profession. **Any profession**
 lists everyone with at least one profession. If players write their skill in their note, you can also
@@ -84,8 +90,13 @@ profession's skill must be in the range; with **Any profession**, any of the mem
 be. Members who don't write a skill are left out as soon as you type a skill bound, since their skill
 is unknown. Skills show in the results next to the profession, for example `Leatherworking (260)`.
 
-Each row shows the player's name (in class colour), level, class, detected roles and professions,
-highest level first. Very large guilds show the first 300 matches.
+![The Profession Finder listing online leatherworkers at skill 260 or higher](docs/GuildCensus_results_profession_finder.png)
+
+*Online leatherworkers with a written skill of 260 or higher. The maximum skill is left empty, so there is
+no upper limit.*
+
+Each row shows the player's name (in class colour), level, class, detected roles and professions
+(with their skill, when written), highest level first. Very large guilds show the first 300 matches.
 
 Both use exactly the same detection and settings as the charts, so warlocks, hunters, mages and rogues
 always count as DPS, and your alts/mains choices apply. Members with conflicts in the Logs tab are still
