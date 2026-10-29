@@ -31,8 +31,10 @@ end
 local Frame = class("Frame", extend(Region, {
     "SetMovable", "EnableMouse", "RegisterForDrag", "SetFrameStrata",
     "StartMoving", "StopMovingOrSizing", "RegisterEvent", "UnregisterEvent",
+    "SetAutoFocus", "SetMaxLetters", "SetCursorPosition", "ClearFocus",
+    "SetHeight", "SetScrollChild",
 }))
-local FontString = class("FontString", extend(Region, { "SetJustifyH" }))
+local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth" }))
 local Line = class("Line", extend(Region, { "SetThickness" }))
 
 local function track(obj)
@@ -44,6 +46,7 @@ end
 local function makeFontString()
     local fs = track(FontString())
     function fs:SetText(text) self.text = text end
+    function fs:GetStringHeight() return 14 end
     function fs:SetShown(shown) self.shown = shown end
     function fs:Show() self.shown = true end
     function fs:Hide() self.shown = false end
@@ -71,6 +74,10 @@ local function makeFrame(name, template)
     function f:IsShown() return self.shown end
     function f:CreateFontString() return makeFontString() end
     function f:CreateLine() return makeLine() end
+    function f:SetText(text) self.text = text end
+    function f:GetText() return self.text or "" end
+    function f:SetChecked(checked) self.checked = checked and true or false end
+    function f:GetChecked() return self.checked or false end
     if template == "BasicFrameTemplateWithInset" then
         f.TitleText = makeFontString()
     end
@@ -99,4 +106,13 @@ function InstallWowStub(options)
         return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, "", true, 0, m.classFile
     end
     C_GuildInfo = { GuildRoster = function() end }
+
+    -- Retail Settings API (canvas categories); records what the addon registers/opens.
+    Settings = {
+        RegisterCanvasLayoutCategory = function(panel, name)
+            return { panel = panel, name = name, GetID = function() return 42 end }
+        end,
+        RegisterAddOnCategory = function(category) Settings.registered = category end,
+        OpenToCategory = function(id) Settings.openedId = id end,
+    }
 end

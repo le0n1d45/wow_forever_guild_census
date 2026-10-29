@@ -39,12 +39,21 @@ function loadAddonFile(ns, name)
     chunk("GuildCensus", ns)
 end
 
-local ns = {}
-loadAddonFile(ns, "Parser.lua")
-loadAddonFile(ns, "Census.lua")
+-- Same order as the .toc.
+ADDON_FILES = {
+    "Config.lua", "Parser.lua", "Census.lua", "Demo.lua", "Roster.lua",
+    "PieChart.lua", "Logs.lua", "UI.lua", "Options.lua", "GuildCensus.lua",
+}
 
+local ns = {}
+for _, file in ipairs({ "Config.lua", "Parser.lua", "Census.lua", "Logs.lua" }) do
+    loadAddonFile(ns, file)
+end
+
+dofile("tests/Config.test.lua")(ns)
 dofile("tests/Parser.test.lua")(ns)
 dofile("tests/Census.test.lua")(ns)
+dofile("tests/Logs.test.lua")(ns)
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()

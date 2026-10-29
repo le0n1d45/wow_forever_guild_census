@@ -3,51 +3,62 @@ local _, ns = ...
 local Parser = {}
 ns.Parser = Parser
 
--- Keyword -> canonical name. Notes are tokenised on non-letters, so every
--- key must be a single lowercase word.
-local ROLE_KEYWORDS = {
-    tank = "tank", tanks = "tank", tanking = "tank", mt = "tank", ot = "tank",
-    heal = "healer", heals = "healer", healer = "healer", healers = "healer", healing = "healer",
-    dps = "dps", dd = "dps", damage = "dps",
-}
+-- "Tank, Bear ,,prot" -> { "tank", "bear", "prot" }
+function Parser.ParseList(text)
+    local words = {}
+    if type(text) ~= "string" then return words end
+    for item in string.gmatch(text, "[^,]+") do
+        local word = string.match(string.lower(item), "^%s*(.-)%s*$")
+        if word ~= "" then words[#words + 1] = word end
+    end
+    return words
+end
 
-local PROFESSION_KEYWORDS = {
-    alchemy = "Alchemy", alch = "Alchemy", alchemist = "Alchemy",
-    blacksmithing = "Blacksmithing", blacksmith = "Blacksmithing", bs = "Blacksmithing",
-    enchanting = "Enchanting", enchanter = "Enchanting", ench = "Enchanting",
-    engineering = "Engineering", engineer = "Engineering", eng = "Engineering", engi = "Engineering",
-    herbalism = "Herbalism", herbalist = "Herbalism", herb = "Herbalism", herbs = "Herbalism",
-    leatherworking = "Leatherworking", leatherworker = "Leatherworking", lw = "Leatherworking",
-    mining = "Mining", miner = "Mining",
-    skinning = "Skinning", skinner = "Skinning",
-    tailoring = "Tailoring", tailor = "Tailoring",
-    jewelcrafting = "Jewelcrafting", jewelcrafter = "Jewelcrafting", jc = "Jewelcrafting",
-    inscription = "Inscription", scribe = "Inscription",
-    cooking = "Cooking", cook = "Cooking",
-    fishing = "Fishing", fisher = "Fishing",
-}
+-- defs: ordered list of { key, label, default } (Config.ROLES / Config.PROFESSIONS)
+-- values: { [key] = "comma, separated" } from settings; a missing key uses the default.
+function Parser.Compile(defs, values)
+    local rules = {}
+    for _, def in ipairs(defs) do
+        local text = values and values[def.key]
+        if text == nil then text = def.default end
+        rules[#rules + 1] = { key = def.key, label = def.label, words = Parser.ParseList(text) }
+    end
+    return rules
+end
 
-Parser.ROLES = { "tank", "healer", "dps" }
+-- Returns the first keyword present in the note, or nil. Matching is a
+-- case-insensitive substring search, so "heal" matches "healer".
+function Parser.FirstMatch(note, words)
+    if type(note) ~= "string" or note == "" then return nil end
+    local lowered = string.lower(note)
+    for _, word in ipairs(words) do
+        if string.find(lowered, word, 1, true) then return word end
+    end
+    return nil
+end
 
-local function lookup(note, keywords)
-    local found, seen = {}, {}
-    if type(note) ~= "string" then return found end
-    for word in string.gmatch(string.lower(note), "%a+") do
-        local canonical = keywords[word]
-        if canonical and not seen[canonical] then
-            seen[canonical] = true
-            found[#found + 1] = canonical
+function Parser.ContainsAny(note, words)
+    return Parser.FirstMatch(note, words) ~= nil
+end
+
+-- Returns { key, label, word } for every rule with a keyword present in the
+-- note, where `word` is the keyword that matched.
+function Parser.Detect(note, rules)
+    local hits = {}
+    for _, rule in ipairs(rules) do
+        local word = Parser.FirstMatch(note, rule.words)
+        if word then
+            hits[#hits + 1] = { key = rule.key, label = rule.label, word = word }
         end
     end
-    return found
+    return hits
 end
 
--- Returns a list of distinct roles ("tank", "healer", "dps") found in a note.
-function Parser.ParseRoles(note)
-    return lookup(note, ROLE_KEYWORDS)
-end
-
--- Returns a list of distinct profession names found in a note.
-function Parser.ParseProfessions(note)
-    return lookup(note, PROFESSION_KEYWORDS)
+-- Returns just the labels of every matching rule.
+function Parser.Match(note, rules)
+    local labels = {}
+    for _, hit in ipairs(Parser.Detect(note, rules)) do
+        labels[#labels + 1] = hit.label
+    end
+    return labels
 end

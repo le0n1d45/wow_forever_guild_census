@@ -13,7 +13,8 @@ local NOTES = {
     "", "", "", "Tank", "Healer", "DPS", "dps",
     "Tank - Blacksmithing/Mining", "Healer, Alchemy + Herbalism",
     "DPS | Engineering", "LW / Skinning dps", "Tailoring, Enchanting",
-    "alt of Bob", "Healer/DPS Cooking", "tank Fishing", "Jewelcrafting dps",
+    "alt of Bob", "Main", "main - Healer, Alchemy", "Main tank, Mining",
+    "Main, alt of Bob", "Mining Skinning Herbalism dps", "healer", "Healer/DPS Cooking", "tank Fishing", "Jewelcrafting dps",
 }
 
 -- Deterministic fake roster so the same data renders every time (Park-Miller LCG).
@@ -28,6 +29,7 @@ function Demo.Generate(count, seed)
     for i = 1, count do
         local class = CLASSES[rand(#CLASSES)]
         members[i] = {
+            name = "Player" .. i,
             level = math.max(1, math.ceil(60 * (rand(1000) / 1000) ^ 0.6)),
             classFile = class[1],
             className = class[2],

@@ -1,14 +1,15 @@
 -- Headless UI tests: run the real addon files against the strict WoW stub.
 return function()
-    local function loadAddon()
-        InstallWowStub()
+    -- Loads the addon like the client does and fires ADDON_LOADED so settings initialise.
+    local function loadAddon(options)
+        InstallWowStub(options)
+        GuildCensusDB = nil
         local ns = {}
-        for _, file in ipairs({
-            "Parser.lua", "Census.lua", "Demo.lua", "Roster.lua",
-            "PieChart.lua", "UI.lua", "GuildCensus.lua",
-        }) do
+        for _, file in ipairs(ADDON_FILES) do
             loadAddonFile(ns, file)
         end
+        local frame = GuildCensusEventFrame
+        frame.scripts.OnEvent(frame, "ADDON_LOADED", "GuildCensus")
         return ns
     end
 
@@ -25,6 +26,15 @@ return function()
             end
         end
         return result
+    end
+
+    local function click(control)
+        control.scripts.OnClick(control)
+    end
+
+    local function type_(box, text)
+        box:SetText(text)
+        box.scripts.OnTextChanged(box, true)
     end
 
     describe("Demo.Generate", function()
@@ -44,7 +54,7 @@ return function()
                 assert(m.level >= 1 and m.level <= 60, "level out of range: " .. m.level)
                 assert(m.classFile and m.className and m.note)
             end
-            local census = ns.Census.Build(members)
+            local census = ns.Census.Build(members, ns.settings)
             assert(#census.roles > 0 and #census.professions > 0)
         end)
     end)
@@ -71,17 +81,13 @@ return function()
         end)
 
         it("reads the real roster API shape", function()
-            InstallWowStub({ guild = {
+            local ns = loadAddon({ guild = {
                 { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "healer" },
                 { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring" },
             } })
-            local ns = {}
-            for _, f in ipairs({ "Parser.lua", "Census.lua", "Demo.lua", "Roster.lua", "PieChart.lua", "UI.lua", "GuildCensus.lua" }) do
-                loadAddonFile(ns, f)
-            end
             assertEqual(ns.Roster.Read(), {
-                { level = 60, className = "Priest", classFile = "PRIEST", note = "healer" },
-                { level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring" },
+                { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "healer" },
+                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring" },
             })
             SlashCmdList["GUILDCENSUS"]("")
             assertEqual(GuildCensusWindow.summary.text, "2 guild members")
@@ -108,7 +114,7 @@ return function()
         it("pie slices span the circle in proportion to their counts", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
-            local census = ns.Census.Build(ns.Demo.Generate(80))
+            local census = ns.Census.Build(ns.Demo.Generate(80), ns.settings)
             for _, key in ipairs({ "roles", "professions", "classes", "levels" }) do
                 local chartRuns = runs(GuildCensusWindow.charts[key])
                 local slices = census[key]
@@ -135,6 +141,166 @@ return function()
                     assertEqual(line.startY, 0)
                 end
             end
+        end)
+    end)
+
+    describe("Census logs window (headless)", function()
+        it("the results window has a logs button showing the conflict count", function()
+            local ns = loadAddon({ guild = {
+                { name = "Bob-Realm", level = 60, className = "Mage", classFile = "MAGE", note = "healer" },
+                { name = "Amy-Realm", level = 60, className = "Druid", classFile = "DRUID", note = "tank heal dps" },
+            } })
+            SlashCmdList["GUILDCENSUS"]("")
+            assertEqual(GuildCensusWindow.logsButton.text, "Census Logs (1)")
+            assertEqual(#ns.UI.lastCensus.conflicts, 1)
+        end)
+
+        it("opens from the button, lists the conflict with its note, and toggles closed", function()
+            loadAddon({ guild = {
+                { name = "Bob-Realm", level = 60, className = "Mage", classFile = "MAGE", note = "healer" },
+            } })
+            SlashCmdList["GUILDCENSUS"]("")
+            click(GuildCensusWindow.logsButton)
+            local logs = GuildCensusLogsWindow
+            assertEqual(logs.shown, true)
+            assertEqual(logs.summary.text, "1 conflict among 1 guild members")
+            assert(logs.text.text:find("Bob", 1, true) and logs.text.text:find("Note: \"healer\"", 1, true),
+                logs.text.text)
+            click(GuildCensusWindow.logsButton)
+            assertEqual(logs.shown, false)
+        end)
+
+        it("says no conflicts when the guild is clean", function()
+            loadAddon({ guild = {
+                { name = "Amy", level = 60, className = "Druid", classFile = "DRUID", note = "tank heal dps" },
+            } })
+            SlashCmdList["GUILDCENSUS"]("")
+            click(GuildCensusWindow.logsButton)
+            assertEqual(GuildCensusLogsWindow.text.text, "No conflicts detected.")
+            assertEqual(GuildCensusWindow.logsButton.text, "Census Logs (0)")
+        end)
+
+        it("updates the open logs window when settings change", function()
+            loadAddon({ guild = {
+                { name = "Bob", level = 60, className = "Druid", classFile = "DRUID", note = "main alt" },
+            } })
+            SlashCmdList["GUILDCENSUS"]("")
+            click(GuildCensusWindow.logsButton)
+            assertEqual(GuildCensusLogsWindow.summary.text, "1 conflict among 1 guild members")
+            type_(GuildCensusOptionsPanel.controls.identity.alt, "twink")
+            assertEqual(GuildCensusLogsWindow.summary.text, "0 conflicts among 1 guild members")
+        end)
+
+        it("demo mode produces conflicts to inspect", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            assert(#ns.UI.lastCensus.conflicts > 0, "demo roster should contain conflicts")
+            click(GuildCensusWindow.logsButton)
+            assert(GuildCensusLogsWindow.text.text:find("Note:", 1, true))
+        end)
+    end)
+
+    describe("Options panel (headless)", function()
+        it("registers a canvas category with the Settings API", function()
+            loadAddon()
+            assert(Settings.registered, "category not registered")
+            assertEqual(Settings.registered.panel, GuildCensusOptionsPanel)
+        end)
+
+        it("/gcensus config opens the registered category", function()
+            loadAddon()
+            SlashCmdList["GUILDCENSUS"]("config")
+            assertEqual(Settings.openedId, 42)
+        end)
+
+        it("pre-populates every box with the default keyword lists", function()
+            local ns = loadAddon()
+            local c = GuildCensusOptionsPanel.controls
+            assertEqual(c.includeAlts.checked, true)
+            assertEqual(c.onlyMains.checked, false)
+            assertEqual(c.identity.main.text, "main")
+            assertEqual(c.identity.alt.text, "alt")
+            assertEqual(c.roles.tank.text, "tank,bear,prot")
+            assertEqual(c.roles.healer.text, "heal,resto,holy,disc")
+            assertEqual(c.roles.dps.text, ns.Config.ROLES[3].default)
+            for _, def in ipairs(ns.Config.PROFESSIONS) do
+                assertEqual(c.professions[def.key].text, def.default)
+            end
+        end)
+
+        it("typing in a box updates and persists the setting", function()
+            local ns = loadAddon()
+            type_(GuildCensusOptionsPanel.controls.roles.tank, "wall")
+            assertEqual(ns.settings.roles.tank, "wall")
+            assertEqual(GuildCensusDB.settings.roles.tank, "wall")
+        end)
+
+        it("ignores programmatic text changes (only user input is saved)", function()
+            local ns = loadAddon()
+            local box = GuildCensusOptionsPanel.controls.roles.tank
+            box:SetText("ignored")
+            box.scripts.OnTextChanged(box, false)
+            assertEqual(ns.settings.roles.tank, "tank,bear,prot")
+        end)
+
+        it("checkboxes update settings", function()
+            local ns = loadAddon()
+            local c = GuildCensusOptionsPanel.controls
+            c.includeAlts:SetChecked(false)
+            click(c.includeAlts)
+            c.onlyMains:SetChecked(true)
+            click(c.onlyMains)
+            assertEqual(ns.settings.includeAlts, false)
+            assertEqual(ns.settings.onlyMains, true)
+        end)
+
+        it("changing a setting refreshes an open window", function()
+            loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            assertEqual(GuildCensusWindow.summary.text, "80 guild members (demo data)")
+            local c = GuildCensusOptionsPanel.controls
+            c.includeAlts:SetChecked(false)
+            click(c.includeAlts)
+            local count = tonumber(GuildCensusWindow.summary.text:match("^(%d+) guild members"))
+            assert(count and count < 80, "expected fewer than 80 members, got " .. tostring(count))
+        end)
+
+        it("only-mains narrows the census to declared mains", function()
+            loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local c = GuildCensusOptionsPanel.controls
+            c.onlyMains:SetChecked(true)
+            click(c.onlyMains)
+            local count = tonumber(GuildCensusWindow.summary.text:match("^(%d+) guild members"))
+            assert(count and count > 0 and count < 80, "unexpected count " .. tostring(count))
+        end)
+
+        it("reset restores defaults and repopulates the boxes", function()
+            local ns = loadAddon()
+            local c = GuildCensusOptionsPanel.controls
+            type_(c.roles.tank, "wall")
+            type_(c.identity.alt, "twink")
+            c.includeAlts:SetChecked(false)
+            click(c.includeAlts)
+            click(c.reset)
+            assertEqual(c.roles.tank.text, "tank,bear,prot")
+            assertEqual(c.identity.alt.text, "alt")
+            assertEqual(c.includeAlts.checked, true)
+            assertEqual(ns.settings.roles.tank, "tank,bear,prot")
+            assertEqual(GuildCensusDB.settings, ns.Config.Defaults())
+        end)
+
+        it("keeps saved settings across a reload", function()
+            loadAddon()
+            type_(GuildCensusOptionsPanel.controls.roles.tank, "wall")
+            local saved = GuildCensusDB
+            InstallWowStub()
+            local ns = {}
+            for _, file in ipairs(ADDON_FILES) do loadAddonFile(ns, file) end
+            GuildCensusDB = saved
+            GuildCensusEventFrame.scripts.OnEvent(GuildCensusEventFrame, "ADDON_LOADED", "GuildCensus")
+            assertEqual(ns.settings.roles.tank, "wall")
+            assertEqual(GuildCensusOptionsPanel.controls.roles.tank.text, "wall")
         end)
     end)
 end

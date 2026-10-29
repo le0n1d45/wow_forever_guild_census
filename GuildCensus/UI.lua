@@ -31,6 +31,11 @@ local function build()
     f.summary = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     f.summary:SetPoint("TOPLEFT", 14, -34)
 
+    f.logsButton = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    f.logsButton:SetSize(130, 22)
+    f.logsButton:SetPoint("TOPRIGHT", -14, -30)
+    f.logsButton:SetScript("OnClick", function() ns.Logs.Toggle() end)
+
     f.charts = {}
     for i, def in ipairs(CHARTS) do
         local chart = ns.PieChart.Create(f, def.title, RADIUS)
@@ -46,16 +51,20 @@ function UI.Refresh()
 
     if not ns.demoMode and not IsInGuild() then
         window.summary:SetText("You are not in a guild.")
+        UI.lastCensus = ns.Census.Build({}, ns.settings)
         for _, chart in pairs(window.charts) do chart:SetData({}) end
-        return
+    else
+        local census = ns.Census.Build(ns.Roster.Read(), ns.settings)
+        UI.lastCensus = census
+        window.summary:SetText(string.format("%d guild members%s", census.total,
+            ns.demoMode and " (demo data)" or ""))
+        for key, chart in pairs(window.charts) do
+            chart:SetData(census[key])
+        end
     end
 
-    local census = ns.Census.Build(ns.Roster.Read())
-    window.summary:SetText(string.format("%d guild members%s", census.total,
-        ns.demoMode and " (demo data)" or ""))
-    for key, chart in pairs(window.charts) do
-        chart:SetData(census[key])
-    end
+    window.logsButton:SetText(string.format("Census Logs (%d)", #UI.lastCensus.conflicts))
+    ns.Logs.Refresh()
 end
 
 function UI.Show()

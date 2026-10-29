@@ -17,6 +17,8 @@ function handlers.ADDON_LOADED(loadedName)
         end
     end
     ns.db = GuildCensusDB
+    ns.settings = ns.Config.Init(GuildCensusDB)
+    ns.Options.Register()
 
     frame:UnregisterEvent("ADDON_LOADED")
 end
@@ -37,7 +39,12 @@ end
 SLASH_GUILDCENSUS1 = "/gcensus"
 SLASH_GUILDCENSUS2 = "/guildcensus"
 SlashCmdList["GUILDCENSUS"] = function(msg)
-    if strtrim(msg or ""):lower() == "demo" then
+    local command = strtrim(msg or ""):lower()
+    if command == "config" or command == "options" or command == "settings" then
+        ns.Options.Open()
+        return
+    end
+    if command == "demo" then
         ns.demoMode = not ns.demoMode
         ns.UI.Show()
         return

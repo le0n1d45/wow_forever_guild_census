@@ -1,10 +1,11 @@
-Okay, this will be a really simple addon.  
-  
-I want it to look at notes for players within the character's guild, and construct a pie chart of roles listed in those notes (tank, dps, healer).  
-  
-Also, I want a profession census based on the same note field for those players that have put their professions into their note.  
-  
-I also want a breakdown of class in another pit chart showing the number of each class.  
+we probably want a 'census logs' pane that can be opened from the results screen.
 
 
-Finally, initially, I want a pie chart showing the level distribution of all players in the guild.
+
+it should log any 'conflicts' that are detected from notes so we can hone our notes detection.
+
+
+
+things like "Bob is a main and an alt" or "Bob has 3 professions detected, not possible" and also show the note for the player that caused the detected conflict.  
+  
+having all three roles (tank, dps, and heal) is NOT a conflict, since some classes CAN perform all three.
