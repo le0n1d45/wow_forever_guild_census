@@ -10,21 +10,32 @@ permissions:
   actions: write # needed to delete old artifacts
 
 env:
-  ARTIFACT_PREFIX: GuildCensus-
-  KEEP_ARTIFACTS: 5
+  KEEP_ARTIFACTS: 5 # per flavor
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - flavor: Forever
+            interface: "16001"
+          - flavor: Retail
+            interface: "120105"
+    env:
+      ARTIFACT_PREFIX: GuildCensus-${{ matrix.flavor }}-
     steps:
       - uses: actions/checkout@v4
 
       # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
-      # zip's top-level folder without wrapping a zip inside a zip.
+      # zip's top-level folder without wrapping a zip inside a zip. The repo's TOC
+      # targets Forever; each flavor's copy gets its own Interface number.
       - name: Stage addon
         run: |
           mkdir dist
           cp -r GuildCensus dist/
+          sed -i 's/^## Interface:.*/## Interface: ${{ matrix.interface }}/' dist/GuildCensus/GuildCensus.toc
+          grep -x '## Interface: ${{ matrix.interface }}' dist/GuildCensus/GuildCensus.toc
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
