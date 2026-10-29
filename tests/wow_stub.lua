@@ -32,9 +32,9 @@ local Frame = class("Frame", extend(Region, {
     "SetMovable", "EnableMouse", "RegisterForDrag", "SetFrameStrata",
     "StartMoving", "StopMovingOrSizing", "RegisterEvent", "UnregisterEvent",
     "SetAutoFocus", "SetMaxLetters", "SetCursorPosition", "ClearFocus",
-    "SetHeight", "SetScrollChild",
+    "SetHeight", "SetWidth", "SetScrollChild", "SetNumeric",
 }))
-local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth" }))
+local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth", "SetWordWrap" }))
 local Line = class("Line", extend(Region, { "SetThickness" }))
 
 local function track(obj)
@@ -63,7 +63,16 @@ local function makeLine()
     return line
 end
 
+-- Which dropdown template the fake client provides: "modern", "legacy" or "none".
+-- Asking for a template the client lacks raises an error, like the real CreateFrame.
+local DROPDOWN_TEMPLATES = { WowStyle1DropdownTemplate = "modern", UIDropDownMenuTemplate = "legacy" }
+local dropdownMode = "modern"
+
 local function makeFrame(name, template)
+    local wanted = DROPDOWN_TEMPLATES[template]
+    if wanted and wanted ~= dropdownMode then
+        error("unknown template: " .. template, 2)
+    end
     local f = Frame({ name = name })
     f.shown = true
     if name then _G[name] = f end -- named frames become globals, as in the client
@@ -73,15 +82,16 @@ local function makeFrame(name, template)
     function f:Hide() self.shown = false end
     function f:IsShown() return self.shown end
     function f:SetShown(shown) self.shown = shown and true or false end
+    function f:SetupMenu(generator) self.menuGenerator = generator end
     f.enabled = true
     function f:Enable() self.enabled = true end
     function f:Disable() self.enabled = false end
     function f:CreateFontString() return makeFontString() end
     function f:CreateLine() return makeLine() end
     function f:SetText(text) self.text = text end
-    function f:GetText() return self.text or "" end
+    function f:GetText() return rawget(self, "text") or "" end
     function f:SetChecked(checked) self.checked = checked and true or false end
-    function f:GetChecked() return self.checked or false end
+    function f:GetChecked() return rawget(self, "checked") or false end
     if template == "BasicFrameTemplateWithInset" then
         f.TitleText = makeFontString()
     end
@@ -90,6 +100,19 @@ end
 
 function InstallWowStub(options)
     options = options or {}
+    dropdownMode = options.dropdown or "modern"
+
+    -- Legacy dropdown API, present only when the fake client is in "legacy" mode.
+    LegacyMenuItems = {}
+    UIDropDownMenu_SetWidth, UIDropDownMenu_SetText, UIDropDownMenu_Initialize = nil, nil, nil
+    UIDropDownMenu_CreateInfo, UIDropDownMenu_AddButton = nil, nil
+    if dropdownMode == "legacy" then
+        UIDropDownMenu_SetWidth = function() end
+        UIDropDownMenu_SetText = function(frame, text) frame.dropdownText = text end
+        UIDropDownMenu_Initialize = function(frame, initializer) frame.dropdownInit = initializer end
+        UIDropDownMenu_CreateInfo = function() return {} end
+        UIDropDownMenu_AddButton = function(info) LegacyMenuItems[#LegacyMenuItems + 1] = info end
+    end
     UIParent = makeFrame("UIParent")
     UISpecialFrames = {}
     SlashCmdList = {}

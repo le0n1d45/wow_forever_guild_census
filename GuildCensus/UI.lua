@@ -23,17 +23,18 @@ end
 
 -- Only one pane is shown at a time; hiding a pane also hides its pie lines,
 -- which would otherwise draw over other frames. The active tab is disabled.
+local TAB_NAMES = { "census", "finder", "logs" }
+
 local function selectTab(f, name)
-    local census = name == "census"
     f.activeTab = name
-    f.censusPane:SetShown(census)
-    f.logsPane:SetShown(not census)
-    if census then
-        f.censusTab:Disable()
-        f.logsTab:Enable()
-    else
-        f.censusTab:Enable()
-        f.logsTab:Disable()
+    for _, tabName in ipairs(TAB_NAMES) do
+        local active = tabName == name
+        f.panes[tabName]:SetShown(active)
+        if active then
+            f.tabs[tabName]:Disable()
+        else
+            f.tabs[tabName]:Enable()
+        end
     end
 end
 
@@ -59,10 +60,16 @@ local function build()
 
     f.TitleText:SetText("Guild Census")
 
-    f.censusTab = addTab(f, 14, 100, function() selectTab(f, "census") end)
-    f.censusTab:SetText("Census")
-    f.logsTab = addTab(f, 118, 120, function() selectTab(f, "logs") end)
-    f.logsTab:SetText("Logs")
+    f.tabs, f.panes = {}, {}
+    local function addNamedTab(name, text, x, width)
+        local tab = addTab(f, x, width, function() selectTab(f, name) end)
+        tab:SetText(text)
+        f.tabs[name] = tab
+        return tab
+    end
+    f.censusTab = addNamedTab("census", "Census", 14, 100)
+    f.finderTab = addNamedTab("finder", "Finder", 118, 100)
+    f.logsTab = addNamedTab("logs", "Logs", 222, 120)
 
     f.censusPane = addPane(f)
     f.summary = f.censusPane:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -76,7 +83,9 @@ local function build()
         f.charts[def.key] = chart
     end
 
+    f.finderPane = ns.Finder.Create(addPane(f))
     f.logsPane = ns.Logs.Create(addPane(f))
+    f.panes.census, f.panes.finder, f.panes.logs = f.censusPane, f.finderPane, f.logsPane
 
     selectTab(f, "census")
     return f
@@ -85,12 +94,14 @@ end
 function UI.Refresh()
     if not window or not window:IsShown() then return end
 
+    local members = {}
     if not ns.demoMode and not IsInGuild() then
         window.summary:SetText("You are not in a guild.")
         UI.lastCensus = ns.Census.Build({}, ns.settings)
         for _, chart in pairs(window.charts) do chart:SetData({}) end
     else
-        local census = ns.Census.Build(ns.Roster.Read(), ns.settings)
+        members = ns.Roster.Read()
+        local census = ns.Census.Build(members, ns.settings)
         UI.lastCensus = census
         window.summary:SetText(string.format("%d guild members%s", census.total,
             ns.demoMode and " (demo data)" or ""))
@@ -99,6 +110,7 @@ function UI.Refresh()
         end
     end
 
+    window.finderPane:Update(members, ns.settings)
     window.logsTab:SetText(string.format("Logs (%d)", #UI.lastCensus.conflicts))
     window.logsPane:Update(UI.lastCensus)
 end

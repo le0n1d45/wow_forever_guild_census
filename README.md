@@ -46,12 +46,24 @@ repository's TOC uses the Forever interface number.
 | Command | Does |
 | --- | --- |
 | `/gcensus` (or `/guildcensus`) | Open or close the census window |
+| `/gcensus finder` | Open the window on the Finder tab |
 | `/gcensus logs` | Open the window on the Logs tab |
 | `/gcensus config` | Open the settings panel |
 | `/gcensus demo` | Toggle an 80-member fake roster |
 
-The window has two tabs: **Census** (the four pie charts) and **Logs**. The Logs tab shows how many
-conflicts were found, for example `Logs (27)`.
+The window has three tabs: **Census** (the four pie charts), **Finder** and **Logs**. The Logs tab
+shows how many conflicts were found, for example `Logs (27)`.
+
+## Finder
+
+The Finder tab lists guild members who can fill a role you're looking for, for example a tank for a
+level 15-25 dungeon. Pick a role from the dropdown (Any, Tank, Healer or DPS) and optionally type a
+minimum and/or maximum level; the list updates as you change them. Each row shows the player's name
+(in class colour), level, class, detected roles and professions, highest level first.
+
+It uses exactly the same detection and settings as the charts, so warlocks, hunters, mages and rogues
+always count as DPS, and your alts/mains choices apply. Members with conflicts in the Logs tab are still
+listed. Very large guilds show the first 300 matches.
 
 ## Settings
 

@@ -42,7 +42,7 @@ end
 -- Same order as the .toc.
 ADDON_FILES = {
     "Config.lua", "Parser.lua", "Census.lua", "Demo.lua", "Roster.lua",
-    "PieChart.lua", "Logs.lua", "UI.lua", "Options.lua", "GuildCensus.lua",
+    "PieChart.lua", "Logs.lua", "Finder.lua", "UI.lua", "Options.lua", "GuildCensus.lua",
 }
 
 local ns = {}

@@ -258,6 +258,276 @@ return function()
         end)
     end)
 
+    describe("Finder tab (headless)", function()
+        local function finderGuild(extra)
+            local options = { guild = {
+                { name = "Tanky", level = 15, className = "Warrior", classFile = "WARRIOR", note = "Tank, mining" },
+                { name = "Bulwark", level = 20, className = "Paladin", classFile = "PALADIN", note = "prot / heal" },
+                { name = "Mender", level = 18, className = "Priest", classFile = "PRIEST", note = "healer" },
+                { name = "Zap", level = 18, className = "Mage", classFile = "MAGE", note = "" },
+                { name = "Elder", level = 60, className = "Warrior", classFile = "WARRIOR", note = "main tank" },
+            } }
+            for k, v in pairs(extra or {}) do options[k] = v end
+            return options
+        end
+
+        local function openFinder()
+            SlashCmdList["GUILDCENSUS"]("finder")
+            return GuildCensusWindow.finderPane
+        end
+
+        -- Reads the role dropdown's choices the way the client would, for any of the
+        -- three selector kinds. Returns a list of { text, selected(), choose() }.
+        local function roleChoices(pane)
+            local choices = {}
+            if pane.roleControl == "modern" then
+                local root = { CreateRadio = function(_, text, isSelected, setSelected)
+                    choices[#choices + 1] = { text = text, selected = isSelected, choose = setSelected }
+                end }
+                pane.roleWidget.menuGenerator(pane.roleWidget, root)
+            elseif pane.roleControl == "legacy" then
+                LegacyMenuItems = {}
+                pane.roleWidget.dropdownInit()
+                for _, info in ipairs(LegacyMenuItems) do
+                    choices[#choices + 1] = {
+                        text = info.text, selected = function() return info.checked end, choose = info.func,
+                    }
+                end
+            end
+            return choices
+        end
+
+        -- Picks a role by its label from the dropdown (or by cycling, in the fallback).
+        local function chooseRole(pane, label)
+            if pane.roleControl == "cycle" then
+                for _ = 1, 4 do
+                    if pane.roleWidget.text == label then return end
+                    click(pane.roleWidget)
+                end
+                error("role not reachable: " .. label)
+            end
+            for _, choice in ipairs(roleChoices(pane)) do
+                if choice.text == label then return choice.choose() end
+            end
+            error("no such role choice: " .. label)
+        end
+
+        local function visibleRows(pane)
+            local rows = {}
+            for _, row in ipairs(pane.rows) do
+                if row.shown then rows[#rows + 1] = row end
+            end
+            return rows
+        end
+
+        local function rowNames(pane)
+            local names = {}
+            for _, row in ipairs(visibleRows(pane)) do
+                names[#names + 1] = row.name.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+            end
+            return names
+        end
+
+        it("is a third tab and /gcensus finder opens straight to it", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            local w = GuildCensusWindow
+            assertEqual(w.shown, true)
+            assertEqual(w.activeTab, "finder")
+            assertEqual(pane.shown, true)
+            assertEqual(w.censusPane.shown, false)
+            assertEqual(w.logsPane.shown, false)
+            assertEqual(w.finderTab.enabled, false)
+            assertEqual(w.censusTab.enabled, true)
+        end)
+
+        it("switching tabs still shows exactly one pane", function()
+            loadAddon(finderGuild())
+            SlashCmdList["GUILDCENSUS"]("")
+            local w = GuildCensusWindow
+            for _, name in ipairs({ "finder", "logs", "census", "finder" }) do
+                click(w.tabs[name])
+                for other, pane in pairs(w.panes) do
+                    assertEqual(pane.shown, other == name)
+                end
+            end
+        end)
+
+        it("lists everyone by default, highest level first", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            assertEqual(pane.summary.text, "5 players found")
+            assertEqual(rowNames(pane), { "Elder", "Bulwark", "Mender", "Zap", "Tanky" })
+        end)
+
+        for _, mode in ipairs({ "modern", "legacy", "none" }) do
+            local expectedKind = mode == "none" and "cycle" or mode
+
+            describe("role selector (" .. mode .. " client)", function()
+                it("uses the " .. expectedKind .. " control", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    assertEqual(openFinder().roleControl, expectedKind)
+                end)
+
+                it("filters by role chosen from the selector", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    local pane = openFinder()
+                    chooseRole(pane, "Tank")
+                    assertEqual(pane.summary.text, "3 players found")
+                    assertEqual(rowNames(pane), { "Elder", "Bulwark", "Tanky" })
+                    chooseRole(pane, "Healer")
+                    assertEqual(rowNames(pane), { "Bulwark", "Mender" })
+                    chooseRole(pane, "DPS")
+                    assertEqual(rowNames(pane), { "Zap" })
+                    chooseRole(pane, "Any")
+                    assertEqual(pane.summary.text, "5 players found")
+                end)
+            end)
+        end
+
+        it("the dropdown offers exactly the fixed choices, in order, with no free text", function()
+            for _, mode in ipairs({ "modern", "legacy" }) do
+                loadAddon(finderGuild({ dropdown = mode }))
+                local texts = {}
+                for _, choice in ipairs(roleChoices(openFinder())) do texts[#texts + 1] = choice.text end
+                assertEqual(texts, { "Any", "Tank", "Healer", "DPS" })
+            end
+        end)
+
+        it("the dropdown marks the current role as selected", function()
+            for _, mode in ipairs({ "modern", "legacy" }) do
+                loadAddon(finderGuild({ dropdown = mode }))
+                local pane = openFinder()
+                local function selectedText()
+                    for _, choice in ipairs(roleChoices(pane)) do
+                        if choice.selected() then return choice.text end
+                    end
+                end
+                assertEqual(selectedText(), "Any")
+                chooseRole(pane, "Healer")
+                assertEqual(selectedText(), "Healer")
+            end
+        end)
+
+        it("the legacy dropdown's displayed text follows the selection", function()
+            loadAddon(finderGuild({ dropdown = "legacy" }))
+            local pane = openFinder()
+            assertEqual(pane.roleWidget.dropdownText, "Any")
+            chooseRole(pane, "Tank")
+            assertEqual(pane.roleWidget.dropdownText, "Tank")
+        end)
+
+        it("the fallback cycle button walks Any, Tank, Healer, DPS", function()
+            loadAddon(finderGuild({ dropdown = "none" }))
+            local pane = openFinder()
+            assertEqual(pane.roleWidget.text, "Any")
+            local seen = {}
+            for _ = 1, 4 do
+                click(pane.roleWidget)
+                seen[#seen + 1] = pane.roleWidget.text
+            end
+            assertEqual(seen, { "Tank", "Healer", "DPS", "Any" })
+        end)
+
+        it("shows level, class, roles and professions per row", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            chooseRole(pane, "Tank")
+            local last = visibleRows(pane)[3]
+            assertEqual(last.level.text, "15")
+            assertEqual(last.class.text, "Warrior")
+            assertEqual(last.roles.text, "Tank")
+            assertEqual(last.professions.text, "Mining")
+            assertEqual(visibleRows(pane)[2].roles.text, "Tank, Healer")
+        end)
+
+        it("colours names by class", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            assert(visibleRows(pane)[1].name.text:match("^|cff%x%x%x%x%x%x.+|r$"), visibleRows(pane)[1].name.text)
+        end)
+
+        it("filters by level range as boxes are typed", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            chooseRole(pane, "Tank")
+            type_(pane.minBox, "16")
+            assertEqual(rowNames(pane), { "Elder", "Bulwark" })
+            type_(pane.maxBox, "25")
+            assertEqual(rowNames(pane), { "Bulwark" })
+            assertEqual(pane.summary.text, "1 player found")
+            type_(pane.minBox, "")
+            type_(pane.maxBox, "")
+            assertEqual(pane.summary.text, "3 players found")
+        end)
+
+        it("shows a message and hides leftover rows when nobody matches", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            assertEqual(#visibleRows(pane), 5)
+            chooseRole(pane, "Tank")
+            assertEqual(#visibleRows(pane), 3) -- rows are pooled; extras are hidden, not destroyed
+            assertEqual(#pane.rows, 5)
+            chooseRole(pane, "Healer")
+            type_(pane.minBox, "50")
+            assertEqual(pane.summary.text, "No players found.")
+            assertEqual(#visibleRows(pane), 0)
+        end)
+
+        it("finds pure-DPS classes for DPS with no note", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            chooseRole(pane, "DPS")
+            assertEqual(rowNames(pane), { "Zap" })
+        end)
+
+        it("re-searches when settings change", function()
+            loadAddon(finderGuild())
+            local pane = openFinder()
+            chooseRole(pane, "Tank")
+            assertEqual(pane.summary.text, "3 players found")
+            type_(GuildCensusOptionsPanel.controls.roles.tank, "wall")
+            assertEqual(pane.summary.text, "No players found.")
+        end)
+
+        it("honours the alts filter from settings", function()
+            loadAddon({ guild = {
+                { name = "Main", level = 30, className = "Warrior", classFile = "WARRIOR", note = "tank" },
+                { name = "Spare", level = 30, className = "Warrior", classFile = "WARRIOR", note = "tank alt" },
+            } })
+            local pane = openFinder()
+            chooseRole(pane, "Tank")
+            assertEqual(pane.summary.text, "2 players found")
+            local c = GuildCensusOptionsPanel.controls
+            c.includeAlts:SetChecked(false)
+            click(c.includeAlts)
+            assertEqual(rowNames(pane), { "Main" })
+        end)
+
+        it("says no players when you are not in a guild", function()
+            loadAddon()
+            assertEqual(openFinder().summary.text, "No players found.")
+        end)
+
+        it("searches demo data and agrees with the engine", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local pane = openFinder()
+            assertEqual(pane.summary.text, "80 players found")
+            chooseRole(pane, "DPS")
+            local expected = #ns.Census.Find(ns.Demo.Generate(80), { role = "dps" }, ns.settings)
+            assertEqual(#visibleRows(pane), expected)
+        end)
+
+        it("caps the list for very large guilds", function()
+            local ns = loadAddon()
+            local pane = openFinder()
+            pane:Update(ns.Demo.Generate(350), ns.settings)
+            assertEqual(pane.summary.text, "Showing the first 300 of 350 players")
+            assertEqual(#visibleRows(pane), 300)
+        end)
+    end)
+
     describe("Options panel (headless)", function()
         it("registers a canvas category with the Settings API", function()
             loadAddon()
