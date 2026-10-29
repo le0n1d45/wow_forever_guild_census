@@ -7,7 +7,8 @@ ns.Dungeons = Dungeons
 --
 -- Source: Wowhead's "Dungeons Overview for Forever" guide (updated 2026-09-23, patch
 -- 1.60.1, beta): its table of new Forever dungeons and its level-range chart. Wowhead
--- notes the guide may change before release. Scarlet Monastery and Maraudon are listed
+-- notes the guide may change before release. The chart the ranges were read from is
+-- committed as WoW_Forever_Dungeon_Ranges.png in the repository root. Scarlet Monastery and Maraudon are listed
 -- per wing, and Blackrock Spire as Lower/Upper, as the chart does. Dire Maul is a
 -- single entry there.
 --
