@@ -63,8 +63,10 @@ Every control narrows the list, and the list updates as you change them:
 - **Profession:** a dropdown with Any plus each profession, to find someone with it (alone or
   combined with a role).
 - **Dungeon:** pick a dungeon to fill in its level range, or choose **Custom** and type a range.
-  Editing a level by hand switches the dungeon back to Custom. *The dungeon list and ranges are
-  provisional (classic-era values) until they are replaced with WoW Forever's.*
+  Editing a level by hand switches the dungeon back to Custom. Ranges come from Wowhead's Forever
+  dungeon guide (beta data, so they may change). *The list doesn't yet include the dungeons above
+  roughly level 50 (Sunken Temple, Blackrock, Dire Maul, Stratholme, Scholomance, ...); use Custom
+  for those until they're added.*
 - **Level:** a minimum and/or maximum level, inclusive; leave either empty for no limit.
 - **Online only:** limits any search to members who are online right now.
 
