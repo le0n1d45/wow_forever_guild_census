@@ -262,115 +262,131 @@ return function()
         end)
     end)
 
-    describe("Finder tab (headless)", function()
-        local function finderGuild(extra)
-            local options = { guild = {
-                { name = "Tanky", level = 15, className = "Warrior", classFile = "WARRIOR", note = "Tank, mining", online = true },
-                { name = "Bulwark", level = 20, className = "Paladin", classFile = "PALADIN", note = "prot / heal, mining", online = false },
-                { name = "Mender", level = 18, className = "Priest", classFile = "PRIEST", note = "healer, tailoring", online = true },
-                { name = "Zap", level = 18, className = "Mage", classFile = "MAGE", note = "", online = false },
-                { name = "Elder", level = 60, className = "Warrior", classFile = "WARRIOR", note = "main tank", online = true },
-            } }
-            for k, v in pairs(extra or {}) do options[k] = v end
-            return options
-        end
+    -- Shared helpers for the two finder tabs. -------------------------------------
+    local function finderGuild(extra)
+        local options = { guild = {
+            { name = "Tanky", level = 15, className = "Warrior", classFile = "WARRIOR", note = "Tank, mining", online = true },
+            { name = "Bulwark", level = 20, className = "Paladin", classFile = "PALADIN", note = "prot / heal, mining", online = false },
+            { name = "Mender", level = 18, className = "Priest", classFile = "PRIEST", note = "healer, tailoring", online = true },
+            { name = "Zap", level = 18, className = "Mage", classFile = "MAGE", note = "", online = false },
+            { name = "Elder", level = 60, className = "Warrior", classFile = "WARRIOR", note = "main tank", online = true },
+        } }
+        for k, v in pairs(extra or {}) do options[k] = v end
+        return options
+    end
 
-        local function openFinder()
-            SlashCmdList["GUILDCENSUS"]("finder")
-            return GuildCensusWindow.finderPane
-        end
+    local function openRoles()
+        SlashCmdList["GUILDCENSUS"]("roles")
+        return GuildCensusWindow.rolesPane
+    end
 
-        -- Reads a selector's choices the way the client would, for any of the three
-        -- selector kinds. Returns a list of { text, selected(), choose() }.
-        -- `root` optionally replaces the fake menu root (modern selectors only).
-        local function choicesOf(selector, root)
-            local choices = {}
-            if selector.kind == "modern" then
-                root = root or {}
-                root.CreateRadio = function(_, text, isSelected, setSelected)
-                    choices[#choices + 1] = { text = text, selected = isSelected, choose = setSelected }
-                end
-                selector.widget.menuGenerator(selector.widget, root)
-            elseif selector.kind == "legacy" then
-                LegacyMenuItems = {}
-                selector.widget.dropdownInit()
-                for _, info in ipairs(LegacyMenuItems) do
-                    choices[#choices + 1] = {
-                        text = info.text, selected = function() return info.checked end, choose = info.func,
-                    }
-                end
+    local function openProfessions()
+        SlashCmdList["GUILDCENSUS"]("professions")
+        return GuildCensusWindow.professionsPane
+    end
+
+    -- Reads a selector's choices the way the client would, for any of the three
+    -- selector kinds. Returns a list of { text, selected(), choose() }.
+    -- `root` optionally replaces the fake menu root (modern selectors only).
+    local function choicesOf(selector, root)
+        local choices = {}
+        if selector.kind == "modern" then
+            root = root or {}
+            root.CreateRadio = function(_, text, isSelected, setSelected)
+                choices[#choices + 1] = { text = text, selected = isSelected, choose = setSelected }
             end
-            return choices
-        end
-
-        local function textsOf(selector)
-            local texts = {}
-            for _, choice in ipairs(choicesOf(selector)) do texts[#texts + 1] = choice.text end
-            return texts
-        end
-
-        local function selectedText(selector)
-            for _, choice in ipairs(choicesOf(selector)) do
-                if choice.selected() then return choice.text end
+            selector.widget.menuGenerator(selector.widget, root)
+        elseif selector.kind == "legacy" then
+            LegacyMenuItems = {}
+            selector.widget.dropdownInit()
+            for _, info in ipairs(LegacyMenuItems) do
+                choices[#choices + 1] = {
+                    text = info.text, selected = function() return info.checked end, choose = info.func,
+                }
             end
         end
+        return choices
+    end
 
-        -- Picks an option by label (or by cycling, in the fallback).
-        local function choose(selector, label)
-            if selector.kind == "cycle" then
-                for _ = 1, 40 do
-                    if selector.widget.text == label then return end
-                    click(selector.widget)
-                end
-                error("option not reachable: " .. label)
-            end
-            for _, choice in ipairs(choicesOf(selector)) do
-                if choice.text == label then return choice.choose() end
-            end
-            error("no such choice: " .. label)
+    local function textsOf(selector)
+        local texts = {}
+        for _, choice in ipairs(choicesOf(selector)) do texts[#texts + 1] = choice.text end
+        return texts
+    end
+
+    local function selectedText(selector)
+        for _, choice in ipairs(choicesOf(selector)) do
+            if choice.selected() then return choice.text end
         end
+    end
 
+    -- Picks an option by label (or by cycling, in the fallback).
+    local function choose(selector, label)
+        if selector.kind == "cycle" then
+            for _ = 1, 40 do
+                if selector.widget.text == label then return end
+                click(selector.widget)
+            end
+            error("option not reachable: " .. label)
+        end
+        for _, choice in ipairs(choicesOf(selector)) do
+            if choice.text == label then return choice.choose() end
+        end
+        error("no such choice: " .. label)
+    end
+
+    -- What the selector currently displays, whichever kind it is.
+    local function displayedText(selector)
+        if selector.kind == "legacy" then return selector.widget.dropdownText end
+        if selector.kind == "cycle" then return selector.widget.text end
+        return selectedText(selector)
+    end
+
+    local function visibleRows(pane)
+        local rows = {}
+        for _, row in ipairs(pane.rows) do
+            if row.shown then rows[#rows + 1] = row end
+        end
+        return rows
+    end
+
+    local function rowNames(pane)
+        local names = {}
+        for _, row in ipairs(visibleRows(pane)) do
+            names[#names + 1] = row.name.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        end
+        return names
+    end
+
+    local function checkOnline(pane, checked)
+        pane.onlineBox:SetChecked(checked)
+        click(pane.onlineBox)
+    end
+
+    local MODES = { "modern", "legacy", "none" }
+    local function kindFor(mode) return mode == "none" and "cycle" or mode end
+
+    describe("Role Finder tab (headless)", function()
         local function chooseRole(pane, label) choose(pane.selectors.role, label) end
 
-        local function visibleRows(pane)
-            local rows = {}
-            for _, row in ipairs(pane.rows) do
-                if row.shown then rows[#rows + 1] = row end
+        it("/gcensus roles and /gcensus finder both open it", function()
+            for _, command in ipairs({ "roles", "finder" }) do
+                loadAddon(finderGuild())
+                SlashCmdList["GUILDCENSUS"](command)
+                local w = GuildCensusWindow
+                assertEqual(w.shown, true)
+                assertEqual(w.activeTab, "roles")
+                assertEqual(w.rolesPane.shown, true)
+                assertEqual(w.rolesTab.enabled, false)
+                assertEqual(w.censusTab.enabled, true)
             end
-            return rows
-        end
-
-        local function rowNames(pane)
-            local names = {}
-            for _, row in ipairs(visibleRows(pane)) do
-                names[#names + 1] = row.name.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-            end
-            return names
-        end
-
-        local function checkOnline(pane, checked)
-            pane.onlineBox:SetChecked(checked)
-            click(pane.onlineBox)
-        end
-
-        it("is a third tab and /gcensus finder opens straight to it", function()
-            loadAddon(finderGuild())
-            local pane = openFinder()
-            local w = GuildCensusWindow
-            assertEqual(w.shown, true)
-            assertEqual(w.activeTab, "finder")
-            assertEqual(pane.shown, true)
-            assertEqual(w.censusPane.shown, false)
-            assertEqual(w.logsPane.shown, false)
-            assertEqual(w.finderTab.enabled, false)
-            assertEqual(w.censusTab.enabled, true)
         end)
 
-        it("switching tabs still shows exactly one pane", function()
+        it("switching between the four tabs shows exactly one pane", function()
             loadAddon(finderGuild())
             SlashCmdList["GUILDCENSUS"]("")
             local w = GuildCensusWindow
-            for _, name in ipairs({ "finder", "logs", "census", "finder" }) do
+            for _, name in ipairs({ "roles", "professions", "logs", "census", "professions", "roles" }) do
                 click(w.tabs[name])
                 for other, pane in pairs(w.panes) do
                     assertEqual(pane.shown, other == name)
@@ -380,26 +396,34 @@ return function()
 
         it("lists everyone by default, highest level first", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             assertEqual(pane.summary.text, "5 players found")
             assertEqual(rowNames(pane), { "Elder", "Bulwark", "Mender", "Zap", "Tanky" })
         end)
 
-        for _, mode in ipairs({ "modern", "legacy", "none" }) do
-            local expectedKind = mode == "none" and "cycle" or mode
+        it("has role and dungeon selectors but no profession controls", function()
+            loadAddon(finderGuild())
+            local pane = openRoles()
+            assert(pane.selectors.role and pane.selectors.dungeon)
+            assertEqual(pane.selectors.profession, nil)
+            local criteria = pane:Criteria()
+            assertEqual(criteria.profession, nil)
+            assertEqual(criteria.hasProfession, nil)
+        end)
 
+        for _, mode in ipairs(MODES) do
             describe("selectors (" .. mode .. " client)", function()
-                it("all three use the " .. expectedKind .. " control", function()
+                it("both use the " .. kindFor(mode) .. " control", function()
                     loadAddon(finderGuild({ dropdown = mode }))
-                    local pane = openFinder()
-                    for _, name in ipairs({ "role", "profession", "dungeon" }) do
-                        assertEqual(pane.selectors[name].kind, expectedKind)
+                    local pane = openRoles()
+                    for _, name in ipairs({ "role", "dungeon" }) do
+                        assertEqual(pane.selectors[name].kind, kindFor(mode))
                     end
                 end)
 
                 it("filters by role chosen from the selector", function()
                     loadAddon(finderGuild({ dropdown = mode }))
-                    local pane = openFinder()
+                    local pane = openRoles()
                     chooseRole(pane, "Tank")
                     assertEqual(pane.summary.text, "3 players found")
                     assertEqual(rowNames(pane), { "Elder", "Bulwark", "Tanky" })
@@ -411,45 +435,71 @@ return function()
                     assertEqual(pane.summary.text, "5 players found")
                 end)
 
-                it("filters by profession chosen from the selector", function()
-                    loadAddon(finderGuild({ dropdown = mode }))
-                    local pane = openFinder()
-                    choose(pane.selectors.profession, "Mining")
-                    assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
-                    choose(pane.selectors.profession, "Tailor")
-                    assertEqual(rowNames(pane), { "Mender" })
-                    choose(pane.selectors.profession, "Any")
-                    assertEqual(pane.summary.text, "5 players found")
-                end)
-
                 it("a dungeon fills in the level range and filters by it", function()
                     loadAddon(finderGuild({ dropdown = mode }))
-                    local pane = openFinder()
+                    local pane = openRoles()
                     choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
                     assertEqual(pane.minBox.text, "15")
                     assertEqual(pane.maxBox.text, "20")
                     assertEqual(rowNames(pane), { "Bulwark", "Mender", "Zap", "Tanky" })
                 end)
+
+                it("Clear puts everything back to its defaults", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    local pane = openRoles()
+                    chooseRole(pane, "Tank")
+                    choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
+                    checkOnline(pane, true)
+                    assertEqual(rowNames(pane), { "Tanky" })
+
+                    click(pane.clearButton)
+
+                    assertEqual(pane.roleIndex, 1)
+                    assertEqual(pane.dungeonIndex, 1)
+                    assertEqual(pane.minBox.text, "")
+                    assertEqual(pane.maxBox.text, "")
+                    assertEqual(pane.onlineOnly, false)
+                    assertEqual(pane.onlineBox:GetChecked(), false)
+                    assertEqual(displayedText(pane.selectors.role), "Any")
+                    assertEqual(displayedText(pane.selectors.dungeon), "Custom")
+                    assertEqual(pane.summary.text, "5 players found")
+                    assertEqual(rowNames(pane), { "Elder", "Bulwark", "Mender", "Zap", "Tanky" })
+                end)
             end)
         end
+
+        it("Clear refreshes the modern dropdowns so they show the defaults again", function()
+            loadAddon(finderGuild({ dropdown = "modern" }))
+            local pane = openRoles()
+            local role, dungeon = pane.selectors.role.widget, pane.selectors.dungeon.widget
+            local before = { rawget(role, "menuGenerations") or 0, rawget(dungeon, "menuGenerations") or 0 }
+            click(pane.clearButton)
+            assertEqual(rawget(role, "menuGenerations"), before[1] + 1)
+            assertEqual(rawget(dungeon, "menuGenerations"), before[2] + 1)
+        end)
+
+        it("Clear also removes hand-typed levels and is harmless when already default", function()
+            loadAddon(finderGuild())
+            local pane = openRoles()
+            click(pane.clearButton)
+            assertEqual(pane.summary.text, "5 players found")
+            type_(pane.minBox, "30")
+            assertEqual(rowNames(pane), { "Elder" })
+            click(pane.clearButton)
+            assertEqual(pane.minBox.text, "")
+            assertEqual(pane.summary.text, "5 players found")
+        end)
 
         it("the role dropdown offers exactly the fixed choices, in order, with no free text", function()
             for _, mode in ipairs({ "modern", "legacy" }) do
                 loadAddon(finderGuild({ dropdown = mode }))
-                assertEqual(textsOf(openFinder().selectors.role), { "Any", "Tank", "Healer", "DPS" })
+                assertEqual(textsOf(openRoles().selectors.role), { "Any", "Tank", "Healer", "DPS" })
             end
-        end)
-
-        it("the profession dropdown offers Any plus every configured profession", function()
-            local ns = loadAddon(finderGuild())
-            local expected = { "Any" }
-            for _, def in ipairs(ns.Config.PROFESSIONS) do expected[#expected + 1] = def.label end
-            assertEqual(textsOf(openFinder().selectors.profession), expected)
         end)
 
         it("the dungeon dropdown offers Custom plus every dungeon with its level range", function()
             local ns = loadAddon(finderGuild())
-            local texts = textsOf(openFinder().selectors.dungeon)
+            local texts = textsOf(openRoles().selectors.dungeon)
             assertEqual(#texts, #ns.Dungeons.LIST + 1)
             assertEqual(texts[1], "Custom")
             assertEqual(texts[2], "Ragefire Chasm (13-18)") -- sorted by minimum level, then name
@@ -462,7 +512,7 @@ return function()
 
         it("long menus ask for scrolling and short ones do not", function()
             local ns = loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             local scroll = {}
             local function root(name)
                 return { SetScrollMode = function(_, extent) scroll[name] = extent end }
@@ -477,18 +527,16 @@ return function()
         it("the dropdowns mark the current choice as selected", function()
             for _, mode in ipairs({ "modern", "legacy" }) do
                 loadAddon(finderGuild({ dropdown = mode }))
-                local pane = openFinder()
+                local pane = openRoles()
                 assertEqual(selectedText(pane.selectors.role), "Any")
                 chooseRole(pane, "Healer")
                 assertEqual(selectedText(pane.selectors.role), "Healer")
-                choose(pane.selectors.profession, "Mining")
-                assertEqual(selectedText(pane.selectors.profession), "Mining")
             end
         end)
 
         it("the legacy dropdown's displayed text follows the selection", function()
             loadAddon(finderGuild({ dropdown = "legacy" }))
-            local pane = openFinder()
+            local pane = openRoles()
             assertEqual(pane.selectors.role.widget.dropdownText, "Any")
             chooseRole(pane, "Tank")
             assertEqual(pane.selectors.role.widget.dropdownText, "Tank")
@@ -497,7 +545,7 @@ return function()
 
         it("the fallback cycle button walks Any, Tank, Healer, DPS", function()
             loadAddon(finderGuild({ dropdown = "none" }))
-            local widget = openFinder().selectors.role.widget
+            local widget = openRoles().selectors.role.widget
             assertEqual(widget.text, "Any")
             local seen = {}
             for _ = 1, 4 do
@@ -507,49 +555,35 @@ return function()
             assertEqual(seen, { "Tank", "Healer", "DPS", "Any" })
         end)
 
-        it("combines role and profession", function()
-            loadAddon(finderGuild())
-            local pane = openFinder()
-            chooseRole(pane, "Tank")
-            choose(pane.selectors.profession, "Mining")
-            assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
-            chooseRole(pane, "Healer")
-            assertEqual(rowNames(pane), { "Bulwark" })
-            choose(pane.selectors.profession, "Tailor")
-            assertEqual(rowNames(pane), { "Mender" })
-        end)
-
         it("online only limits every search to online members", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             checkOnline(pane, true)
             assertEqual(rowNames(pane), { "Elder", "Mender", "Tanky" })
             chooseRole(pane, "Tank")
             assertEqual(rowNames(pane), { "Elder", "Tanky" })
-            choose(pane.selectors.profession, "Mining")
-            assertEqual(rowNames(pane), { "Tanky" })
             checkOnline(pane, false)
-            assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
+            assertEqual(rowNames(pane), { "Elder", "Bulwark", "Tanky" })
         end)
 
         it("online only combines with the level range", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             checkOnline(pane, true)
             type_(pane.minBox, "16")
             assertEqual(rowNames(pane), { "Elder", "Mender" })
         end)
 
-        it("is off by default", function()
+        it("online only is off by default", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             assertEqual(pane.onlineBox:GetChecked(), false)
             assertEqual(pane.onlineOnly, false)
         end)
 
         it("editing a level by hand switches the dungeon back to Custom", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
             assertEqual(selectedText(pane.selectors.dungeon), "Ruins of Lordaeron (15-20)")
             type_(pane.minBox, "17")
@@ -560,7 +594,7 @@ return function()
 
         it("setting level text from code does not reset the dungeon", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
             pane.minBox.scripts.OnTextChanged(pane.minBox, false)
             assertEqual(selectedText(pane.selectors.dungeon), "Ruins of Lordaeron (15-20)")
@@ -568,16 +602,16 @@ return function()
 
         it("choosing Custom after a dungeon keeps the current range", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
             choose(pane.selectors.dungeon, "Custom")
             assertEqual(pane.minBox.text, "15")
             assertEqual(pane.maxBox.text, "20")
         end)
 
-        it("a dungeon combines with role, profession and online only", function()
+        it("a dungeon combines with role and online only", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             choose(pane.selectors.dungeon, "Ruins of Lordaeron (15-20)")
             chooseRole(pane, "Tank")
             assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
@@ -587,7 +621,7 @@ return function()
 
         it("shows level, class, roles and professions per row", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             chooseRole(pane, "Tank")
             local last = visibleRows(pane)[3]
             assertEqual(last.level.text, "15")
@@ -599,13 +633,13 @@ return function()
 
         it("colours names by class", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             assert(visibleRows(pane)[1].name.text:match("^|cff%x%x%x%x%x%x.+|r$"), visibleRows(pane)[1].name.text)
         end)
 
         it("filters by level range as boxes are typed", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             chooseRole(pane, "Tank")
             type_(pane.minBox, "16")
             assertEqual(rowNames(pane), { "Elder", "Bulwark" })
@@ -619,7 +653,7 @@ return function()
 
         it("shows a message and hides leftover rows when nobody matches", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             assertEqual(#visibleRows(pane), 5)
             chooseRole(pane, "Tank")
             assertEqual(#visibleRows(pane), 3) -- rows are pooled; extras are hidden, not destroyed
@@ -632,14 +666,14 @@ return function()
 
         it("finds pure-DPS classes for DPS with no note", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             chooseRole(pane, "DPS")
             assertEqual(rowNames(pane), { "Zap" })
         end)
 
         it("re-searches when settings change", function()
             loadAddon(finderGuild())
-            local pane = openFinder()
+            local pane = openRoles()
             chooseRole(pane, "Tank")
             assertEqual(pane.summary.text, "3 players found")
             type_(GuildCensusOptionsPanel.controls.roles.tank, "wall")
@@ -651,7 +685,7 @@ return function()
                 { name = "Main", level = 30, className = "Warrior", classFile = "WARRIOR", note = "tank" },
                 { name = "Spare", level = 30, className = "Warrior", classFile = "WARRIOR", note = "tank alt" },
             } })
-            local pane = openFinder()
+            local pane = openRoles()
             chooseRole(pane, "Tank")
             assertEqual(pane.summary.text, "2 players found")
             local c = GuildCensusOptionsPanel.controls
@@ -662,13 +696,13 @@ return function()
 
         it("says no players when you are not in a guild", function()
             loadAddon()
-            assertEqual(openFinder().summary.text, "No players found.")
+            assertEqual(openRoles().summary.text, "No players found.")
         end)
 
         it("searches demo data, shows the row cap, and agrees with the engine", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
-            local pane = openFinder()
+            local pane = openRoles()
             -- An unfiltered search returns the whole 500-member roster, which is over the cap.
             assertEqual(pane.summary.text, "Showing the first 300 of " .. DEMO_COUNT .. " players")
             local members = ns.Demo.Generate()
@@ -683,16 +717,15 @@ return function()
             assert(online > 0 and online < dps, "online filter should narrow the demo results")
         end)
 
-        it("every demo filter combination is testable: dungeon + role + profession + online", function()
+        it("every demo role filter combination is testable: dungeon + role + online", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
-            local pane = openFinder()
+            local pane = openRoles()
             choose(pane.selectors.dungeon, "The Deadmines (18-23)")
             chooseRole(pane, "Tank")
-            choose(pane.selectors.profession, "Mining")
             checkOnline(pane, true)
             local expected = #ns.Census.Find(ns.Demo.Generate(),
-                { minLevel = 18, maxLevel = 23, role = "tank", profession = "mining", onlineOnly = true }, ns.settings)
+                { minLevel = 18, maxLevel = 23, role = "tank", onlineOnly = true }, ns.settings)
             assert(expected > 0, "this combination should have results in the demo roster")
             assertEqual(#visibleRows(pane), expected)
             assertEqual(pane.summary.text, expected .. (expected == 1 and " player found" or " players found"))
@@ -700,10 +733,172 @@ return function()
 
         it("caps the list for very large guilds", function()
             local ns = loadAddon()
-            local pane = openFinder()
+            local pane = openRoles()
             pane:Update(ns.Demo.Generate(350), ns.settings)
             assertEqual(pane.summary.text, "Showing the first 300 of 350 players")
             assertEqual(#visibleRows(pane), 300)
+        end)
+    end)
+
+    describe("Profession Finder tab (headless)", function()
+        local function chooseProfession(pane, label) choose(pane.selectors.profession, label) end
+
+        it("/gcensus professions opens it, as the only visible pane", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            local w = GuildCensusWindow
+            assertEqual(w.shown, true)
+            assertEqual(w.activeTab, "professions")
+            assertEqual(pane.shown, true)
+            assertEqual(w.rolesPane.shown, false)
+            assertEqual(w.censusPane.shown, false)
+            assertEqual(w.logsPane.shown, false)
+            assertEqual(w.professionsTab.enabled, false)
+        end)
+
+        it("only asks for a profession: no role, level or dungeon controls", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            assertEqual(pane.selectors.role, nil)
+            assertEqual(pane.selectors.dungeon, nil)
+            assert(pane.selectors.profession, "needs a profession selector")
+            assertEqual(rawget(pane, "minBox"), nil)
+            assertEqual(rawget(pane, "maxBox"), nil)
+            assertEqual(rawget(pane, "roleIndex"), nil)
+            local criteria = pane:Criteria()
+            assertEqual(criteria.role, nil)
+            assertEqual(criteria.minLevel, nil)
+            assertEqual(criteria.maxLevel, nil)
+        end)
+
+        it("by default lists everyone with at least one profession", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            assertEqual(pane.summary.text, "3 players found")
+            assertEqual(rowNames(pane), { "Bulwark", "Mender", "Tanky" })
+        end)
+
+        it("offers Any profession plus every configured profession", function()
+            for _, mode in ipairs({ "modern", "legacy" }) do
+                local ns = loadAddon(finderGuild({ dropdown = mode }))
+                local expected = { "Any profession" }
+                for _, def in ipairs(ns.Config.PROFESSIONS) do expected[#expected + 1] = def.label end
+                assertEqual(textsOf(openProfessions().selectors.profession), expected)
+            end
+        end)
+
+        for _, mode in ipairs(MODES) do
+            describe("selector (" .. mode .. " client)", function()
+                it("uses the " .. kindFor(mode) .. " control", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    assertEqual(openProfessions().selectors.profession.kind, kindFor(mode))
+                end)
+
+                it("filters by the chosen profession", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    local pane = openProfessions()
+                    chooseProfession(pane, "Mining")
+                    assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
+                    chooseProfession(pane, "Tailor")
+                    assertEqual(rowNames(pane), { "Mender" })
+                    chooseProfession(pane, "Alchemy")
+                    assertEqual(pane.summary.text, "No players found.")
+                    chooseProfession(pane, "Any profession")
+                    assertEqual(pane.summary.text, "3 players found")
+                end)
+
+                it("Clear puts everything back to its defaults", function()
+                    loadAddon(finderGuild({ dropdown = mode }))
+                    local pane = openProfessions()
+                    chooseProfession(pane, "Mining")
+                    checkOnline(pane, true)
+                    assertEqual(rowNames(pane), { "Tanky" })
+
+                    click(pane.clearButton)
+
+                    assertEqual(pane.professionIndex, 1)
+                    assertEqual(pane.onlineOnly, false)
+                    assertEqual(pane.onlineBox:GetChecked(), false)
+                    assertEqual(displayedText(pane.selectors.profession), "Any profession")
+                    assertEqual(rowNames(pane), { "Bulwark", "Mender", "Tanky" })
+                end)
+            end)
+        end
+
+        it("online only limits the search to online members", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            checkOnline(pane, true)
+            assertEqual(rowNames(pane), { "Mender", "Tanky" })
+            chooseProfession(pane, "Mining")
+            assertEqual(rowNames(pane), { "Tanky" })
+            checkOnline(pane, false)
+            assertEqual(rowNames(pane), { "Bulwark", "Tanky" })
+        end)
+
+        it("online only is off by default", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            assertEqual(pane.onlineBox:GetChecked(), false)
+            assertEqual(pane.onlineOnly, false)
+        end)
+
+        it("shows each player's level, class, roles and professions", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            chooseProfession(pane, "Tailor")
+            local row = visibleRows(pane)[1]
+            assertEqual(row.level.text, "18")
+            assertEqual(row.class.text, "Priest")
+            assertEqual(row.roles.text, "Healer")
+            assertEqual(row.professions.text, "Tailor")
+        end)
+
+        it("re-searches when settings change", function()
+            loadAddon(finderGuild())
+            local pane = openProfessions()
+            chooseProfession(pane, "Mining")
+            assertEqual(pane.summary.text, "2 players found")
+            type_(GuildCensusOptionsPanel.controls.professions.mining, "pickaxe")
+            assertEqual(pane.summary.text, "No players found.")
+        end)
+
+        it("honours the alts filter from settings", function()
+            loadAddon({ guild = {
+                { name = "Real", level = 30, className = "Warrior", classFile = "WARRIOR", note = "mining" },
+                { name = "Spare", level = 30, className = "Warrior", classFile = "WARRIOR", note = "mining alt" },
+            } })
+            local pane = openProfessions()
+            chooseProfession(pane, "Mining")
+            assertEqual(pane.summary.text, "2 players found")
+            local c = GuildCensusOptionsPanel.controls
+            c.includeAlts:SetChecked(false)
+            click(c.includeAlts)
+            assertEqual(rowNames(pane), { "Real" })
+        end)
+
+        it("says no players when you are not in a guild", function()
+            loadAddon()
+            assertEqual(openProfessions().summary.text, "No players found.")
+        end)
+
+        it("every profession has results in the demo roster, and online only narrows them", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local pane = openProfessions()
+            local members = ns.Demo.Generate()
+            for _, def in ipairs(ns.Config.PROFESSIONS) do
+                chooseProfession(pane, def.label)
+                local all = #ns.Census.Find(members, { profession = def.key }, ns.settings)
+                assert(all > 0, def.label .. " should have demo results")
+                assertEqual(#visibleRows(pane), math.min(all, 300))
+
+                checkOnline(pane, true)
+                local online = #ns.Census.Find(members, { profession = def.key, onlineOnly = true }, ns.settings)
+                assert(online > 0 and online < all, def.label .. " online filter should narrow the results")
+                assertEqual(#visibleRows(pane), math.min(online, 300))
+                click(pane.clearButton)
+            end
         end)
     end)
 

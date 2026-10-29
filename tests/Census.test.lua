@@ -438,6 +438,18 @@ return function(ns)
             assertEqual(names(Census.Find(custom, { profession = "mining" }, s)), { "Pick" })
         end)
 
+        it("hasProfession returns everyone with at least one detected profession", function()
+            assertEqual(names(Census.Find(crew, { hasProfession = true })),
+                { "Away", "Both", "Dig", "Stitch", "Unknown" })
+            assertEqual(names(Census.Find(crew, { hasProfession = true, onlineOnly = true })), { "Both", "Dig" })
+            assertEqual(#Census.Find(crew, { hasProfession = false }), #crew)
+        end)
+
+        it("a specific profession takes precedence over hasProfession", function()
+            assertEqual(names(Census.Find(crew, { profession = "tailor", hasProfession = true })),
+                { "Both", "Stitch" })
+        end)
+
         it("rejects an unknown profession", function()
             local ok, err = pcall(Census.Find, crew, { profession = "cooking" })
             assertEqual(ok, false)

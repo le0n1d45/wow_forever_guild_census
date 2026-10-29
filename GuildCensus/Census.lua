@@ -231,6 +231,7 @@ end
 --   minLevel  inclusive lower bound; omit for no lower bound
 --   maxLevel  inclusive upper bound; omit for no upper bound
 --   profession  a Config.PROFESSIONS key the member's note must list; omit for any
+--   hasProfession  true to require at least one detected profession (any of them)
 --   onlineOnly  true to return only members who are online (members whose online
 --               status is unknown are treated as offline)
 -- All given criteria must match. Members excluded by the alts/mains settings are never returned; members with
@@ -256,6 +257,7 @@ function Census.Find(members, criteria, settings)
         local fits = analysis.included
             and (not criteria.role or analysis.roleKeys[criteria.role])
             and (not criteria.profession or analysis.professionKeys[criteria.profession])
+            and (not criteria.hasProfession or #analysis.professionHits > 0)
             and (not criteria.onlineOnly or member.online == true)
             and (not criteria.minLevel or (level and level >= criteria.minLevel))
             and (not criteria.maxLevel or (level and level <= criteria.maxLevel))

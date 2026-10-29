@@ -23,7 +23,7 @@ end
 
 -- Only one pane is shown at a time; hiding a pane also hides its pie lines,
 -- which would otherwise draw over other frames. The active tab is disabled.
-local TAB_NAMES = { "census", "finder", "logs" }
+local TAB_NAMES = { "census", "roles", "professions", "logs" }
 
 local function selectTab(f, name)
     f.activeTab = name
@@ -68,8 +68,9 @@ local function build()
         return tab
     end
     f.censusTab = addNamedTab("census", "Census", 14, 100)
-    f.finderTab = addNamedTab("finder", "Finder", 118, 100)
-    f.logsTab = addNamedTab("logs", "Logs", 222, 120)
+    f.rolesTab = addNamedTab("roles", "Role Finder", 118, 110)
+    f.professionsTab = addNamedTab("professions", "Profession Finder", 232, 130)
+    f.logsTab = addNamedTab("logs", "Logs", 366, 100)
 
     f.censusPane = addPane(f)
     f.summary = f.censusPane:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -83,9 +84,11 @@ local function build()
         f.charts[def.key] = chart
     end
 
-    f.finderPane = ns.Finder.Create(addPane(f))
+    f.rolesPane = ns.Finder.CreateRoles(addPane(f))
+    f.professionsPane = ns.Finder.CreateProfessions(addPane(f))
     f.logsPane = ns.Logs.Create(addPane(f))
-    f.panes.census, f.panes.finder, f.panes.logs = f.censusPane, f.finderPane, f.logsPane
+    f.panes.census, f.panes.roles = f.censusPane, f.rolesPane
+    f.panes.professions, f.panes.logs = f.professionsPane, f.logsPane
 
     selectTab(f, "census")
     return f
@@ -110,7 +113,8 @@ function UI.Refresh()
         end
     end
 
-    window.finderPane:Update(members, ns.settings)
+    window.rolesPane:Update(members, ns.settings)
+    window.professionsPane:Update(members, ns.settings)
     window.logsTab:SetText(string.format("Logs (%d)", #UI.lastCensus.conflicts))
     window.logsPane:Update(UI.lastCensus)
 end

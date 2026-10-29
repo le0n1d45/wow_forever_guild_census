@@ -49,32 +49,38 @@ repository's TOC uses the Forever interface number.
 | Command | Does |
 | --- | --- |
 | `/gcensus` (or `/guildcensus`) | Open or close the census window |
-| `/gcensus finder` | Open the window on the Finder tab |
+| `/gcensus roles` (or `finder`) | Open the window on the Role Finder tab |
+| `/gcensus professions` | Open the window on the Profession Finder tab |
 | `/gcensus logs` | Open the window on the Logs tab |
 | `/gcensus config` | Open the settings panel |
 | `/gcensus demo` | Toggle a 500-member fake roster |
 
-The window has three tabs: **Census** (the four pie charts), **Finder** and **Logs**. The Logs tab
+The window has four tabs: **Census** (the four pie charts), **Role Finder**, **Profession Finder** and
+**Logs**. The Logs tab
 shows how many conflicts were found, for example `Logs (27)`.
 
 ## Finder
 
-The Finder tab lists guild members who can fill a need, for example a tank for a level 15-25 dungeon.
-Every control narrows the list, and the list updates as you change them:
+Two tabs search the guild for people who fit a need. Both update as you change a control, both have an
+**Online only** checkbox (limits the search to members who are online right now), and both have a
+**Clear** button that puts every control back to its default.
+
+**Role Finder** (`/gcensus roles`) is for filling a group, for example a tank for a level 15-25 dungeon:
 
 - **Role:** a dropdown with Any, Tank, Healer or DPS.
-- **Profession:** a dropdown with Any plus each profession, to find someone with it (alone or
-  combined with a role).
 - **Dungeon:** pick a dungeon to fill in its level range, or choose **Custom** and type a range.
   Editing a level by hand switches the dungeon back to Custom. Ranges come from Wowhead's Forever
   dungeon guide (beta data, so they may change).
 - **Level:** a minimum and/or maximum level, inclusive; leave either empty for no limit.
-- **Online only:** limits any search to members who are online right now.
+
+**Profession Finder** (`/gcensus professions`) is for finding a crafter. It only asks for a profession,
+because levels and roles don't matter when you want someone's profession. **Any profession** lists
+everyone with at least one profession.
 
 Each row shows the player's name (in class colour), level, class, detected roles and professions,
 highest level first. Very large guilds show the first 300 matches.
 
-It uses exactly the same detection and settings as the charts, so warlocks, hunters, mages and rogues
+Both use exactly the same detection and settings as the charts, so warlocks, hunters, mages and rogues
 always count as DPS, and your alts/mains choices apply. Members with conflicts in the Logs tab are still
 listed.
 

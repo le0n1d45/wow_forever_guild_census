@@ -1,5 +1,9 @@
 local addonName, ns = ...
 
+-- Two finders share the same results list, selectors, "Online only" checkbox and
+-- Clear button:
+--   Role Finder        role, dungeon / level range, online only
+--   Profession Finder  profession, online only (levels and roles don't matter there)
 local Finder = {}
 ns.Finder = Finder
 
@@ -123,9 +127,9 @@ local function createSelector(pane, spec)
     return selector
 end
 
--- "Any" first, then one choice per definition (a Config.ROLES / Config.PROFESSIONS list).
-local function choicesFor(defs)
-    local choices = { { label = "Any" } }
+-- `anyLabel` first, then one choice per definition (Config.ROLES / Config.PROFESSIONS).
+local function choicesFor(defs, anyLabel)
+    local choices = { { label = anyLabel } }
     for _, def in ipairs(defs) do
         choices[#choices + 1] = { key = def.key, label = def.label }
     end
@@ -143,17 +147,86 @@ local function dungeonChoices()
     return choices
 end
 
--- Fills `pane` (a Frame the caller has already sized and anchored) with the
--- finder: role / profession / dungeon / level / online controls above a scrolling
--- list of matching members. Call pane:Update(members, settings) whenever the
--- roster or settings change.
-function Finder.Create(pane)
-    local roleChoices = choicesFor(ns.Config.ROLES)
-    local professionChoices = choicesFor(ns.Config.PROFESSIONS)
+-- "Online only" checkbox: limits any search to members who are online.
+local function addOnlineBox(pane, x, y)
+    pane.onlineOnly = false
+    pane.onlineBox = CreateFrame("CheckButton", nil, pane, "UICheckButtonTemplate")
+    pane.onlineBox:SetPoint("TOPLEFT", x, y + 2)
+    pane.onlineBox:SetScript("OnClick", function(self)
+        pane.onlineOnly = self:GetChecked() and true or false
+        pane:Search()
+    end)
+    addLabel(pane, "Online only", x + 28, y - 6)
+end
+
+-- "Clear" button: puts every control back to its default (pane:Reset, defined by
+-- each finder).
+local function addClearButton(pane, x, y)
+    pane.clearButton = CreateFrame("Button", nil, pane, "UIPanelButtonTemplate")
+    pane.clearButton:SetSize(70, 22)
+    pane.clearButton:SetPoint("TOPLEFT", x, y)
+    pane.clearButton:SetText("Clear")
+    pane.clearButton:SetScript("OnClick", function() pane:Reset() end)
+end
+
+-- Column headers and the pooled, scrolling results list. The finder must define
+-- pane:Criteria() and pane.summary first. Adds pane:Search() and pane:Update().
+local function addResults(pane, headerY, scrollY)
+    for _, column in ipairs(COLUMNS) do
+        addLabel(pane, column.title, 14 + column.x, headerY, "GameFontNormal")
+    end
+
+    pane.scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate")
+    pane.scroll:SetPoint("TOPLEFT", 14, scrollY)
+    pane.scroll:SetPoint("BOTTOMRIGHT", -34, 14)
+    pane.content = CreateFrame("Frame", nil, pane.scroll)
+    pane.content:SetSize(796, 1)
+    pane.scroll:SetScrollChild(pane.content)
+    pane.rows = {}
+
+    function pane:Search()
+        local results = ns.Census.Find(self.members, self:Criteria(), self.settings)
+        local shown = math.min(#results, MAX_ROWS)
+
+        for i = 1, shown do
+            local row = self.rows[i] or addRow(self.content, i)
+            self.rows[i] = row
+            local r = results[i]
+            row.name:SetText(classColored(r.name or "?", r.classFile))
+            row.level:SetText(tostring(r.level or "?"))
+            row.class:SetText(r.className or "?")
+            row.roles:SetText(table.concat(r.roles, ", "))
+            row.professions:SetText(table.concat(r.professions, ", "))
+            row:Show()
+        end
+        for i = shown + 1, #self.rows do
+            self.rows[i]:Hide()
+        end
+        self.content:SetHeight(math.max(1, shown * ROW_HEIGHT))
+
+        if #results == 0 then
+            self.summary:SetText("No players found.")
+        elseif #results > shown then
+            self.summary:SetText(string.format("Showing the first %d of %d players", shown, #results))
+        else
+            self.summary:SetText(string.format("%d player%s found", #results, #results == 1 and "" or "s"))
+        end
+    end
+
+    -- Call whenever the roster or settings change.
+    function pane:Update(members, settings)
+        self.members, self.settings = members or {}, settings
+        self:Search()
+    end
+end
+
+-- Role Finder: fills `pane` (a Frame the caller has already sized and anchored) with
+-- role, dungeon / level range and online-only controls above the results list.
+function Finder.CreateRoles(pane)
+    local roleChoices = choicesFor(ns.Config.ROLES, "Any")
     local dungeons = dungeonChoices()
 
-    pane.roleIndex, pane.professionIndex, pane.dungeonIndex = 1, 1, 1
-    pane.onlineOnly = false
+    pane.roleIndex, pane.dungeonIndex = 1, 1
     pane.members, pane.settings = {}, nil
     pane.selectors = {}
 
@@ -167,23 +240,8 @@ function Finder.Create(pane)
             pane:Search()
         end,
     })
-    pane.selectors.profession = createSelector(pane, {
-        name = "Profession", label = "Profession:", labelX = 190, x = 262, y = -2, width = 130,
-        choices = professionChoices,
-        getIndex = function() return pane.professionIndex end,
-        onSelect = function(index)
-            pane.professionIndex = index
-            pane:Search()
-        end,
-    })
-
-    pane.onlineBox = CreateFrame("CheckButton", nil, pane, "UICheckButtonTemplate")
-    pane.onlineBox:SetPoint("TOPLEFT", 410, 2)
-    pane.onlineBox:SetScript("OnClick", function(self)
-        pane.onlineOnly = self:GetChecked() and true or false
-        pane:Search()
-    end)
-    addLabel(pane, "Online only", 438, -6)
+    addOnlineBox(pane, 190, -2)
+    addClearButton(pane, 320, -2)
 
     -- Row 2: where (a dungeon preset fills in the level range, which stays editable).
     local function selectDungeon(index)
@@ -217,62 +275,71 @@ function Finder.Create(pane)
 
     pane.summary = addLabel(pane, "", 446, -38)
 
-    for _, column in ipairs(COLUMNS) do
-        addLabel(pane, column.title, 14 + column.x, -66, "GameFontNormal")
-    end
-
-    pane.scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate")
-    pane.scroll:SetPoint("TOPLEFT", 14, -84)
-    pane.scroll:SetPoint("BOTTOMRIGHT", -34, 14)
-    pane.content = CreateFrame("Frame", nil, pane.scroll)
-    pane.content:SetSize(796, 1)
-    pane.scroll:SetScrollChild(pane.content)
-    pane.rows = {}
-
     -- Empty boxes mean "no bound"; tonumber("") is nil.
     function pane:Criteria()
         return {
             role = roleChoices[self.roleIndex].key,
-            profession = professionChoices[self.professionIndex].key,
             minLevel = tonumber(self.minBox:GetText()),
             maxLevel = tonumber(self.maxBox:GetText()),
             onlineOnly = self.onlineOnly or nil,
         }
     end
 
-    function pane:Search()
-        local results = ns.Census.Find(self.members, self:Criteria(), self.settings)
-        local shown = math.min(#results, MAX_ROWS)
-
-        for i = 1, shown do
-            local row = self.rows[i] or addRow(self.content, i)
-            self.rows[i] = row
-            local r = results[i]
-            row.name:SetText(classColored(r.name or "?", r.classFile))
-            row.level:SetText(tostring(r.level or "?"))
-            row.class:SetText(r.className or "?")
-            row.roles:SetText(table.concat(r.roles, ", "))
-            row.professions:SetText(table.concat(r.professions, ", "))
-            row:Show()
-        end
-        for i = shown + 1, #self.rows do
-            self.rows[i]:Hide()
-        end
-        self.content:SetHeight(math.max(1, shown * ROW_HEIGHT))
-
-        if #results == 0 then
-            self.summary:SetText("No players found.")
-        elseif #results > shown then
-            self.summary:SetText(string.format("Showing the first %d of %d players", shown, #results))
-        else
-            self.summary:SetText(string.format("%d player%s found", #results, #results == 1 and "" or "s"))
-        end
-    end
-
-    function pane:Update(members, settings)
-        self.members, self.settings = members or {}, settings
+    function pane:Reset()
+        self.roleIndex, self.dungeonIndex = 1, 1
+        self.minBox:SetText("")
+        self.maxBox:SetText("")
+        self.onlineOnly = false
+        self.onlineBox:SetChecked(false)
+        for _, selector in pairs(self.selectors) do selector:Refresh() end
         self:Search()
     end
 
+    addResults(pane, -66, -84)
+    return pane
+end
+
+-- Profession Finder: fills `pane` with a profession selector and online-only. Level
+-- ranges and roles are deliberately absent: when you want a crafter, only the
+-- profession matters. "Any profession" lists everyone with at least one profession.
+function Finder.CreateProfessions(pane)
+    local professionChoices = choicesFor(ns.Config.PROFESSIONS, "Any profession")
+
+    pane.professionIndex = 1
+    pane.members, pane.settings = {}, nil
+    pane.selectors = {}
+
+    pane.selectors.profession = createSelector(pane, {
+        name = "Profession", label = "Profession:", labelX = 14, x = 88, y = -2, width = 150,
+        choices = professionChoices,
+        getIndex = function() return pane.professionIndex end,
+        onSelect = function(index)
+            pane.professionIndex = index
+            pane:Search()
+        end,
+    })
+    addOnlineBox(pane, 262, -2)
+    addClearButton(pane, 392, -2)
+
+    pane.summary = addLabel(pane, "", 480, -6)
+
+    function pane:Criteria()
+        local key = professionChoices[self.professionIndex].key
+        return {
+            profession = key,
+            hasProfession = key == nil or nil,
+            onlineOnly = self.onlineOnly or nil,
+        }
+    end
+
+    function pane:Reset()
+        self.professionIndex = 1
+        self.onlineOnly = false
+        self.onlineBox:SetChecked(false)
+        for _, selector in pairs(self.selectors) do selector:Refresh() end
+        self:Search()
+    end
+
+    addResults(pane, -34, -52)
     return pane
 end

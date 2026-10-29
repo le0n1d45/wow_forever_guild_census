@@ -44,8 +44,12 @@ SlashCmdList["GUILDCENSUS"] = function(msg)
         ns.Options.Open()
         return
     end
-    if command == "finder" then
-        ns.UI.SelectTab("finder")
+    if command == "roles" or command == "finder" then
+        ns.UI.SelectTab("roles")
+        return
+    end
+    if command == "professions" then
+        ns.UI.SelectTab("professions")
         return
     end
     if command == "logs" then
