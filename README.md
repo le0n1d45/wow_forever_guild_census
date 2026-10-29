@@ -114,3 +114,7 @@ reported for every guild member regardless of the alts/mains filters.
   Pillow) for a larger JPEG; the repo's copies are in `assets/`.
 - **Client notes:** WoW runs Lua 5.1; use `C_Spell` / `C_Item` rather than removed globals, don't
   register `COMBAT_LOG_EVENT_UNFILTERED`, and guard values with `issecretvalue`.
+
+## License
+
+[MIT](LICENSE). The build artifacts include the license file.

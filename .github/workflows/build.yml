@@ -34,6 +34,7 @@ jobs:
         run: |
           mkdir dist
           cp -r GuildCensus dist/
+          cp LICENSE dist/GuildCensus/
           sed -i 's/^## Interface:.*/## Interface: ${{ matrix.interface }}/' dist/GuildCensus/GuildCensus.toc
           grep -x '## Interface: ${{ matrix.interface }}' dist/GuildCensus/GuildCensus.toc
 
