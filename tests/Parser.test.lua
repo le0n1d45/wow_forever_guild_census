@@ -30,8 +30,11 @@ return function(ns)
             assertEqual(match("TANK", Config.ROLES), { "Tank" })
         end)
 
-        it("matches by substring, so 'heal' finds 'healer'", function()
+        it("matches the full word as well as the abbreviation", function()
             assertEqual(match("Healer", Config.ROLES), { "Healer" })
+            assertEqual(match("heal", Config.ROLES), { "Healer" })
+            assertEqual(match("tanking", Config.ROLES), { "Tank" })
+            assertEqual(match("Retribution", Config.ROLES), { "DPS" })
         end)
 
         it("returns every role present, in rule order", function()
@@ -156,6 +159,127 @@ return function(ns)
 
         it("does not look for skills unless asked", function()
             assertEqual(Parser.Detect("LW 260", rules)[1].skill, nil)
+        end)
+    end)
+
+    describe("Parser whole-word matching", function()
+        local function words(list) return Parser.ParseList(list) end
+
+        it("does not match inside a longer word (the 'herbs' / 'bs' case)", function()
+            assert(not Parser.ContainsAny("herbs", words("bs")))
+            assert(not Parser.ContainsAny("a secret", words("ret")))
+            assert(not Parser.ContainsAny("return of the king", words("ret")))
+            assert(not Parser.ContainsAny("salt and pepper", words("alt")))
+            assert(not Parser.ContainsAny("maintain", words("main")))
+            assert(not Parser.ContainsAny("tankard", words("tank")))
+            assert(not Parser.ContainsAny("category", words("cat")))
+        end)
+
+        it("an abbreviation does not match its longer spelling unless that is listed too", function()
+            assert(not Parser.ContainsAny("healer", words("heal")))
+            assert(Parser.ContainsAny("healer", words("heal, healer")))
+        end)
+
+        it("treats punctuation, digits and the ends of the note as boundaries", function()
+            for _, note in ipairs({ "tank", "(tank)", "tank,", "tank.", "tank/dps", "a-tank-b", "tank!", "tank2", "2tank", "LW260" }) do
+                local keyword = note == "LW260" and "lw" or "tank"
+                assert(Parser.ContainsAny(note, words(keyword)), note .. " should match " .. keyword)
+            end
+        end)
+
+        it("is case-insensitive", function()
+            assert(Parser.ContainsAny("TANK", words("tank")))
+            assert(Parser.ContainsAny("tank", words("TANK")))
+        end)
+
+        it("finds a later whole-word occurrence after an embedded one", function()
+            assert(Parser.ContainsAny("herbs bs", words("bs")))
+            assert(not Parser.ContainsAny("herbs", words("bs")))
+        end)
+
+        it("matches keywords that contain punctuation as a whole", function()
+            assert(Parser.ContainsAny("crit-chicken", words("crit-chicken")))
+            assert(Parser.ContainsAny("my crit-chicken!", words("crit-chicken")))
+            assert(not Parser.ContainsAny("supercrit-chicken", words("crit-chicken")))
+            assert(not Parser.ContainsAny("crit-chickens", words("crit-chicken")))
+        end)
+
+        it("only checks the boundary on a side where the keyword has a letter", function()
+            assert(Parser.ContainsAny("a+b", words("+")))
+            assert(Parser.ContainsAny("x+y", words("+")))
+        end)
+
+        it("keeps 'herbs' from reading as Blacksmith with the default keywords", function()
+            local rules = Parser.Compile(Config.PROFESSIONS)
+            assertEqual(Parser.Match("herbs", rules), { "Herbalism" })
+            assertEqual(Parser.Match("herbs 200", rules), { "Herbalism" })
+            assertEqual(Parser.Match("herbs, bs", rules), { "Herbalism", "Blacksmith" })
+        end)
+
+        it("does not read a skill from a keyword buried in another word", function()
+            local rules = Parser.Compile(Config.PROFESSIONS)
+            local hits = Parser.Detect("herbs 200", rules, true)
+            assertEqual(#hits, 1)
+            assertEqual(hits[1].key, "herbalism")
+            assertEqual(hits[1].skill, 200)
+        end)
+    end)
+
+    describe("Default keyword lists", function()
+        local function listed(def)
+            local set = {}
+            for _, word in ipairs(Parser.ParseList(def.default)) do set[word] = true end
+            return set
+        end
+
+        it("keep every abbreviation from every earlier default", function()
+            for _, group in ipairs({ Config.ROLES, Config.PROFESSIONS, Config.IDENTITY }) do
+                for _, def in ipairs(group) do
+                    local current = listed(def)
+                    for _, old in ipairs(def.replaces or {}) do
+                        for _, word in ipairs(Parser.ParseList(old)) do
+                            assert(current[word], string.format("%s dropped '%s'", def.label, word))
+                        end
+                    end
+                end
+            end
+        end)
+
+        it("also list the full words players write", function()
+            local expected = {
+                tank = { "tank", "tanks", "tanking", "protection" },
+                healer = { "healer", "healers", "healing", "heals", "restoration", "discipline" },
+                dps = { "dps", "damage", "retribution", "enhancement", "elemental" },
+                leatherworking = { "leatherworking", "leatherworker" },
+                herbalism = { "herbalism", "herbalist", "herbs" },
+                enchanting = { "enchanting", "enchanter" },
+                blacksmith = { "blacksmith", "blacksmithing", "armorsmithing", "weaponsmithing" },
+                engineering = { "engineer", "engineering" },
+                tailor = { "tailor", "tailoring" },
+                alchemy = { "alchemy", "alchemist" },
+                skinning = { "skinning", "skinner" },
+                mining = { "mining", "miner" },
+                main = { "main", "mains" },
+                alt = { "alt", "alts" },
+            }
+            for _, group in ipairs({ Config.ROLES, Config.PROFESSIONS, Config.IDENTITY }) do
+                for _, def in ipairs(group) do
+                    local current = listed(def)
+                    for _, word in ipairs(expected[def.key] or {}) do
+                        assert(current[word], string.format("%s should list '%s'", def.label, word))
+                    end
+                end
+            end
+        end)
+
+        it("have a no-letter-touching match for each listed word on its own", function()
+            for _, group in ipairs({ Config.ROLES, Config.PROFESSIONS, Config.IDENTITY }) do
+                for _, def in ipairs(group) do
+                    for _, word in ipairs(Parser.ParseList(def.default)) do
+                        assert(Parser.ContainsAny("x, " .. word .. ".", { word }), def.label .. ": " .. word)
+                    end
+                end
+            end
         end)
     end)
 end

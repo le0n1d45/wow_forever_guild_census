@@ -26,13 +26,40 @@ function Parser.Compile(defs, values)
     return rules
 end
 
--- Returns the first keyword present in the note, or nil. Matching is a
--- case-insensitive substring search, so "heal" matches "healer".
+local function isLetter(char)
+    return char ~= "" and string.find(char, "^%a") ~= nil
+end
+
+-- Finds the next occurrence of `word` in `text` (both lowercase), at or after `init`,
+-- that is a whole word: the letter at either edge of the keyword must not touch another
+-- letter. Digits, punctuation and spaces count as boundaries, so "lw260" and "herb-251"
+-- still match "lw" and "herb", while "bs" does not match inside "herbs". A keyword that
+-- starts or ends with a non-letter (like a "+") has no boundary to check on that side.
+-- Returns first, last, or nil.
+local function findWord(text, word, init)
+    if word == "" then return nil end
+    local startsWithLetter = isLetter(string.sub(word, 1, 1))
+    local endsWithLetter = isLetter(string.sub(word, -1))
+    local first, last = string.find(text, word, init, true)
+    while first do
+        local before = string.sub(text, first - 1, first - 1)
+        local after = string.sub(text, last + 1, last + 1)
+        if (not startsWithLetter or not isLetter(before)) and (not endsWithLetter or not isLetter(after)) then
+            return first, last
+        end
+        first, last = string.find(text, word, first + 1, true)
+    end
+    return nil
+end
+
+-- Returns the first keyword present in the note as a whole word, or nil. Matching is
+-- case-insensitive; "heal" does not match "healer" (list "healer" too), and "bs" does
+-- not match "herbs".
 function Parser.FirstMatch(note, words)
     if type(note) ~= "string" or note == "" then return nil end
     local lowered = string.lower(note)
     for _, word in ipairs(words) do
-        if string.find(lowered, word, 1, true) then return word end
+        if findWord(lowered, word, 1) then return word end
     end
     return nil
 end
@@ -51,7 +78,7 @@ function Parser.SkillAfter(note, words)
     for _, word in ipairs(words) do
         local init = 1
         while true do
-            local first, last = string.find(lowered, word, init, true)
+            local first, last = findWord(lowered, word, init)
             if not first then break end
             local digits = string.match(lowered, "^[%s:=%-%(%[]*(%d+)", last + 1)
             if digits and #digits <= 3 and tonumber(digits) >= 1 then

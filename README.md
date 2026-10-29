@@ -16,7 +16,7 @@ It targets WoW Forever and also builds for Retail. Type `/gcensus` to open it.
 
 ## Features
 
-- **Editable keyword lists:** the keywords used to spot roles, professions, and mains/alts are
+- **Editable keyword lists:** the whole-word keywords used to spot roles, professions, and mains/alts are
   editable in the settings panel.
 - **Alts and mains:** leave out alts, or count only members whose note says they're a main.
 - **Pure-DPS classes:** warlocks, hunters, mages and rogues are always counted as DPS.
@@ -104,28 +104,37 @@ listed.
 
 ### How detection works
 
-Detection reads each member's **public** guild note. A keyword matches when it appears anywhere in
-the note, ignoring case, so `heal` matches "healer". That also means short keywords can match inside
-unrelated words (for example `ret` in "return"), so choose them with care. An emptied box matches
-nothing.
+Detection reads each member's **public** guild note. A keyword matches only as a **whole word**, ignoring
+case: it must not touch a letter on either side. So `bs` matches "BS 300" and "herbs, bs" but not the
+"bs" inside "herbs", and `ret` matches "Ret" but not "secret" or "return". Digits and punctuation count as
+a boundary, so `LW260`, `herb-251` and `(tank)` all match.
+
+That means a keyword does **not** match longer spellings: `heal` won't match "healer". The defaults
+therefore list both the abbreviations players write (`lw`, `bs`, `heal`, `ench`, ...) and the full words
+(`leatherworking`, `blacksmithing`, `healer`, ...). If you edit a list, add the spellings you want matched.
+An emptied box matches nothing.
 
 Default keywords:
 
 | Detection | Defaults |
 | --- | --- |
-| Main / Alt | `main` / `alt` |
-| Tank | `tank, bear, prot` |
-| Healer | `heal, resto, holy, disc` |
-| DPS | `dps, fury, arms, ret, feral, cat, kitty, balance, moonkin, crit-chicken, enh, ele, enhance, elemental, shadow, shockadin` |
+| Main | `main, mains` |
+| Alt | `alt, alts` |
+| Tank | `tank, tanks, tanking, bear, prot, protection` |
+| Healer | `heal, heals, healer, healers, healing, resto, restoration, holy, disc, discipline` |
+| DPS | `dps, damage, fury, arms, ret, retribution, feral, cat, kitty, balance, moonkin, crit-chicken, enh, enhancement, ele, enhance, elemental, shadow, shockadin` |
 | Leatherworking | `lw, leatherworking, leatherworker` |
 | Skinning | `skinning, skinner` |
 | Mining | `mining, miner` |
-| Herbalism | `herb, herbalism, herbs` |
-| Enchanting | `ench, enchanting` |
-| Blacksmith | `bs, blacksmith, armorsmith, weaponsmith` |
-| Engineering | `engi, engineering` |
+| Herbalism | `herb, herbs, herbalism, herbalist` |
+| Enchanting | `ench, enchanting, enchanter` |
+| Blacksmith | `bs, blacksmith, blacksmithing, armorsmith, armorsmithing, weaponsmith, weaponsmithing` |
+| Engineering | `engi, engineer, engineering` |
 | Tailor | `tailor, tailoring` |
-| Alchemy | `alch, alchemy` |
+| Alchemy | `alch, alchemy, alchemist` |
+
+When the defaults change between versions, a saved list that still equals an older default is upgraded
+automatically; a list you've edited is never touched.
 
 ## Census logs
 

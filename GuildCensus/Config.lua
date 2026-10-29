@@ -4,16 +4,32 @@ local Config = {}
 ns.Config = Config
 
 -- Detection rules shown in the settings panel. `default` is a comma-separated
--- keyword list; `label` is what charts and the panel display. `replaces` lists older
--- defaults: a saved value that still equals one was never edited, so Config.Init
--- upgrades it to the current default (edited values are left alone).
+-- keyword list; `label` is what charts and the panel display. Keywords match whole
+-- words only (see Parser.FirstMatch), so the defaults list the abbreviations players
+-- write ("lw", "bs", "heal") AND the full words ("leatherworking", "healer").
+-- `replaces` lists older defaults: a saved value that still equals one was never
+-- edited, so Config.Init upgrades it to the current default (edited values are left
+-- alone).
 Config.ROLES = {
-    { key = "tank", label = "Tank", default = "tank,bear,prot" },
-    { key = "healer", label = "Healer", default = "heal,resto,holy,disc" },
+    {
+        key = "tank",
+        label = "Tank",
+        default = "tank, tanks, tanking, bear, prot, protection",
+        replaces = { "tank,bear,prot" },
+    },
+    {
+        key = "healer",
+        label = "Healer",
+        default = "heal, heals, healer, healers, healing, resto, restoration, holy, disc, discipline",
+        replaces = { "heal,resto,holy,disc" },
+    },
     {
         key = "dps",
         label = "DPS",
-        default = "dps, fury, arms, ret, feral, cat, kitty, balance, moonkin, crit-chicken, enh, ele, enhance, elemental, shadow, shockadin",
+        default = "dps, damage, fury, arms, ret, retribution, feral, cat, kitty, balance, moonkin, crit-chicken, enh, enhancement, ele, enhance, elemental, shadow, shockadin",
+        replaces = {
+            "dps, fury, arms, ret, feral, cat, kitty, balance, moonkin, crit-chicken, enh, ele, enhance, elemental, shadow, shockadin",
+        },
     },
 }
 
@@ -26,18 +42,43 @@ Config.PROFESSIONS = {
     },
     { key = "skinning", label = "Skinning", default = "skinning, skinner" },
     { key = "mining", label = "Mining", default = "mining, miner" },
-    { key = "herbalism", label = "Herbalism", default = "herb, herbalism, herbs" },
-    { key = "enchanting", label = "Enchanting", default = "ench, enchanting" },
-    { key = "blacksmith", label = "Blacksmith", default = "bs, blacksmith, armorsmith, weaponsmith" },
-    { key = "engineering", label = "Engineering", default = "engi, engineering" },
+    {
+        key = "herbalism",
+        label = "Herbalism",
+        default = "herb, herbs, herbalism, herbalist",
+        replaces = { "herb, herbalism, herbs" },
+    },
+    {
+        key = "enchanting",
+        label = "Enchanting",
+        default = "ench, enchanting, enchanter",
+        replaces = { "ench, enchanting" },
+    },
+    {
+        key = "blacksmith",
+        label = "Blacksmith",
+        default = "bs, blacksmith, blacksmithing, armorsmith, armorsmithing, weaponsmith, weaponsmithing",
+        replaces = { "bs, blacksmith, armorsmith, weaponsmith" },
+    },
+    {
+        key = "engineering",
+        label = "Engineering",
+        default = "engi, engineer, engineering",
+        replaces = { "engi, engineering" },
+    },
     { key = "tailor", label = "Tailor", default = "tailor, tailoring" },
-    { key = "alchemy", label = "Alchemy", default = "alch, alchemy" },
+    {
+        key = "alchemy",
+        label = "Alchemy",
+        default = "alch, alchemy, alchemist",
+        replaces = { "alch, alchemy" },
+    },
 }
 
 -- Notes matching "alt" keywords mark alts; "main" keywords mark declared mains.
 Config.IDENTITY = {
-    { key = "main", label = "Main", default = "main" },
-    { key = "alt", label = "Alt", default = "alt" },
+    { key = "main", label = "Main", default = "main, mains", replaces = { "main" } },
+    { key = "alt", label = "Alt", default = "alt, alts", replaces = { "alt" } },
 }
 
 local function fillDefaults(settings)

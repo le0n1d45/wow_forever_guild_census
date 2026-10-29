@@ -175,7 +175,7 @@ return function(ns)
             local c = conflictsFor({ classFile = "MAGE", className = "Mage", note = "healer" })
             assertEqual(#c, 1)
             assertEqual(c[1].kind, "role-class-mismatch")
-            assertEqual(c[1].message, "Mage cannot fill the Healer role, but the note matched 'heal'")
+            assertEqual(c[1].message, "Mage cannot fill the Healer role, but the note matched 'healer'")
             assertEqual(#conflictsFor({ classFile = "WARRIOR", className = "Warrior", note = "healer" }), 1)
             assertEqual(#conflictsFor({ classFile = "PRIEST", className = "Priest", note = "tank" }), 1)
         end)
@@ -574,6 +574,33 @@ return function(ns)
                 end
                 assertEqual(#Census.Find(roster, { role = def.key }), sliceCount)
             end
+        end)
+    end)
+
+    describe("Census.Build whole-word matching", function()
+        it("counts 'herbs' as Herbalism only, not Blacksmith", function()
+            local census = Census.Build({ member("A", 30, "DRUID", "herbs") })
+            assertEqual(census.professions, { { label = "Herbalism", count = 1 } })
+        end)
+
+        it("does not read a main or an alt inside another word", function()
+            local rules = Census.Rules(Config.Defaults())
+            local a = Census.Analyze(member("A", 30, "DRUID", "I maintain the salt mine"), rules)
+            assertEqual(a.mainWord, nil)
+            assertEqual(a.altWord, nil)
+        end)
+
+        it("matches the plural forms", function()
+            local rules = Census.Rules(Config.Defaults())
+            assertEqual(Census.Analyze(member("A", 30, "DRUID", "mains only"), rules).mainWord, "mains")
+            assertEqual(Census.Analyze(member("A", 30, "DRUID", "my alts"), rules).altWord, "alts")
+        end)
+
+        it("a custom abbreviation no longer matches longer words", function()
+            local s = Config.Defaults()
+            s.roles.dps = "ret"
+            local list = { member("A", 30, "PALADIN", "ret"), member("B", 30, "PALADIN", "secret return") }
+            assertEqual(names(Census.Find(list, { role = "dps" }, s)), { "A" })
         end)
     end)
 

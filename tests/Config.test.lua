@@ -6,12 +6,13 @@ return function(ns)
             local d = Config.Defaults()
             assertEqual(d.includeAlts, true)
             assertEqual(d.onlyMains, false)
-            assertEqual(d.identity, { main = "main", alt = "alt" })
-            assertEqual(d.roles.tank, "tank,bear,prot")
-            assertEqual(d.roles.healer, "heal,resto,holy,disc")
+            assertEqual(d.identity, { main = "main, mains", alt = "alt, alts" })
+            assertEqual(d.roles.tank, "tank, tanks, tanking, bear, prot, protection")
+            assertEqual(d.roles.healer, "heal, heals, healer, healers, healing, resto, restoration, holy, disc, discipline")
             assertEqual(d.professions.leatherworking, "lw, leatherworking, leatherworker")
-            assertEqual(d.professions.blacksmith, "bs, blacksmith, armorsmith, weaponsmith")
-            assertEqual(d.professions.alchemy, "alch, alchemy")
+            assertEqual(d.professions.blacksmith,
+                "bs, blacksmith, blacksmithing, armorsmith, armorsmithing, weaponsmith, weaponsmithing")
+            assertEqual(d.professions.alchemy, "alch, alchemy, alchemist")
         end)
 
         it("Init fills missing values but keeps user edits, including empty boxes", function()
@@ -41,6 +42,27 @@ return function(ns)
             for _, edited in ipairs({ "lw", "lw, leatherworker, hides", "", "LW, leatherworker" }) do
                 local db = { settings = { professions = { leatherworking = edited } } }
                 assertEqual(Config.Init(db).professions.leatherworking, edited)
+            end
+        end)
+
+        it("Init upgrades every untouched earlier default to the current one", function()
+            for group, defs in pairs({ identity = Config.IDENTITY, roles = Config.ROLES, professions = Config.PROFESSIONS }) do
+                for _, def in ipairs(defs) do
+                    for _, old in ipairs(def.replaces or {}) do
+                        local db = { settings = { [group] = { [def.key] = old } } }
+                        assertEqual(Config.Init(db)[group][def.key], def.default)
+                    end
+                end
+            end
+        end)
+
+        it("Init leaves edited versions of the other defaults alone", function()
+            for group, defs in pairs({ identity = Config.IDENTITY, roles = Config.ROLES, professions = Config.PROFESSIONS }) do
+                for _, def in ipairs(defs) do
+                    local edited = def.default .. ", mine"
+                    local db = { settings = { [group] = { [def.key] = edited } } }
+                    assertEqual(Config.Init(db)[group][def.key], edited)
+                end
             end
         end)
 
