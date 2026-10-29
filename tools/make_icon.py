@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """Generates the Guild Census addon icon (pie chart on a gold-bordered tile).
 
-Pure standard library. Usage: python3 tools/make_icon.py [OUT_DIR] [--preview-dir DIR]
+Usage: python3 tools/make_icon.py [OUT_DIR] [--preview-dir DIR] [--size N] [--jpeg PATH]
+
 Writes OUT_DIR/icon.tga (default: GuildCensus/), which the TOC references via IconTexture.
+The TGA is always 64x64 (WoW wants small power-of-two textures). --size only affects the
+PNG preview and the JPEG. The default run needs only the standard library; --jpeg needs
+Pillow (pip install pillow), since JPEG encoding isn't in the standard library. JPEG has
+no alpha, so the transparent corners are flattened onto white.
 """
 import math
 import struct
@@ -64,18 +69,22 @@ def sample(x, y):
     return BACKGROUND + (255,)
 
 
-def render():
+def render(size=SIZE):
+    """Renders at `size` pixels square; the design is defined on the 64x64 grid and scaled."""
+    samples = SAMPLES if size <= 128 else 3
+    scale = SIZE / size
     pixels = []
-    for py in range(SIZE):
+    for py in range(size):
         row = []
-        for px in range(SIZE):
+        for px in range(size):
             r = g = b = a = 0.0
-            for sy in range(SAMPLES):
-                for sx in range(SAMPLES):
-                    cr, cg, cb, ca = sample(px + (sx + 0.5) / SAMPLES, py + (sy + 0.5) / SAMPLES)
+            for sy in range(samples):
+                for sx in range(samples):
+                    cr, cg, cb, ca = sample((px + (sx + 0.5) / samples) * scale,
+                                            (py + (sy + 0.5) / samples) * scale)
                     # premultiply so transparent samples don't bleed black into edges
                     r, g, b, a = r + cr * ca, g + cg * ca, b + cb * ca, a + ca
-            n = SAMPLES * SAMPLES
+            n = samples * samples
             if a == 0:
                 row.append((0, 0, 0, 0))
             else:
@@ -95,6 +104,7 @@ def write_tga(path, pixels):
 
 
 def write_png(path, pixels):
+    size = len(pixels)
     def chunk(kind, data):
         body = kind + data
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
@@ -105,29 +115,54 @@ def write_png(path, pixels):
         for r, g, b, a in row:
             raw += bytes((r, g, b, a))
     png = (b"\x89PNG\r\n\x1a\n"
-           + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0))
+           + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0))
            + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
            + chunk(b"IEND", b""))
     Path(path).write_bytes(png)
 
 
+def write_jpeg(path, pixels):
+    try:
+        from PIL import Image
+    except ImportError:
+        sys.exit("--jpeg needs Pillow: pip install pillow")
+    size = len(pixels)
+    image = Image.new("RGBA", (size, size))
+    image.putdata([px for row in pixels for px in row])
+    flat = Image.new("RGB", (size, size), (255, 255, 255))
+    flat.paste(image, mask=image.getchannel("A"))
+    flat.save(path, "JPEG", quality=95, subsampling=0)
+
+
+def take_option(args, name):
+    if name not in args:
+        return None
+    i = args.index(name)
+    value = args[i + 1]
+    del args[i:i + 2]
+    return value
+
+
 def main(argv):
-    preview_dir = None
     args = list(argv)
-    if "--preview-dir" in args:
-        i = args.index("--preview-dir")
-        preview_dir = Path(args[i + 1])
-        del args[i:i + 2]
+    preview_dir = take_option(args, "--preview-dir")
+    jpeg_path = take_option(args, "--jpeg")
+    size = int(take_option(args, "--size") or SIZE)
     out_dir = Path(args[0]) if args else Path(__file__).resolve().parent.parent / "GuildCensus"
 
-    pixels = render()
     out_dir.mkdir(parents=True, exist_ok=True)
-    write_tga(out_dir / "icon.tga", pixels)
+    write_tga(out_dir / "icon.tga", render())
     print("wrote", out_dir / "icon.tga")
-    if preview_dir:
-        preview_dir.mkdir(parents=True, exist_ok=True)
-        write_png(preview_dir / "icon.png", pixels)
-        print("wrote", preview_dir / "icon.png")
+
+    if preview_dir or jpeg_path:
+        large = render(size) if size != SIZE else render()
+        if preview_dir:
+            Path(preview_dir).mkdir(parents=True, exist_ok=True)
+            write_png(Path(preview_dir) / "icon.png", large)
+            print("wrote", Path(preview_dir) / "icon.png")
+        if jpeg_path:
+            write_jpeg(jpeg_path, large)
+            print("wrote", jpeg_path)
 
 
 if __name__ == "__main__":
