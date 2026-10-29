@@ -59,6 +59,16 @@ return function()
             assertEqual(ns.Demo.Generate(1)[1].name, "Thalindra")
         end)
 
+        it("gives members a believable mix of online and offline", function()
+            local online = 0
+            local members = ns.Demo.Generate(80)
+            for _, m in ipairs(members) do
+                assert(type(m.online) == "boolean", "online must be a boolean for " .. m.name)
+                if m.online then online = online + 1 end
+            end
+            assert(online > 10 and online < 50, "expected a mix of online/offline, got " .. online .. " online")
+        end)
+
         it("produces valid members and non-empty role/profession data", function()
             local members = ns.Demo.Generate(80)
             for _, m in ipairs(members) do
@@ -94,11 +104,11 @@ return function()
         it("reads the real roster API shape", function()
             local ns = loadAddon({ guild = {
                 { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "healer" },
-                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring" },
+                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring", online = false },
             } })
             assertEqual(ns.Roster.Read(), {
-                { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "healer" },
-                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring" },
+                { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "healer", online = true },
+                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "dps, tailoring", online = false },
             })
             SlashCmdList["GUILDCENSUS"]("")
             assertEqual(GuildCensusWindow.summary.text, "2 guild members")

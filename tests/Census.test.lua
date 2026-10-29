@@ -247,6 +247,176 @@ return function(ns)
         end)
     end)
 
+    local function member(name, level, classFile, note, online)
+        return {
+            name = name, level = level, classFile = classFile, note = note,
+            className = classFile:sub(1, 1) .. classFile:sub(2):lower(), online = online,
+        }
+    end
+
+    local function names(results)
+        local list = {}
+        for _, r in ipairs(results) do list[#list + 1] = r.name end
+        return list
+    end
+
+    describe("Census.Analyze", function()
+        local rules = Census.Rules(Config.Defaults())
+
+        it("reports note-detected roles, professions and the matching keywords", function()
+            local a = Census.Analyze(member("Bob", 60, "WARRIOR", "tank, miner"), rules)
+            assertEqual(a.roles, { "Tank" })
+            assertEqual(a.roleKeys, { tank = true })
+            assertEqual(a.roleHits, { { key = "tank", label = "Tank", word = "tank" } })
+            assertEqual(a.professionHits, { { key = "mining", label = "Mining", word = "miner" } })
+            assertEqual(a.included, true)
+        end)
+
+        it("adds DPS for pure-DPS classes without a note", function()
+            local a = Census.Analyze(member("Mia", 60, "MAGE", ""), rules)
+            assertEqual(a.roles, { "DPS" })
+            assertEqual(a.roleKeys, { dps = true })
+            assertEqual(a.roleHits, {}) -- note-based hits stay empty (used for conflict checks)
+        end)
+
+        it("does not add DPS to hybrids", function()
+            assertEqual(Census.Analyze(member("Dru", 60, "DRUID", ""), rules).roles, {})
+        end)
+
+        it("marks members excluded by the alts filter", function()
+            local s = Config.Defaults()
+            s.includeAlts = false
+            local a = Census.Analyze(member("Al", 60, "DRUID", "alt of Bob"), Census.Rules(s))
+            assertEqual(a.included, false)
+            assertEqual(a.altWord, "alt")
+        end)
+
+        it("marks members excluded by only-mains", function()
+            local s = Config.Defaults()
+            s.onlyMains = true
+            local r = Census.Rules(s)
+            assertEqual(Census.Analyze(member("A", 60, "DRUID", "main"), r).included, true)
+            assertEqual(Census.Analyze(member("B", 60, "DRUID", "resto"), r).included, false)
+        end)
+    end)
+
+    describe("Census.Find", function()
+        local roster = {
+            member("Tanky", 15, "WARRIOR", "Tank"),
+            member("Bulwark", 20, "PALADIN", "prot / heal"),
+            member("Elder", 60, "WARRIOR", "main tank"),
+            member("Mender", 18, "PRIEST", "healer"),
+            member("Zap", 18, "MAGE", ""),
+            member("Stab", 25, "ROGUE", "dps"),
+            member("Newbie", 5, "WARRIOR", "tank"),
+            member("Tag", 17, "DRUID", "alt of Bob, bear"),
+        }
+
+        it("finds players for a role within a level range, highest level first", function()
+            assertEqual(names(Census.Find(roster, { role = "tank", minLevel = 10, maxLevel = 25 })),
+                { "Bulwark", "Tag", "Tanky" })
+        end)
+
+        it("treats level bounds as inclusive", function()
+            assertEqual(names(Census.Find(roster, { role = "tank", minLevel = 15, maxLevel = 15 })), { "Tanky" })
+            assertEqual(names(Census.Find(roster, { role = "tank", minLevel = 20, maxLevel = 20 })), { "Bulwark" })
+        end)
+
+        it("supports open-ended ranges", function()
+            assertEqual(names(Census.Find(roster, { role = "tank", minLevel = 50 })), { "Elder" })
+            assertEqual(names(Census.Find(roster, { role = "tank", maxLevel = 5 })), { "Newbie" })
+        end)
+
+        it("finds healers, including hybrids whose note lists several roles", function()
+            assertEqual(names(Census.Find(roster, { role = "healer" })), { "Bulwark", "Mender" })
+        end)
+
+        it("finds pure-DPS classes for dps without any note", function()
+            assertEqual(names(Census.Find(roster, { role = "dps", minLevel = 18, maxLevel = 25 })),
+                { "Stab", "Zap" })
+        end)
+
+        it("omitting the role matches every role (and notes with none)", function()
+            assertEqual(#Census.Find(roster, { minLevel = 1, maxLevel = 100 }), #roster)
+            assertEqual(#Census.Find(roster, {}), #roster)
+            assertEqual(#Census.Find(roster), #roster)
+        end)
+
+        it("matches nobody when minLevel is above maxLevel", function()
+            assertEqual(Census.Find(roster, { role = "tank", minLevel = 30, maxLevel = 10 }), {})
+        end)
+
+        it("returns nothing when nobody fits", function()
+            assertEqual(Census.Find(roster, { role = "healer", minLevel = 40 }), {})
+        end)
+
+        it("excludes members hidden by the alts filter", function()
+            local s = Config.Defaults()
+            s.includeAlts = false
+            assertEqual(names(Census.Find(roster, { role = "tank", minLevel = 10, maxLevel = 25 }, s)),
+                { "Bulwark", "Tanky" })
+        end)
+
+        it("honours only-mains", function()
+            local s = Config.Defaults()
+            s.onlyMains = true
+            assertEqual(names(Census.Find(roster, { role = "tank" }, s)), { "Elder" })
+        end)
+
+        it("uses custom keyword lists from settings", function()
+            local s = Config.Defaults()
+            s.roles.tank = "wall"
+            local custom = { member("Wally", 30, "WARRIOR", "wall"), member("Tanky", 30, "WARRIOR", "tank") }
+            assertEqual(names(Census.Find(custom, { role = "tank" }, s)), { "Wally" })
+        end)
+
+        it("still returns members with logged conflicts", function()
+            local conflicted = { member("Both", 30, "DRUID", "main alt tank") }
+            assertEqual(#Census.Build(conflicted).conflicts, 1)
+            assertEqual(names(Census.Find(conflicted, { role = "tank" })), { "Both" })
+        end)
+
+        it("returns the details the UI needs", function()
+            local r = Census.Find({ member("Bob", 33, "PALADIN", "tank, mining", true) }, { role = "tank" })[1]
+            assertEqual(r.name, "Bob")
+            assertEqual(r.level, 33)
+            assertEqual(r.className, "Paladin")
+            assertEqual(r.classFile, "PALADIN")
+            assertEqual(r.note, "tank, mining")
+            assertEqual(r.online, true)
+            assertEqual(r.roles, { "Tank" })
+            assertEqual(r.professions, { "Mining" })
+        end)
+
+        it("breaks level ties by name, case-insensitively", function()
+            local tied = { member("zed", 20, "ROGUE", ""), member("Amy", 20, "ROGUE", ""), member("bob", 20, "ROGUE", "") }
+            assertEqual(names(Census.Find(tied, { role = "dps" })), { "Amy", "bob", "zed" })
+        end)
+
+        it("skips members with no level when a level bound is given", function()
+            local nolevel = { { name = "Ghost", classFile = "MAGE", className = "Mage", note = "" } }
+            assertEqual(Census.Find(nolevel, { role = "dps", minLevel = 1 }), {})
+            assertEqual(#Census.Find(nolevel, { role = "dps" }), 1)
+        end)
+
+        it("rejects an unknown role", function()
+            local ok, err = pcall(Census.Find, roster, { role = "bard" })
+            assertEqual(ok, false)
+            assert(tostring(err):find("unknown role: bard", 1, true), tostring(err))
+        end)
+
+        it("agrees with the chart counts for every role (single source of truth)", function()
+            local census = Census.Build(roster)
+            for _, def in ipairs(Config.ROLES) do
+                local sliceCount = 0
+                for _, slice in ipairs(census.roles) do
+                    if slice.label == def.label then sliceCount = slice.count end
+                end
+                assertEqual(#Census.Find(roster, { role = def.key }), sliceCount)
+            end
+        end)
+    end)
+
     describe("Census.Build custom detection", function()
         it("uses keyword lists from settings", function()
             local s = Config.Defaults()

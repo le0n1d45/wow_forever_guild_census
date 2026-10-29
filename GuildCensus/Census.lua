@@ -74,12 +74,14 @@ end
 
 -- Flags notes whose detection results can't all be true, so keywords can be tuned.
 -- Holding all three roles is NOT a conflict: some classes can do all three.
-local function detectConflicts(conflicts, member, mainWord, altWord, roleHits, professionHits)
-    if mainWord and altWord then
+local function detectConflicts(conflicts, member, analysis)
+    if analysis.mainWord and analysis.altWord then
         addConflict(conflicts, member, "main-and-alt",
-            string.format("Detected as both a main ('%s') and an alt ('%s')", mainWord, altWord))
+            string.format("Detected as both a main ('%s') and an alt ('%s')",
+                analysis.mainWord, analysis.altWord))
     end
 
+    local professionHits = analysis.professionHits
     if #professionHits > Census.MAX_PROFESSIONS then
         addConflict(conflicts, member, "too-many-professions",
             string.format("%d professions detected (max %d): %s",
@@ -88,7 +90,7 @@ local function detectConflicts(conflicts, member, mainWord, altWord, roleHits, p
 
     local allowed = CLASS_ROLES[member.classFile]
     if allowed then
-        for _, hit in ipairs(roleHits) do
+        for _, hit in ipairs(analysis.roleHits) do
             if not allowed[hit.key] then
                 addConflict(conflicts, member, "role-class-mismatch",
                     string.format("%s cannot fill the %s role, but the note matched '%s'",
@@ -98,50 +100,86 @@ local function detectConflicts(conflicts, member, mainWord, altWord, roleHits, p
     end
 end
 
+-- Compiles settings into the keyword rules used to analyse members. Compile once
+-- per run and pass the result to Census.Analyze for every member.
+function Census.Rules(settings)
+    settings = settings or ns.Config.Defaults()
+    local identity = {}
+    for _, rule in ipairs(ns.Parser.Compile(ns.Config.IDENTITY, settings.identity)) do
+        identity[rule.key] = rule.words
+    end
+    return {
+        settings = settings,
+        roles = ns.Parser.Compile(ns.Config.ROLES, settings.roles),
+        professions = ns.Parser.Compile(ns.Config.PROFESSIONS, settings.professions),
+        identity = identity,
+    }
+end
+
+-- The single place a member's note is interpreted, shared by the charts, the
+-- conflict log and the finder. member: { name, level, classFile, className, note, online }
+-- Returns:
+--   mainWord / altWord   the main/alt keyword that matched, or nil
+--   roleHits             note-detected roles: { key, label, word } (conflict checks use these)
+--   roles / roleKeys     roles to count: note hits plus DPS for pure-DPS classes, as a
+--                        label list and a { key = true } set
+--   professionHits       { key, label, word }
+--   included             false when the alts/mains settings exclude this member
+function Census.Analyze(member, rules)
+    local settings = rules.settings
+    local mainWord = ns.Parser.FirstMatch(member.note, rules.identity.main)
+    local altWord = ns.Parser.FirstMatch(member.note, rules.identity.alt)
+    local roleHits = ns.Parser.Detect(member.note, rules.roles)
+    local professionHits = ns.Parser.Detect(member.note, rules.professions)
+
+    local roles, roleKeys = {}, {}
+    for _, hit in ipairs(roleHits) do
+        roles[#roles + 1] = hit.label
+        roleKeys[hit.key] = true
+    end
+    if PURE_DPS_CLASSES[member.classFile] and not roleKeys.dps then
+        roles[#roles + 1] = labelFor(ns.Config.ROLES, "dps")
+        roleKeys.dps = true
+    end
+
+    -- "Only mains" additionally requires a declared main, on top of the alts filter.
+    local altOk = settings.includeAlts ~= false or not altWord
+    local mainOk = not settings.onlyMains or mainWord
+
+    return {
+        mainWord = mainWord,
+        altWord = altWord,
+        roleHits = roleHits,
+        roles = roles,
+        roleKeys = roleKeys,
+        professionHits = professionHits,
+        included = (altOk and mainOk) and true or false,
+    }
+end
+
 -- members: list of { name, level, classFile, className, note }
 -- settings: Config settings table (defaults when omitted)
 -- Returns { total, roles, professions, classes, levels, conflicts }. The chart
 -- fields are slice lists; conflicts are computed over ALL members regardless of
 -- the alt/main filters, since their purpose is tuning detection.
 function Census.Build(members, settings)
-    settings = settings or ns.Config.Defaults()
-    local roleRules = ns.Parser.Compile(ns.Config.ROLES, settings.roles)
-    local professionRules = ns.Parser.Compile(ns.Config.PROFESSIONS, settings.professions)
-    local dpsLabel = labelFor(ns.Config.ROLES, "dps")
-
-    local identity = {}
-    for _, rule in ipairs(ns.Parser.Compile(ns.Config.IDENTITY, settings.identity)) do
-        identity[rule.key] = rule.words
-    end
+    local rules = Census.Rules(settings)
 
     local roles, professions, classes, levels = {}, {}, {}, {}
     local levelOrder, classNames = {}, {}
     local conflicts, total = {}, 0
 
     for _, member in ipairs(members) do
-        local mainWord = ns.Parser.FirstMatch(member.note, identity.main)
-        local altWord = ns.Parser.FirstMatch(member.note, identity.alt)
-        local roleHits = ns.Parser.Detect(member.note, roleRules)
-        local professionHits = ns.Parser.Detect(member.note, professionRules)
+        local analysis = Census.Analyze(member, rules)
+        detectConflicts(conflicts, member, analysis)
 
-        detectConflicts(conflicts, member, mainWord, altWord, roleHits, professionHits)
-
-        -- "Only mains" additionally requires a declared main, on top of the alts filter.
-        local altOk = settings.includeAlts ~= false or not altWord
-        local mainOk = not settings.onlyMains or mainWord
-        if altOk and mainOk then
+        if analysis.included then
             total = total + 1
 
-            local hasDps = false
-            for _, hit in ipairs(roleHits) do
-                increment(roles, hit.label)
-                if hit.key == "dps" then hasDps = true end
+            for _, label in ipairs(analysis.roles) do
+                increment(roles, label)
             end
-            if PURE_DPS_CLASSES[member.classFile] and not hasDps then
-                increment(roles, dpsLabel)
-            end
-
-            for _, hit in ipairs(professionHits) do
+            for _, hit in ipairs(analysis.professionHits) do
                 increment(professions, hit.label)
             end
 
@@ -178,4 +216,56 @@ function Census.Build(members, settings)
         levels = toSlices(levels, function(slice) return levelOrder[slice.label] end),
         conflicts = conflicts,
     }
+end
+
+-- Finds members who fit a need, using exactly the same detection as the charts.
+-- criteria (all optional):
+--   role      "tank" | "healer" | "dps" (a Config.ROLES key); omit for any role
+--   minLevel  inclusive lower bound; omit for no lower bound
+--   maxLevel  inclusive upper bound; omit for no upper bound
+-- Members excluded by the alts/mains settings are never returned; members with
+-- logged conflicts still are (the log is informational). minLevel > maxLevel
+-- matches nobody. Results are sorted by level (highest first), then name.
+-- Returns a list of { name, level, className, classFile, note, online, roles, professions }.
+function Census.Find(members, criteria, settings)
+    criteria = criteria or {}
+    if criteria.role and not labelFor(ns.Config.ROLES, criteria.role) then
+        error("unknown role: " .. tostring(criteria.role), 2)
+    end
+
+    local rules = Census.Rules(settings)
+    local results = {}
+
+    for _, member in ipairs(members) do
+        local analysis = Census.Analyze(member, rules)
+        local level = member.level
+        local fits = analysis.included
+            and (not criteria.role or analysis.roleKeys[criteria.role])
+            and (not criteria.minLevel or (level and level >= criteria.minLevel))
+            and (not criteria.maxLevel or (level and level <= criteria.maxLevel))
+
+        if fits then
+            local professions = {}
+            for _, hit in ipairs(analysis.professionHits) do
+                professions[#professions + 1] = hit.label
+            end
+            results[#results + 1] = {
+                name = member.name,
+                level = member.level,
+                className = member.className,
+                classFile = member.classFile,
+                note = member.note,
+                online = member.online,
+                roles = analysis.roles,
+                professions = professions,
+            }
+        end
+    end
+
+    table.sort(results, function(a, b)
+        local al, bl = a.level or 0, b.level or 0
+        if al ~= bl then return al > bl end
+        return string.lower(a.name or "") < string.lower(b.name or "")
+    end)
+    return results
 end

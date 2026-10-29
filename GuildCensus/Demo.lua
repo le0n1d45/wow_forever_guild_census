@@ -17,6 +17,8 @@ local NOTES = {
     "Main, alt of Bob", "Mining Skinning Herbalism dps", "healer", "Healer/DPS Cooking", "tank Fishing", "Jewelcrafting dps",
 }
 
+local ONLINE_PERCENT = 35
+
 local NAMES = {
     "Thalindra", "Gorrik", "Mirelle", "Brannoc", "Sylvaris", "Durgan", "Elowen", "Kaldor",
     "Nyssa", "Torvald", "Ilyana", "Hargrim", "Vesperia", "Rurik", "Aelwyn", "Bromm",
@@ -48,6 +50,7 @@ function Demo.Generate(count, seed)
             classFile = class[1],
             className = class[2],
             note = NOTES[rand(#NOTES)],
+            online = rand(100) <= ONLINE_PERCENT,
         }
     end
     return members

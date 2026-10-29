@@ -20,13 +20,14 @@ function Roster.Read()
     if not IsInGuild() then return members end
 
     for i = 1, GetNumGuildMembers() do
-        local fullName, _, _, level, className, _, note, _, _, _, classFile = GetGuildRosterInfo(i)
+        local fullName, _, _, level, className, _, note, _, isOnline, _, classFile = GetGuildRosterInfo(i)
         members[#members + 1] = {
             name = fullName and string.match(fullName, "^[^%-]+") or fullName, -- drop "-Realm"
             level = level,
             className = className,
             classFile = classFile,
             note = note,
+            online = isOnline and true or false,
         }
     end
     return members

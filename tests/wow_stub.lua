@@ -107,7 +107,9 @@ function InstallWowStub(options)
     GetNumGuildMembers = function() return #guild end
     GetGuildRosterInfo = function(i)
         local m = guild[i]
-        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, "", true, 0, m.classFile
+        local online = m.online
+        if online == nil then online = true end -- members default to online
+        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, "", online, 0, m.classFile
     end
     C_GuildInfo = { GuildRoster = function() end }
 
