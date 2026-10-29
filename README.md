@@ -1,46 +1,116 @@
-# Guild Census (WoW Forever addon)
+# Guild Census
 
-Blank scaffold targeting WoW Forever (Interface `16001`).
+<img src="assets/icon.png" alt="Guild Census icon" width="64" align="right">
+
+Guild Census builds pie charts of your guild roster so you can see its makeup at a glance.
+It targets WoW Forever and also builds for Retail. Type `/gcensus` to open it.
+
+![The census window](docs/census.png)
+
+## What it shows
+
+- **Roles:** tanks, healers and DPS, read from your members' guild notes.
+- **Professions:** read from the same notes.
+- **Classes:** one slice per class, in class colours.
+- **Levels:** how many members fall in each 10-level range.
+
+## Features
+
+- **Editable keyword lists:** the keywords used to spot roles, professions, and mains/alts are
+  editable in the settings panel.
+- **Alts and mains:** leave out alts, or count only members whose note says they're a main.
+- **Pure-DPS classes:** warlocks, hunters, mages and rogues are always counted as DPS.
+- **Logs tab:** lists contradictory notes, with each player's note, so you can tidy the notes or
+  tune your keywords. Logged notes are still counted in the charts.
+- **Demo mode:** `/gcensus demo` shows sample data, handy if you're not in a guild.
 
 ## Install
 
-Copy or symlink `GuildCensus/` into the client's AddOns folder, e.g.
-`World of Warcraft/_classic_beta_/Interface/AddOns/GuildCensus/`, then `/reload` or restart.
+Every push to `main` builds two zips, available as artifacts on the repository's **Actions** tab:
 
-## Notes
+| Artifact | Client | Interface |
+| --- | --- | --- |
+| `GuildCensus-Forever-<n>` | WoW Forever | `16001` |
+| `GuildCensus-Retail-<n>` | Retail | `120105` |
 
-- Verify the client's interface number with `/dump select(4, GetBuildInfo())`.
-- Lua 5.1 only; use `C_Spell` / `C_Item` APIs rather than removed globals.
-- Do not register `COMBAT_LOG_EVENT_UNFILTERED`; guard values with `issecretvalue`.
-- Forever's TOC suffix is `_Forever` (alias `_Camelot`); only needed if you split TOCs.
+Download the one for your client, unzip it, and put the `GuildCensus` folder in your AddOns folder
+(`.../_retail_/Interface/AddOns/`, or `_classic_beta_` for the Forever beta), then restart the client or
+`/reload`. If the game still lists the addon as out of date, tick **Load out of date AddOns** in the
+AddOns list. Check your client's number with `/dump select(4, GetBuildInfo())`.
+
+To install from a clone instead, copy the `GuildCensus/` folder (not the repo root) into AddOns. The
+repository's TOC uses the Forever interface number.
 
 ## Usage
 
-`/gcensus` (or `/guildcensus`) toggles a window with four pie charts built from the guild roster:
-roles and professions (parsed from public notes), classes, and levels (10-level buckets).
+| Command | Does |
+| --- | --- |
+| `/gcensus` (or `/guildcensus`) | Open or close the census window |
+| `/gcensus logs` | Open the window on the Logs tab |
+| `/gcensus config` | Open the settings panel |
+| `/gcensus demo` | Toggle an 80-member fake roster |
 
-`/gcensus demo` toggles an 80-member fake roster, useful for checking the UI in any client (tick
-"Load out of date AddOns" if the Interface number doesn't match).
-
-## Census logs
-
-The **Logs** tab of the results window (or `/gcensus logs`) lists notes whose detection conflicts, each with the
-player's note and the keyword that matched, to help tune the keyword lists. Conflicts: a note detected as
-both main and alt, more than two professions, and a class that can't fill a detected role (e.g. a mage
-matching "healer"). Holding all three roles is not a conflict. Conflicts are computed for every guild
-member, regardless of the alts/mains filters.
+The window has two tabs: **Census** (the four pie charts) and **Logs**. The Logs tab shows how many
+conflicts were found, for example `Logs (27)`.
 
 ## Settings
 
-`/gcensus config` opens the addon's settings panel (also under Options > AddOns):
+`/gcensus config` opens the settings panel, which is also under Options > AddOns.
 
-- **Include alts** and **Include ONLY mains declared within guild notes** checkboxes.
-- Editable comma-separated keyword lists for alt/main, role and profession detection. Matching is a
-  case-insensitive substring search on the public note (so `heal` matches "healer").
-- Warlocks, hunters, mages and rogues are always counted as DPS.
+![The settings panel](docs/settings.png)
 
-## Tests
+- **Include alts** and **Include ONLY mains declared within guild notes** checkboxes. When both
+  apply, a member must pass the alts checkbox and also declare a main.
+- **Alt/Main, Role and Profession detection:** comma-separated keyword lists. Changes apply
+  immediately, and **Reset to defaults** restores the originals.
 
-`lua tests/run.lua` (Lua 5.1) runs note parsing/aggregation tests plus headless UI tests against a strict
-WoW widget stub (`tests/wow_stub.lua`). The stub checks logic and widget-method names, not rendering or
-Forever API compatibility.
+### How detection works
+
+Detection reads each member's **public** guild note. A keyword matches when it appears anywhere in
+the note, ignoring case, so `heal` matches "healer". That also means short keywords can match inside
+unrelated words (for example `ret` in "return"), so choose them with care. An emptied box matches
+nothing.
+
+Default keywords:
+
+| Detection | Defaults |
+| --- | --- |
+| Main / Alt | `main` / `alt` |
+| Tank | `tank, bear, prot` |
+| Healer | `heal, resto, holy, disc` |
+| DPS | `dps, fury, arms, ret, feral, cat, kitty, balance, moonkin, crit-chicken, enh, ele, enhance, elemental, shadow, shockadin` |
+| Leatherworking | `lw, leatherworker` |
+| Skinning | `skinning, skinner` |
+| Mining | `mining, miner` |
+| Herbalism | `herb, herbalism, herbs` |
+| Enchanting | `ench, enchanting` |
+| Blacksmith | `bs, blacksmith, armorsmith, weaponsmith` |
+| Engineering | `engi, engineering` |
+| Tailor | `tailor, tailoring` |
+| Alchemy | `alch, alchemy` |
+
+## Census logs
+
+The Logs tab lists notes whose detection results contradict each other. Each entry shows the player,
+what's wrong, the keyword that matched, and the note itself. A note is logged when it:
+
+- is detected as both a main and an alt;
+- matches more than two professions;
+- matches a role the player's class can't fill (for example a mage matching "healer").
+
+Matching all three roles is not a conflict, since some classes can do all three.
+
+The log is informational only. Logged members are still counted in every chart, and conflicts are
+reported for every guild member regardless of the alts/mains filters.
+
+## Development
+
+- **Tests:** `lua tests/run.lua` (Lua 5.1) runs note-parsing and census tests plus headless UI tests
+  against a strict WoW widget stub (`tests/wow_stub.lua`). The stub checks logic and widget-method
+  names; it does not check rendering or Forever API compatibility.
+- **Builds:** `.github/workflows/build.yml` publishes the Forever and Retail artifacts and keeps the
+  newest 5 of each.
+- **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`. Add `--size N --jpeg PATH` (needs
+  Pillow) for a larger JPEG; the repo's copies are in `assets/`.
+- **Client notes:** WoW runs Lua 5.1; use `C_Spell` / `C_Item` rather than removed globals, don't
+  register `COMBAT_LOG_EVENT_UNFILTERED`, and guard values with `issecretvalue`.
