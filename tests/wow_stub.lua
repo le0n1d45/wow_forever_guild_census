@@ -83,6 +83,7 @@ local function makeFrame(name, template)
     function f:IsShown() return self.shown end
     function f:SetShown(shown) self.shown = shown and true or false end
     function f:SetupMenu(generator) self.menuGenerator = generator end
+    function f:GenerateMenu() self.menuGenerations = (rawget(self, "menuGenerations") or 0) + 1 end
     f.enabled = true
     function f:Enable() self.enabled = true end
     function f:Disable() self.enabled = false end

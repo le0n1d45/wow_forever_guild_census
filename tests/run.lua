@@ -42,11 +42,11 @@ end
 -- Same order as the .toc.
 ADDON_FILES = {
     "Config.lua", "Parser.lua", "Census.lua", "Demo.lua", "Roster.lua",
-    "PieChart.lua", "Logs.lua", "Finder.lua", "UI.lua", "Options.lua", "GuildCensus.lua",
+    "PieChart.lua", "Logs.lua", "Dungeons.lua", "Finder.lua", "UI.lua", "Options.lua", "GuildCensus.lua",
 }
 
 local ns = {}
-for _, file in ipairs({ "Config.lua", "Parser.lua", "Census.lua", "Logs.lua" }) do
+for _, file in ipairs({ "Config.lua", "Parser.lua", "Census.lua", "Logs.lua", "Dungeons.lua" }) do
     loadAddonFile(ns, file)
 end
 
@@ -54,6 +54,7 @@ dofile("tests/Config.test.lua")(ns)
 dofile("tests/Parser.test.lua")(ns)
 dofile("tests/Census.test.lua")(ns)
 dofile("tests/Logs.test.lua")(ns)
+dofile("tests/Dungeons.test.lua")(ns)
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()

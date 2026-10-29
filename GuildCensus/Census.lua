@@ -124,6 +124,7 @@ end
 --   roles / roleKeys     roles to count: note hits plus DPS for pure-DPS classes, as a
 --                        label list and a { key = true } set
 --   professionHits       { key, label, word }
+--   professionKeys       { key = true } set of the detected professions
 --   included             false when the alts/mains settings exclude this member
 function Census.Analyze(member, rules)
     local settings = rules.settings
@@ -131,6 +132,11 @@ function Census.Analyze(member, rules)
     local altWord = ns.Parser.FirstMatch(member.note, rules.identity.alt)
     local roleHits = ns.Parser.Detect(member.note, rules.roles)
     local professionHits = ns.Parser.Detect(member.note, rules.professions)
+
+    local professionKeys = {}
+    for _, hit in ipairs(professionHits) do
+        professionKeys[hit.key] = true
+    end
 
     local roles, roleKeys = {}, {}
     for _, hit in ipairs(roleHits) do
@@ -153,6 +159,7 @@ function Census.Analyze(member, rules)
         roles = roles,
         roleKeys = roleKeys,
         professionHits = professionHits,
+        professionKeys = professionKeys,
         included = (altOk and mainOk) and true or false,
     }
 end
@@ -223,7 +230,10 @@ end
 --   role      "tank" | "healer" | "dps" (a Config.ROLES key); omit for any role
 --   minLevel  inclusive lower bound; omit for no lower bound
 --   maxLevel  inclusive upper bound; omit for no upper bound
--- Members excluded by the alts/mains settings are never returned; members with
+--   profession  a Config.PROFESSIONS key the member's note must list; omit for any
+--   onlineOnly  true to return only members who are online (members whose online
+--               status is unknown are treated as offline)
+-- All given criteria must match. Members excluded by the alts/mains settings are never returned; members with
 -- logged conflicts still are (the log is informational). minLevel > maxLevel
 -- matches nobody. Results are sorted by level (highest first), then name.
 -- Returns a list of { name, level, className, classFile, note, online, roles, professions }.
@@ -231,6 +241,10 @@ function Census.Find(members, criteria, settings)
     criteria = criteria or {}
     if criteria.role and not labelFor(ns.Config.ROLES, criteria.role) then
         error("unknown role: " .. tostring(criteria.role), 2)
+    end
+
+    if criteria.profession and not labelFor(ns.Config.PROFESSIONS, criteria.profession) then
+        error("unknown profession: " .. tostring(criteria.profession), 2)
     end
 
     local rules = Census.Rules(settings)
@@ -241,6 +255,8 @@ function Census.Find(members, criteria, settings)
         local level = member.level
         local fits = analysis.included
             and (not criteria.role or analysis.roleKeys[criteria.role])
+            and (not criteria.profession or analysis.professionKeys[criteria.profession])
+            and (not criteria.onlineOnly or member.online == true)
             and (not criteria.minLevel or (level and level >= criteria.minLevel))
             and (not criteria.maxLevel or (level and level <= criteria.maxLevel))
 

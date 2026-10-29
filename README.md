@@ -56,14 +56,24 @@ shows how many conflicts were found, for example `Logs (27)`.
 
 ## Finder
 
-The Finder tab lists guild members who can fill a role you're looking for, for example a tank for a
-level 15-25 dungeon. Pick a role from the dropdown (Any, Tank, Healer or DPS) and optionally type a
-minimum and/or maximum level; the list updates as you change them. Each row shows the player's name
-(in class colour), level, class, detected roles and professions, highest level first.
+The Finder tab lists guild members who can fill a need, for example a tank for a level 15-25 dungeon.
+Every control narrows the list, and the list updates as you change them:
+
+- **Role:** a dropdown with Any, Tank, Healer or DPS.
+- **Profession:** a dropdown with Any plus each profession, to find someone with it (alone or
+  combined with a role).
+- **Dungeon:** pick a dungeon to fill in its level range, or choose **Custom** and type a range.
+  Editing a level by hand switches the dungeon back to Custom. *The dungeon list and ranges are
+  provisional (classic-era values) until they are replaced with WoW Forever's.*
+- **Level:** a minimum and/or maximum level, inclusive; leave either empty for no limit.
+- **Online only:** limits any search to members who are online right now.
+
+Each row shows the player's name (in class colour), level, class, detected roles and professions,
+highest level first. Very large guilds show the first 300 matches.
 
 It uses exactly the same detection and settings as the charts, so warlocks, hunters, mages and rogues
 always count as DPS, and your alts/mains choices apply. Members with conflicts in the Logs tab are still
-listed. Very large guilds show the first 300 matches.
+listed.
 
 ## Settings
 

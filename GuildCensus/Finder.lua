@@ -5,6 +5,7 @@ ns.Finder = Finder
 
 local ROW_HEIGHT = 16
 local MAX_ROWS = 300 -- rows are pooled frames; cap them so a huge guild stays cheap
+local LONG_MENU = 12 -- menus longer than this scroll instead of running off screen
 
 local COLUMNS = {
     { key = "name", title = "Name", x = 0, width = 150 },
@@ -29,14 +30,15 @@ local function addLabel(parent, text, x, y, font)
     return fs
 end
 
-local function addLevelBox(parent, x, onChange)
+-- onChange(self, userInput): userInput is false when the text is set from code.
+local function addLevelBox(parent, x, y, onChange)
     local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     box:SetSize(36, 20)
-    box:SetPoint("TOPLEFT", x, -3)
+    box:SetPoint("TOPLEFT", x, y)
     box:SetAutoFocus(false)
     box:SetNumeric(true)
     box:SetMaxLetters(3)
-    box:SetScript("OnTextChanged", function() onChange() end)
+    box:SetScript("OnTextChanged", onChange)
     box:SetScript("OnEscapePressed", box.ClearFocus)
     box:SetScript("OnEnterPressed", box.ClearFocus)
     return box
@@ -57,89 +59,170 @@ local function addRow(content, index)
     return row
 end
 
--- Creates the role selector: a real dropdown with fixed choices. Blizzard's
--- dropdown templates differ between clients, so try the modern one, then the
--- legacy one, and finally fall back to a button that cycles through the choices.
--- Returns the kind ("modern" | "legacy" | "cycle") and the widget.
-local function createRoleSelector(pane, choices, selectRole)
-    addLabel(pane, "Role:", 14, -6)
+-- Creates a labelled selector with a fixed list of choices, so nothing is free text.
+-- Blizzard's dropdown templates differ between clients, so try the modern one, then
+-- the legacy one, and finally fall back to a button that cycles through the choices.
+-- spec: { name, label, labelX, x, y, width, choices = { { label } }, getIndex(), onSelect(index) }
+-- Returns { kind = "modern" | "legacy" | "cycle", widget, Refresh() }; call Refresh()
+-- after changing the selection from code so the displayed text follows it.
+local function createSelector(pane, spec)
+    addLabel(pane, spec.label, spec.labelX, spec.y - 4)
+    local choices = spec.choices
+    local selector = {}
 
     local ok, dropdown = pcall(CreateFrame, "DropdownButton", nil, pane, "WowStyle1DropdownTemplate")
     if ok and dropdown and dropdown.SetupMenu then
-        dropdown:SetWidth(120)
-        dropdown:SetPoint("TOPLEFT", 52, -2)
+        dropdown:SetWidth(spec.width)
+        dropdown:SetPoint("TOPLEFT", spec.x, spec.y)
         dropdown:SetupMenu(function(_, root)
+            if #choices > LONG_MENU and root.SetScrollMode then root:SetScrollMode(300) end
             for i, choice in ipairs(choices) do
                 root:CreateRadio(choice.label,
-                    function() return pane.roleIndex == i end,
-                    function() selectRole(i) end)
+                    function() return spec.getIndex() == i end,
+                    function() spec.onSelect(i) end)
             end
         end)
-        return "modern", dropdown
+        selector.kind, selector.widget = "modern", dropdown
+        function selector:Refresh() dropdown:GenerateMenu() end
+        return selector
     end
 
-    local okLegacy, legacy = pcall(CreateFrame, "Frame", addonName .. "RoleDropdown", pane, "UIDropDownMenuTemplate")
+    local okLegacy, legacy = pcall(CreateFrame, "Frame", addonName .. spec.name .. "Dropdown", pane,
+        "UIDropDownMenuTemplate")
     if okLegacy and legacy and UIDropDownMenu_Initialize then
-        legacy:SetPoint("TOPLEFT", 36, 2)
-        UIDropDownMenu_SetWidth(legacy, 90)
-        UIDropDownMenu_SetText(legacy, choices[1].label)
+        legacy:SetPoint("TOPLEFT", spec.x - 16, spec.y + 2)
+        UIDropDownMenu_SetWidth(legacy, spec.width - 30)
         UIDropDownMenu_Initialize(legacy, function()
             for i, choice in ipairs(choices) do
                 local info = UIDropDownMenu_CreateInfo()
                 info.text = choice.label
-                info.checked = pane.roleIndex == i
+                info.checked = spec.getIndex() == i
                 info.func = function()
-                    selectRole(i)
-                    UIDropDownMenu_SetText(legacy, choice.label)
+                    spec.onSelect(i)
+                    selector:Refresh()
                 end
                 UIDropDownMenu_AddButton(info)
             end
         end)
-        return "legacy", legacy
+        selector.kind, selector.widget = "legacy", legacy
+        function selector:Refresh() UIDropDownMenu_SetText(legacy, choices[spec.getIndex()].label) end
+        selector:Refresh()
+        return selector
     end
 
     local button = CreateFrame("Button", nil, pane, "UIPanelButtonTemplate")
-    button:SetSize(90, 22)
-    button:SetPoint("TOPLEFT", 52, -2)
-    button:SetText(choices[1].label)
+    button:SetSize(spec.width, 22)
+    button:SetPoint("TOPLEFT", spec.x, spec.y)
     button:SetScript("OnClick", function()
-        local index = pane.roleIndex % #choices + 1
-        button:SetText(choices[index].label)
-        selectRole(index)
+        spec.onSelect(spec.getIndex() % #choices + 1)
+        selector:Refresh()
     end)
-    return "cycle", button
+    selector.kind, selector.widget = "cycle", button
+    function selector:Refresh() button:SetText(choices[spec.getIndex()].label) end
+    selector:Refresh()
+    return selector
+end
+
+-- "Any" first, then one choice per definition (a Config.ROLES / Config.PROFESSIONS list).
+local function choicesFor(defs)
+    local choices = { { label = "Any" } }
+    for _, def in ipairs(defs) do
+        choices[#choices + 1] = { key = def.key, label = def.label }
+    end
+    return choices
+end
+
+local function dungeonChoices()
+    local choices = { { label = "Custom" } }
+    for _, dungeon in ipairs(ns.Dungeons.LIST) do
+        choices[#choices + 1] = {
+            dungeon = dungeon,
+            label = string.format("%s (%d-%d)", dungeon.name, dungeon.minLevel, dungeon.maxLevel),
+        }
+    end
+    return choices
 end
 
 -- Fills `pane` (a Frame the caller has already sized and anchored) with the
--- finder: role/level controls above a scrolling list of matching members.
--- Call pane:Update(members, settings) whenever the roster or settings change.
+-- finder: role / profession / dungeon / level / online controls above a scrolling
+-- list of matching members. Call pane:Update(members, settings) whenever the
+-- roster or settings change.
 function Finder.Create(pane)
-    -- Role choices: "Any" first, then each configured role.
-    local choices = { { label = "Any" } }
-    for _, def in ipairs(ns.Config.ROLES) do
-        choices[#choices + 1] = { key = def.key, label = def.label }
-    end
-    pane.roleIndex = 1
-    pane.members, pane.settings = {}, nil
+    local roleChoices = choicesFor(ns.Config.ROLES)
+    local professionChoices = choicesFor(ns.Config.PROFESSIONS)
+    local dungeons = dungeonChoices()
 
-    pane.roleControl, pane.roleWidget = createRoleSelector(pane, choices, function(index)
-        pane.roleIndex = index
+    pane.roleIndex, pane.professionIndex, pane.dungeonIndex = 1, 1, 1
+    pane.onlineOnly = false
+    pane.members, pane.settings = {}, nil
+    pane.selectors = {}
+
+    -- Row 1: who we are looking for.
+    pane.selectors.role = createSelector(pane, {
+        name = "Role", label = "Role:", labelX = 14, x = 52, y = -2, width = 110,
+        choices = roleChoices,
+        getIndex = function() return pane.roleIndex end,
+        onSelect = function(index)
+            pane.roleIndex = index
+            pane:Search()
+        end,
+    })
+    pane.selectors.profession = createSelector(pane, {
+        name = "Profession", label = "Profession:", labelX = 190, x = 262, y = -2, width = 130,
+        choices = professionChoices,
+        getIndex = function() return pane.professionIndex end,
+        onSelect = function(index)
+            pane.professionIndex = index
+            pane:Search()
+        end,
+    })
+
+    pane.onlineBox = CreateFrame("CheckButton", nil, pane, "UICheckButtonTemplate")
+    pane.onlineBox:SetPoint("TOPLEFT", 410, 2)
+    pane.onlineBox:SetScript("OnClick", function(self)
+        pane.onlineOnly = self:GetChecked() and true or false
         pane:Search()
     end)
+    addLabel(pane, "Online only", 438, -6)
 
-    addLabel(pane, "Level:", 190, -6)
-    pane.minBox = addLevelBox(pane, 232, function() pane:Search() end)
-    addLabel(pane, "to", 276, -6)
-    pane.maxBox = addLevelBox(pane, 296, function() pane:Search() end)
+    -- Row 2: where (a dungeon preset fills in the level range, which stays editable).
+    local function selectDungeon(index)
+        pane.dungeonIndex = index
+        local dungeon = dungeons[index].dungeon
+        if dungeon then
+            pane.minBox:SetText(tostring(dungeon.minLevel))
+            pane.maxBox:SetText(tostring(dungeon.maxLevel))
+        end
+        pane:Search()
+    end
+    pane.selectors.dungeon = createSelector(pane, {
+        name = "Dungeon", label = "Dungeon:", labelX = 14, x = 70, y = -34, width = 200,
+        choices = dungeons,
+        getIndex = function() return pane.dungeonIndex end,
+        onSelect = selectDungeon,
+    })
 
-    pane.summary = addLabel(pane, "", 346, -6)
+    -- Typing a level by hand means the range no longer matches the dungeon.
+    local function onLevelEdited(_, userInput)
+        if userInput and pane.dungeonIndex ~= 1 then
+            pane.dungeonIndex = 1
+            pane.selectors.dungeon:Refresh()
+        end
+        pane:Search()
+    end
+    addLabel(pane, "Level:", 290, -38)
+    pane.minBox = addLevelBox(pane, 332, -35, onLevelEdited)
+    addLabel(pane, "to", 376, -38)
+    pane.maxBox = addLevelBox(pane, 396, -35, onLevelEdited)
+
+    pane.summary = addLabel(pane, "", 446, -38)
 
     for _, column in ipairs(COLUMNS) do
-        addLabel(pane, column.title, 14 + column.x, -34, "GameFontNormal")
+        addLabel(pane, column.title, 14 + column.x, -66, "GameFontNormal")
     end
 
     pane.scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate")
-    pane.scroll:SetPoint("TOPLEFT", 14, -52)
+    pane.scroll:SetPoint("TOPLEFT", 14, -84)
     pane.scroll:SetPoint("BOTTOMRIGHT", -34, 14)
     pane.content = CreateFrame("Frame", nil, pane.scroll)
     pane.content:SetSize(796, 1)
@@ -149,9 +232,11 @@ function Finder.Create(pane)
     -- Empty boxes mean "no bound"; tonumber("") is nil.
     function pane:Criteria()
         return {
-            role = choices[self.roleIndex].key,
+            role = roleChoices[self.roleIndex].key,
+            profession = professionChoices[self.professionIndex].key,
             minLevel = tonumber(self.minBox:GetText()),
             maxLevel = tonumber(self.maxBox:GetText()),
+            onlineOnly = self.onlineOnly or nil,
         }
     end
 

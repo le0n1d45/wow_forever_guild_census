@@ -283,6 +283,11 @@ return function(ns)
             assertEqual(Census.Analyze(member("Dru", 60, "DRUID", ""), rules).roles, {})
         end)
 
+        it("reports the professions found as a set", function()
+            local a = Census.Analyze(member("Bob", 60, "WARRIOR", "miner, bs"), rules)
+            assertEqual(a.professionKeys, { mining = true, blacksmith = true })
+        end)
+
         it("marks members excluded by the alts filter", function()
             local s = Config.Defaults()
             s.includeAlts = false
@@ -403,6 +408,60 @@ return function(ns)
             local ok, err = pcall(Census.Find, roster, { role = "bard" })
             assertEqual(ok, false)
             assert(tostring(err):find("unknown role: bard", 1, true), tostring(err))
+        end)
+
+        local crew = {
+            member("Dig", 30, "WARRIOR", "tank, mining", true),
+            member("Stitch", 30, "PRIEST", "healer, tailoring", false),
+            member("Both", 40, "PALADIN", "prot, miner, tailor", true),
+            member("Plain", 20, "MAGE", "", true),
+            member("Away", 50, "ROGUE", "mining", false),
+            member("Unknown", 25, "DRUID", "mining, resto", nil),
+        }
+
+        it("filters by profession", function()
+            assertEqual(names(Census.Find(crew, { profession = "mining" })), { "Away", "Both", "Dig", "Unknown" })
+            assertEqual(names(Census.Find(crew, { profession = "tailor" })), { "Both", "Stitch" })
+            assertEqual(Census.Find(crew, { profession = "alchemy" }), {})
+        end)
+
+        it("combines profession with role and level range", function()
+            assertEqual(names(Census.Find(crew, { profession = "mining", role = "tank" })), { "Both", "Dig" })
+            assertEqual(names(Census.Find(crew, { profession = "mining", minLevel = 35 })), { "Away", "Both" })
+            assertEqual(names(Census.Find(crew, { profession = "tailor", role = "healer", maxLevel = 30 })), { "Stitch" })
+        end)
+
+        it("uses custom profession keywords from settings", function()
+            local s = Config.Defaults()
+            s.professions.mining = "pickaxe"
+            local custom = { member("Pick", 30, "WARRIOR", "pickaxe"), member("Dig", 30, "WARRIOR", "mining") }
+            assertEqual(names(Census.Find(custom, { profession = "mining" }, s)), { "Pick" })
+        end)
+
+        it("rejects an unknown profession", function()
+            local ok, err = pcall(Census.Find, crew, { profession = "cooking" })
+            assertEqual(ok, false)
+            assert(tostring(err):find("unknown profession: cooking", 1, true), tostring(err))
+        end)
+
+        it("onlineOnly returns only members who are online, treating unknown as offline", function()
+            assertEqual(names(Census.Find(crew, { onlineOnly = true })), { "Both", "Dig", "Plain" })
+            assertEqual(#Census.Find(crew, { onlineOnly = false }), #crew)
+            assertEqual(#Census.Find(crew, {}), #crew)
+        end)
+
+        it("onlineOnly combines with every other criterion", function()
+            assertEqual(names(Census.Find(crew, { onlineOnly = true, role = "tank" })), { "Both", "Dig" })
+            assertEqual(names(Census.Find(crew, { onlineOnly = true, profession = "mining" })), { "Both", "Dig" })
+            assertEqual(names(Census.Find(crew, { onlineOnly = true, profession = "mining", minLevel = 35 })), { "Both" })
+            assertEqual(names(Census.Find(crew, { onlineOnly = true, role = "dps", maxLevel = 25 })), { "Plain" })
+        end)
+
+        it("onlineOnly still respects the alts filter", function()
+            local s = Config.Defaults()
+            s.includeAlts = false
+            local list = { member("Real", 30, "MAGE", "", true), member("Spare", 30, "MAGE", "alt", true) }
+            assertEqual(names(Census.Find(list, { onlineOnly = true }, s)), { "Real" })
         end)
 
         it("agrees with the chart counts for every role (single source of truth)", function()

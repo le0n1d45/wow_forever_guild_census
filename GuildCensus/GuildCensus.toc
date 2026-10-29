@@ -14,6 +14,7 @@ Demo.lua
 Roster.lua
 PieChart.lua
 Logs.lua
+Dungeons.lua
 Finder.lua
 UI.lua
 Options.lua
