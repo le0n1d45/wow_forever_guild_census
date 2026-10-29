@@ -48,6 +48,17 @@ return function()
             assertEqual(ns.Demo.Generate(20, 7), ns.Demo.Generate(20, 7))
         end)
 
+        it("gives every member a unique, real-looking name", function()
+            local seen = {}
+            for _, m in ipairs(ns.Demo.Generate(200)) do
+                assert(m.name:match("^%a"), "bad name: " .. m.name)
+                assert(not m.name:find("Player"), "placeholder name: " .. m.name)
+                assert(not seen[m.name], "duplicate name: " .. m.name)
+                seen[m.name] = true
+            end
+            assertEqual(ns.Demo.Generate(1)[1].name, "Thalindra")
+        end)
+
         it("produces valid members and non-empty role/profession data", function()
             local members = ns.Demo.Generate(80)
             for _, m in ipairs(members) do
