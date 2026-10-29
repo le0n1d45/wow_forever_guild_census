@@ -4,6 +4,7 @@
 ## Author: Le0n1d45
 ## Version: 0.3.0
 ## SavedVariables: GuildCensusDB
+## IconTexture: Interface\AddOns\GuildCensus\icon
 
 Config.lua
 Parser.lua
