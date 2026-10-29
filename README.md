@@ -117,7 +117,7 @@ Default keywords:
 | Tank | `tank, bear, prot` |
 | Healer | `heal, resto, holy, disc` |
 | DPS | `dps, fury, arms, ret, feral, cat, kitty, balance, moonkin, crit-chicken, enh, ele, enhance, elemental, shadow, shockadin` |
-| Leatherworking | `lw, leatherworker` |
+| Leatherworking | `lw, leatherworking, leatherworker` |
 | Skinning | `skinning, skinner` |
 | Mining | `mining, miner` |
 | Herbalism | `herb, herbalism, herbs` |

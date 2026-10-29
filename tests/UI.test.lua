@@ -1118,6 +1118,18 @@ return function()
             assertEqual(GuildCensusDB.settings, ns.Config.Defaults())
         end)
 
+        it("upgrades an untouched old Leatherworking default when a saved profile loads", function()
+            InstallWowStub()
+            local ns = {}
+            for _, file in ipairs(ADDON_FILES) do loadAddonFile(ns, file) end
+            GuildCensusDB = { settings = { professions = { leatherworking = "lw, leatherworker", mining = "pickaxe" } } }
+            GuildCensusEventFrame.scripts.OnEvent(GuildCensusEventFrame, "ADDON_LOADED", "GuildCensus")
+            local boxes = GuildCensusOptionsPanel.controls.professions
+            assertEqual(boxes.leatherworking.text, "lw, leatherworking, leatherworker")
+            assertEqual(boxes.mining.text, "pickaxe") -- an edited box is left alone
+            assertEqual(GuildCensusDB.settings.professions.leatherworking, "lw, leatherworking, leatherworker")
+        end)
+
         it("keeps saved settings across a reload", function()
             loadAddon()
             type_(GuildCensusOptionsPanel.controls.roles.tank, "wall")

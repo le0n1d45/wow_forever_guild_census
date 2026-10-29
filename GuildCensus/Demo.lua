@@ -36,7 +36,7 @@ local STREAMS = {
 local PROFESSION_WORDS = {
     mining = { "Mining", "miner" }, blacksmith = { "BS", "Blacksmith" },
     herbalism = { "Herbalism", "herb" }, alchemy = { "Alchemy", "alch" },
-    skinning = { "Skinning", "skinner" }, leatherworking = { "LW", "Leatherworker" },
+    skinning = { "Skinning", "skinner" }, leatherworking = { "LW", "Leatherworking" },
     enchanting = { "Ench", "Enchanting" }, engineering = { "Engi", "Engineering" },
     tailor = { "Tailor", "Tailoring" },
 }

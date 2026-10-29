@@ -9,7 +9,7 @@ return function(ns)
             assertEqual(d.identity, { main = "main", alt = "alt" })
             assertEqual(d.roles.tank, "tank,bear,prot")
             assertEqual(d.roles.healer, "heal,resto,holy,disc")
-            assertEqual(d.professions.leatherworking, "lw, leatherworker")
+            assertEqual(d.professions.leatherworking, "lw, leatherworking, leatherworker")
             assertEqual(d.professions.blacksmith, "bs, blacksmith, armorsmith, weaponsmith")
             assertEqual(d.professions.alchemy, "alch, alchemy")
         end)
@@ -29,6 +29,25 @@ return function(ns)
             local db = {}
             Config.Init(db)
             assertEqual(db.settings, Config.Defaults())
+        end)
+
+        it("Init upgrades a saved value that still equals an old default", function()
+            local db = { settings = { professions = { leatherworking = "lw, leatherworker" } } }
+            local s = Config.Init(db)
+            assertEqual(s.professions.leatherworking, "lw, leatherworking, leatherworker")
+        end)
+
+        it("Init leaves an edited value alone, even one that merely resembles the old default", function()
+            for _, edited in ipairs({ "lw", "lw, leatherworker, hides", "", "LW, leatherworker" }) do
+                local db = { settings = { professions = { leatherworking = edited } } }
+                assertEqual(Config.Init(db).professions.leatherworking, edited)
+            end
+        end)
+
+        it("Init is idempotent once upgraded", function()
+            local db = { settings = { professions = { leatherworking = "lw, leatherworker" } } }
+            Config.Init(db)
+            assertEqual(Config.Init(db).professions.leatherworking, "lw, leatherworking, leatherworker")
         end)
 
         it("Reset restores defaults in place", function()

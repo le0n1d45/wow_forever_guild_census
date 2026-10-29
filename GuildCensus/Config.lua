@@ -4,7 +4,9 @@ local Config = {}
 ns.Config = Config
 
 -- Detection rules shown in the settings panel. `default` is a comma-separated
--- keyword list; `label` is what charts and the panel display.
+-- keyword list; `label` is what charts and the panel display. `replaces` lists older
+-- defaults: a saved value that still equals one was never edited, so Config.Init
+-- upgrades it to the current default (edited values are left alone).
 Config.ROLES = {
     { key = "tank", label = "Tank", default = "tank,bear,prot" },
     { key = "healer", label = "Healer", default = "heal,resto,holy,disc" },
@@ -16,7 +18,12 @@ Config.ROLES = {
 }
 
 Config.PROFESSIONS = {
-    { key = "leatherworking", label = "Leatherworking", default = "lw, leatherworker" },
+    {
+        key = "leatherworking",
+        label = "Leatherworking",
+        default = "lw, leatherworking, leatherworker",
+        replaces = { "lw, leatherworker" },
+    },
     { key = "skinning", label = "Skinning", default = "skinning, skinner" },
     { key = "mining", label = "Mining", default = "mining, miner" },
     { key = "herbalism", label = "Herbalism", default = "herb, herbalism, herbs" },
@@ -55,11 +62,29 @@ function Config.Defaults()
     return fillDefaults({})
 end
 
+-- Replaces saved values that still equal an older default (see `replaces` above).
+local function upgradeOldDefaults(settings)
+    for group, defs in pairs({
+        identity = Config.IDENTITY, roles = Config.ROLES, professions = Config.PROFESSIONS,
+    }) do
+        for _, def in ipairs(defs) do
+            for _, old in ipairs(def.replaces or {}) do
+                if settings[group][def.key] == old then
+                    settings[group][def.key] = def.default
+                end
+            end
+        end
+    end
+end
+
 -- Fills any missing settings in the saved DB (keeping user edits, including
--- deliberately emptied boxes) and returns the settings table.
+-- deliberately emptied boxes), upgrades untouched old defaults, and returns the
+-- settings table.
 function Config.Init(db)
     if type(db.settings) ~= "table" then db.settings = {} end
-    return fillDefaults(db.settings)
+    fillDefaults(db.settings)
+    upgradeOldDefaults(db.settings)
+    return db.settings
 end
 
 -- Resets a settings table to defaults in place, so existing references stay valid.
