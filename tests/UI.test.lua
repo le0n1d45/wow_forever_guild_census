@@ -144,30 +144,62 @@ return function()
         end)
     end)
 
-    describe("Census logs window (headless)", function()
-        it("the results window has a logs button showing the conflict count", function()
-            local ns = loadAddon({ guild = {
+    describe("Census / Logs tabs (headless)", function()
+        local function conflictedGuild()
+            return { guild = {
                 { name = "Bob-Realm", level = 60, className = "Mage", classFile = "MAGE", note = "healer" },
                 { name = "Amy-Realm", level = 60, className = "Druid", classFile = "DRUID", note = "tank heal dps" },
-            } })
+            } }
+        end
+
+        it("opens on the Census tab with Logs hidden", function()
+            loadAddon(conflictedGuild())
             SlashCmdList["GUILDCENSUS"]("")
-            assertEqual(GuildCensusWindow.logsButton.text, "Census Logs (1)")
+            local w = GuildCensusWindow
+            assertEqual(w.activeTab, "census")
+            assertEqual(w.censusPane.shown, true)
+            assertEqual(w.logsPane.shown, false)
+            assertEqual(w.censusTab.enabled, false)
+            assertEqual(w.logsTab.enabled, true)
+        end)
+
+        it("the Logs tab shows the conflict count", function()
+            local ns = loadAddon(conflictedGuild())
+            SlashCmdList["GUILDCENSUS"]("")
+            assertEqual(GuildCensusWindow.logsTab.text, "Logs (1)")
             assertEqual(#ns.UI.lastCensus.conflicts, 1)
         end)
 
-        it("opens from the button, lists the conflict with its note, and toggles closed", function()
-            loadAddon({ guild = {
-                { name = "Bob-Realm", level = 60, className = "Mage", classFile = "MAGE", note = "healer" },
-            } })
+        it("switching tabs shows exactly one pane at a time", function()
+            loadAddon(conflictedGuild())
             SlashCmdList["GUILDCENSUS"]("")
-            click(GuildCensusWindow.logsButton)
-            local logs = GuildCensusLogsWindow
-            assertEqual(logs.shown, true)
-            assertEqual(logs.summary.text, "1 conflict among 1 guild members")
-            assert(logs.text.text:find("Bob", 1, true) and logs.text.text:find("Note: \"healer\"", 1, true),
-                logs.text.text)
-            click(GuildCensusWindow.logsButton)
-            assertEqual(logs.shown, false)
+            local w = GuildCensusWindow
+            click(w.logsTab)
+            assertEqual(w.censusPane.shown, false)
+            assertEqual(w.logsPane.shown, true)
+            assertEqual(w.logsTab.enabled, false)
+            assertEqual(w.censusTab.enabled, true)
+            click(w.censusTab)
+            assertEqual(w.censusPane.shown, true)
+            assertEqual(w.logsPane.shown, false)
+        end)
+
+        it("lists the conflict with the player and the offending note", function()
+            loadAddon(conflictedGuild())
+            SlashCmdList["GUILDCENSUS"]("")
+            click(GuildCensusWindow.logsTab)
+            local pane = GuildCensusWindow.logsPane
+            assertEqual(pane.summary.text, "1 conflict among 2 guild members")
+            assert(pane.text.text:find("Bob", 1, true) and pane.text.text:find("Note: \"healer\"", 1, true),
+                pane.text.text)
+        end)
+
+        it("/gcensus logs opens the window straight to the Logs tab", function()
+            loadAddon(conflictedGuild())
+            SlashCmdList["GUILDCENSUS"]("logs")
+            assertEqual(GuildCensusWindow.shown, true)
+            assertEqual(GuildCensusWindow.activeTab, "logs")
+            assertEqual(GuildCensusWindow.logsPane.shown, true)
         end)
 
         it("says no conflicts when the guild is clean", function()
@@ -175,28 +207,33 @@ return function()
                 { name = "Amy", level = 60, className = "Druid", classFile = "DRUID", note = "tank heal dps" },
             } })
             SlashCmdList["GUILDCENSUS"]("")
-            click(GuildCensusWindow.logsButton)
-            assertEqual(GuildCensusLogsWindow.text.text, "No conflicts detected.")
-            assertEqual(GuildCensusWindow.logsButton.text, "Census Logs (0)")
+            assertEqual(GuildCensusWindow.logsPane.text.text, "No conflicts detected.")
+            assertEqual(GuildCensusWindow.logsTab.text, "Logs (0)")
         end)
 
-        it("updates the open logs window when settings change", function()
+        it("updates the logs when settings change", function()
             loadAddon({ guild = {
                 { name = "Bob", level = 60, className = "Druid", classFile = "DRUID", note = "main alt" },
             } })
             SlashCmdList["GUILDCENSUS"]("")
-            click(GuildCensusWindow.logsButton)
-            assertEqual(GuildCensusLogsWindow.summary.text, "1 conflict among 1 guild members")
+            assertEqual(GuildCensusWindow.logsPane.summary.text, "1 conflict among 1 guild members")
             type_(GuildCensusOptionsPanel.controls.identity.alt, "twink")
-            assertEqual(GuildCensusLogsWindow.summary.text, "0 conflicts among 1 guild members")
+            assertEqual(GuildCensusWindow.logsPane.summary.text, "0 conflicts among 1 guild members")
         end)
 
         it("demo mode produces conflicts to inspect", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
             assert(#ns.UI.lastCensus.conflicts > 0, "demo roster should contain conflicts")
-            click(GuildCensusWindow.logsButton)
-            assert(GuildCensusLogsWindow.text.text:find("Note:", 1, true))
+            assert(GuildCensusWindow.logsPane.text.text:find("Note:", 1, true))
+        end)
+
+        it("keeps the selected tab when the window is reopened", function()
+            loadAddon(conflictedGuild())
+            SlashCmdList["GUILDCENSUS"]("logs")
+            SlashCmdList["GUILDCENSUS"]("")
+            SlashCmdList["GUILDCENSUS"]("")
+            assertEqual(GuildCensusWindow.activeTab, "logs")
         end)
     end)
 

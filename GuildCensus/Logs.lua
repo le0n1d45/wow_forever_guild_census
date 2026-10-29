@@ -1,9 +1,7 @@
-local addonName, ns = ...
+local _, ns = ...
 
 local Logs = {}
 ns.Logs = Logs
-
-local window
 
 -- "|" starts an escape sequence in WoW strings, so notes must double it.
 local function escape(text)
@@ -28,56 +26,32 @@ function Logs.FormatAll(conflicts)
     return table.concat(entries, "\n\n")
 end
 
-local function build()
-    local f = CreateFrame("Frame", addonName .. "LogsWindow", UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(620, 420)
-    f:SetPoint("CENTER", 60, -30)
-    f:SetMovable(true)
-    f:EnableMouse(true)
-    f:RegisterForDrag("LeftButton")
-    f:SetScript("OnDragStart", f.StartMoving)
-    f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    f:SetFrameStrata("DIALOG")
-    f:Hide()
-    tinsert(UISpecialFrames, f:GetName())
+-- Fills `pane` (a Frame the caller has already sized and anchored) with the
+-- conflicts summary and a scrolling list. Call pane:Update(census) to refresh.
+function Logs.Create(pane)
+    pane.summary = pane:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    pane.summary:SetPoint("TOPLEFT", 14, -4)
 
-    f.TitleText:SetText("Census Logs")
+    pane.scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate")
+    pane.scroll:SetPoint("TOPLEFT", 14, -30)
+    pane.scroll:SetPoint("BOTTOMRIGHT", -34, 14)
 
-    f.summary = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    f.summary:SetPoint("TOPLEFT", 14, -34)
+    pane.content = CreateFrame("Frame", nil, pane.scroll)
+    pane.content:SetSize(800, 1)
+    pane.scroll:SetScrollChild(pane.content)
 
-    f.scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-    f.scroll:SetPoint("TOPLEFT", 14, -56)
-    f.scroll:SetPoint("BOTTOMRIGHT", -34, 14)
+    pane.text = pane.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    pane.text:SetPoint("TOPLEFT")
+    pane.text:SetWidth(796)
+    pane.text:SetJustifyH("LEFT")
 
-    f.content = CreateFrame("Frame", nil, f.scroll)
-    f.content:SetSize(556, 1)
-    f.scroll:SetScrollChild(f.content)
-
-    f.text = f.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    f.text:SetPoint("TOPLEFT")
-    f.text:SetWidth(556)
-    f.text:SetJustifyH("LEFT")
-    return f
-end
-
-function Logs.Refresh()
-    if not window or not window:IsShown() then return end
-
-    local census = ns.UI.lastCensus
-    local conflicts = census and census.conflicts or {}
-    window.summary:SetText(string.format("%d conflict%s among %d guild members",
-        #conflicts, #conflicts == 1 and "" or "s", census and census.memberCount or 0))
-    window.text:SetText(Logs.FormatAll(conflicts))
-    window.content:SetHeight(window.text:GetStringHeight() + 8)
-end
-
-function Logs.Toggle()
-    window = window or build()
-    if window:IsShown() then
-        window:Hide()
-    else
-        window:Show()
-        Logs.Refresh()
+    function pane:Update(census)
+        local conflicts = census and census.conflicts or {}
+        self.summary:SetText(string.format("%d conflict%s among %d guild members",
+            #conflicts, #conflicts == 1 and "" or "s", census and census.memberCount or 0))
+        self.text:SetText(Logs.FormatAll(conflicts))
+        self.content:SetHeight(self.text:GetStringHeight() + 8)
     end
+
+    return pane
 end

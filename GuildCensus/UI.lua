@@ -13,9 +13,40 @@ local CHARTS = {
 
 local window
 
+local function addTab(parent, x, width, onClick)
+    local tab = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    tab:SetSize(width, 22)
+    tab:SetPoint("TOPLEFT", x, -30)
+    tab:SetScript("OnClick", onClick)
+    return tab
+end
+
+-- Only one pane is shown at a time; hiding a pane also hides its pie lines,
+-- which would otherwise draw over other frames. The active tab is disabled.
+local function selectTab(f, name)
+    local census = name == "census"
+    f.activeTab = name
+    f.censusPane:SetShown(census)
+    f.logsPane:SetShown(not census)
+    if census then
+        f.censusTab:Disable()
+        f.logsTab:Enable()
+    else
+        f.censusTab:Enable()
+        f.logsTab:Disable()
+    end
+end
+
+local function addPane(parent)
+    local pane = CreateFrame("Frame", nil, parent)
+    pane:SetPoint("TOPLEFT", 0, -58)
+    pane:SetPoint("BOTTOMRIGHT", 0, 0)
+    return pane
+end
+
 local function build()
     local f = CreateFrame("Frame", addonName .. "Window", UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(880, 440)
+    f:SetSize(880, 470)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -28,21 +59,26 @@ local function build()
 
     f.TitleText:SetText("Guild Census")
 
-    f.summary = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    f.summary:SetPoint("TOPLEFT", 14, -34)
+    f.censusTab = addTab(f, 14, 100, function() selectTab(f, "census") end)
+    f.censusTab:SetText("Census")
+    f.logsTab = addTab(f, 118, 120, function() selectTab(f, "logs") end)
+    f.logsTab:SetText("Logs")
 
-    f.logsButton = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    f.logsButton:SetSize(130, 22)
-    f.logsButton:SetPoint("TOPRIGHT", -14, -30)
-    f.logsButton:SetScript("OnClick", function() ns.Logs.Toggle() end)
+    f.censusPane = addPane(f)
+    f.summary = f.censusPane:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    f.summary:SetPoint("TOPLEFT", 14, -4)
 
     f.charts = {}
     for i, def in ipairs(CHARTS) do
-        local chart = ns.PieChart.Create(f, def.title, RADIUS)
+        local chart = ns.PieChart.Create(f.censusPane, def.title, RADIUS)
         local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-        chart:SetPoint("TOPLEFT", 16 + col * 430, -60 - row * 190)
+        chart:SetPoint("TOPLEFT", 16 + col * 430, -30 - row * 188)
         f.charts[def.key] = chart
     end
+
+    f.logsPane = ns.Logs.Create(addPane(f))
+
+    selectTab(f, "census")
     return f
 end
 
@@ -63,8 +99,8 @@ function UI.Refresh()
         end
     end
 
-    window.logsButton:SetText(string.format("Census Logs (%d)", #UI.lastCensus.conflicts))
-    ns.Logs.Refresh()
+    window.logsTab:SetText(string.format("Logs (%d)", #UI.lastCensus.conflicts))
+    window.logsPane:Update(UI.lastCensus)
 end
 
 function UI.Show()
@@ -72,6 +108,11 @@ function UI.Show()
     window:Show()
     ns.Roster.Request()
     UI.Refresh()
+end
+
+function UI.SelectTab(name)
+    UI.Show()
+    selectTab(window, name)
 end
 
 function UI.Toggle()

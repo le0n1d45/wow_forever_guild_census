@@ -72,6 +72,10 @@ local function makeFrame(name, template)
     function f:Show() self.shown = true end
     function f:Hide() self.shown = false end
     function f:IsShown() return self.shown end
+    function f:SetShown(shown) self.shown = shown and true or false end
+    f.enabled = true
+    function f:Enable() self.enabled = true end
+    function f:Disable() self.enabled = false end
     function f:CreateFontString() return makeFontString() end
     function f:CreateLine() return makeLine() end
     function f:SetText(text) self.text = text end

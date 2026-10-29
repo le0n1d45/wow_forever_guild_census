@@ -44,6 +44,10 @@ SlashCmdList["GUILDCENSUS"] = function(msg)
         ns.Options.Open()
         return
     end
+    if command == "logs" then
+        ns.UI.SelectTab("logs")
+        return
+    end
     if command == "demo" then
         ns.demoMode = not ns.demoMode
         ns.UI.Show()

@@ -24,7 +24,7 @@ roles and professions (parsed from public notes), classes, and levels (10-level 
 
 ## Census logs
 
-The **Census Logs** button on the results window lists notes whose detection conflicts, each with the
+The **Logs** tab of the results window (or `/gcensus logs`) lists notes whose detection conflicts, each with the
 player's note and the keyword that matched, to help tune the keyword lists. Conflicts: a note detected as
 both main and alt, more than two professions, and a class that can't fill a detected role (e.g. a mage
 matching "healer"). Holding all three roles is not a conflict. Conflicts are computed for every guild
