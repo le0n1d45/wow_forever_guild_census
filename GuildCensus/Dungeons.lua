@@ -6,15 +6,13 @@ ns.Dungeons = Dungeons
 -- Dungeon presets for the Finder: selecting one fills in its level range.
 --
 -- Source: Wowhead's "Dungeons Overview for Forever" guide (updated 2026-09-23, patch
--- 1.60.1, beta): the table of new Forever dungeons plus its level-range chart. Wowhead
+-- 1.60.1, beta): its table of new Forever dungeons and its level-range chart. Wowhead
 -- notes the guide may change before release. Scarlet Monastery and Maraudon are listed
--- per wing, as the chart does.
+-- per wing, and Blackrock Spire as Lower/Upper, as the chart does. Dire Maul is a
+-- single entry there.
 --
--- INCOMPLETE: the saved copy of the chart was clipped at the right edge, so the
--- dungeons above roughly level 50 are missing (Sunken Temple, Blackrock Depths,
--- Blackrock Spire, Dire Maul, Stratholme, Scholomance, ...). Add them here once their
--- ranges are known (see the follow-up bead). The Finder and the tests read this table
--- purely as data. Keep it sorted by minLevel, then name.
+-- The Finder and the tests read this table purely as data. Keep it sorted by
+-- minLevel, then name.
 Dungeons.LIST = {
     { key = "ragefire-chasm", name = "Ragefire Chasm", minLevel = 13, maxLevel = 18 },
     { key = "hall-of-thanes", name = "The Hall of Thanes", minLevel = 13, maxLevel = 18 },
@@ -41,8 +39,15 @@ Dungeons.LIST = {
     { key = "maraudon-wicked-grotto", name = "Maraudon: Wicked Grotto", minLevel = 45, maxLevel = 53 },
     { key = "alcaz-prison", name = "Alcaz Prison", minLevel = 48, maxLevel = 53 },
     { key = "maraudon-earth-song-falls", name = "Maraudon: Earth Song Falls", minLevel = 48, maxLevel = 57 },
+    { key = "sunken-temple", name = "Sunken Temple", minLevel = 50, maxLevel = 60 },
+    { key = "blackrock-depths", name = "Blackrock Depths", minLevel = 52, maxLevel = 60 },
     { key = "blackmaw-hold", name = "Blackmaw Hold", minLevel = 55, maxLevel = 60 },
+    { key = "blackrock-spire-lower", name = "Blackrock Spire: Lower", minLevel = 55, maxLevel = 60 },
+    { key = "blackrock-spire-upper", name = "Blackrock Spire: Upper", minLevel = 58, maxLevel = 60 },
+    { key = "dire-maul", name = "Dire Maul", minLevel = 58, maxLevel = 60 },
+    { key = "scholomance", name = "Scholomance", minLevel = 58, maxLevel = 60 },
     { key = "shapers-terrace", name = "Shaper's Terrace", minLevel = 58, maxLevel = 60 },
+    { key = "stratholme", name = "Stratholme", minLevel = 58, maxLevel = 60 },
 }
 
 function Dungeons.Get(key)
