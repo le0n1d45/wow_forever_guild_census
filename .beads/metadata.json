@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "wow_forever_guild_census",
+  "project_id": "5e1b7ad7-bd23-497f-a76e-c8c18a9eedb0"
+}
