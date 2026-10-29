@@ -46,7 +46,7 @@ ADDON_FILES = {
 }
 
 local ns = {}
-for _, file in ipairs({ "Config.lua", "Parser.lua", "Census.lua", "Logs.lua", "Dungeons.lua" }) do
+for _, file in ipairs({ "Config.lua", "Parser.lua", "Census.lua", "Logs.lua", "Dungeons.lua", "Demo.lua" }) do
     loadAddonFile(ns, file)
 end
 
@@ -55,6 +55,7 @@ dofile("tests/Parser.test.lua")(ns)
 dofile("tests/Census.test.lua")(ns)
 dofile("tests/Logs.test.lua")(ns)
 dofile("tests/Dungeons.test.lua")(ns)
+dofile("tests/Demo.test.lua")(ns)
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()

@@ -1,5 +1,6 @@
 -- Headless UI tests: run the real addon files against the strict WoW stub.
 return function()
+    local DEMO_COUNT = 500 -- checked against Demo.DEFAULT_COUNT below
     -- Loads the addon like the client does and fires ADDON_LOADED so settings initialise.
     local function loadAddon(options)
         InstallWowStub(options)
@@ -40,8 +41,10 @@ return function()
     describe("Demo.Generate", function()
         local ns = loadAddon()
 
-        it("returns the requested number of members", function()
+        it("returns the requested number of members, defaulting to a guild-sized roster", function()
             assertEqual(#ns.Demo.Generate(80), 80)
+            assertEqual(ns.Demo.DEFAULT_COUNT, DEMO_COUNT)
+            assertEqual(#ns.Demo.Generate(), DEMO_COUNT)
         end)
 
         it("is deterministic for a given seed", function()
@@ -50,7 +53,7 @@ return function()
 
         it("gives every member a unique, real-looking name", function()
             local seen = {}
-            for _, m in ipairs(ns.Demo.Generate(200)) do
+            for _, m in ipairs(ns.Demo.Generate(700)) do
                 assert(m.name:match("^%a"), "bad name: " .. m.name)
                 assert(not m.name:find("Player"), "placeholder name: " .. m.name)
                 assert(not seen[m.name], "duplicate name: " .. m.name)
@@ -61,12 +64,13 @@ return function()
 
         it("gives members a believable mix of online and offline", function()
             local online = 0
-            local members = ns.Demo.Generate(80)
+            local members = ns.Demo.Generate()
             for _, m in ipairs(members) do
                 assert(type(m.online) == "boolean", "online must be a boolean for " .. m.name)
                 if m.online then online = online + 1 end
             end
-            assert(online > 10 and online < 50, "expected a mix of online/offline, got " .. online .. " online")
+            assert(online > #members * 0.3 and online < #members * 0.7,
+                "expected a mix of online/offline, got " .. online .. " online")
         end)
 
         it("produces valid members and non-empty role/profession data", function()
@@ -118,7 +122,7 @@ return function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
             local w = GuildCensusWindow
-            assertEqual(w.summary.text, "80 guild members (demo data)")
+            assertEqual(w.summary.text, DEMO_COUNT .. " guild members (demo data)")
             for key, chart in pairs(w.charts) do
                 assertEqual(chart.empty.shown, false)
                 assert(chart.legend[1].shown and chart.legend[1].text:find("%("), key .. " has no legend")
@@ -135,7 +139,7 @@ return function()
         it("pie slices span the circle in proportion to their counts", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
-            local census = ns.Census.Build(ns.Demo.Generate(80), ns.settings)
+            local census = ns.Census.Build(ns.Demo.Generate(), ns.settings)
             for _, key in ipairs({ "roles", "professions", "classes", "levels" }) do
                 local chartRuns = runs(GuildCensusWindow.charts[key])
                 local slices = census[key]
@@ -661,21 +665,37 @@ return function()
             assertEqual(openFinder().summary.text, "No players found.")
         end)
 
-        it("searches demo data and agrees with the engine", function()
+        it("searches demo data, shows the row cap, and agrees with the engine", function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
             local pane = openFinder()
-            assertEqual(pane.summary.text, "80 players found")
-            local members = ns.Demo.Generate(80)
+            -- An unfiltered search returns the whole 500-member roster, which is over the cap.
+            assertEqual(pane.summary.text, "Showing the first 300 of " .. DEMO_COUNT .. " players")
+            local members = ns.Demo.Generate()
 
             chooseRole(pane, "DPS")
-            assertEqual(#visibleRows(pane), #ns.Census.Find(members, { role = "dps" }, ns.settings))
+            local dps = #ns.Census.Find(members, { role = "dps" }, ns.settings)
+            assertEqual(#visibleRows(pane), math.min(dps, 300))
 
             checkOnline(pane, true)
-            local expected = #ns.Census.Find(members, { role = "dps", onlineOnly = true }, ns.settings)
+            local online = #ns.Census.Find(members, { role = "dps", onlineOnly = true }, ns.settings)
+            assertEqual(#visibleRows(pane), math.min(online, 300))
+            assert(online > 0 and online < dps, "online filter should narrow the demo results")
+        end)
+
+        it("every demo filter combination is testable: dungeon + role + profession + online", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local pane = openFinder()
+            choose(pane.selectors.dungeon, "The Deadmines (18-23)")
+            chooseRole(pane, "Tank")
+            choose(pane.selectors.profession, "Mining")
+            checkOnline(pane, true)
+            local expected = #ns.Census.Find(ns.Demo.Generate(),
+                { minLevel = 18, maxLevel = 23, role = "tank", profession = "mining", onlineOnly = true }, ns.settings)
+            assert(expected > 0, "this combination should have results in the demo roster")
             assertEqual(#visibleRows(pane), expected)
-            assert(expected > 0 and expected < #ns.Census.Find(members, { role = "dps" }, ns.settings),
-                "online filter should narrow the demo results")
+            assertEqual(pane.summary.text, expected .. (expected == 1 and " player found" or " players found"))
         end)
 
         it("caps the list for very large guilds", function()
@@ -744,12 +764,12 @@ return function()
         it("changing a setting refreshes an open window", function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
-            assertEqual(GuildCensusWindow.summary.text, "80 guild members (demo data)")
+            assertEqual(GuildCensusWindow.summary.text, DEMO_COUNT .. " guild members (demo data)")
             local c = GuildCensusOptionsPanel.controls
             c.includeAlts:SetChecked(false)
             click(c.includeAlts)
             local count = tonumber(GuildCensusWindow.summary.text:match("^(%d+) guild members"))
-            assert(count and count < 80, "expected fewer than 80 members, got " .. tostring(count))
+            assert(count and count < DEMO_COUNT, "expected fewer than " .. DEMO_COUNT .. " members, got " .. tostring(count))
         end)
 
         it("only-mains narrows the census to declared mains", function()
@@ -759,7 +779,7 @@ return function()
             c.onlyMains:SetChecked(true)
             click(c.onlyMains)
             local count = tonumber(GuildCensusWindow.summary.text:match("^(%d+) guild members"))
-            assert(count and count > 0 and count < 80, "unexpected count " .. tostring(count))
+            assert(count and count > 0 and count < DEMO_COUNT, "unexpected count " .. tostring(count))
         end)
 
         it("reset restores defaults and repopulates the boxes", function()

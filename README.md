@@ -22,7 +22,10 @@ It targets WoW Forever and also builds for Retail. Type `/gcensus` to open it.
 - **Pure-DPS classes:** warlocks, hunters, mages and rogues are always counted as DPS.
 - **Logs tab:** lists contradictory notes, with each player's note, so you can tidy the notes or
   tune your keywords. Logged notes are still counted in the charts.
-- **Demo mode:** `/gcensus demo` shows sample data, handy if you're not in a guild.
+- **Demo mode:** `/gcensus demo` shows a fake 500-member guild, handy if you're not in a guild. It's
+  built so every Finder filter has results (each dungeon has tanks, healers, DPS and online players;
+  every profession is spread across roles and levels), with declared mains and alts, a few
+  deliberately contradictory notes for the Logs tab, and enough members to hit the Finder's row cap.
 
 ## Install
 
@@ -49,7 +52,7 @@ repository's TOC uses the Forever interface number.
 | `/gcensus finder` | Open the window on the Finder tab |
 | `/gcensus logs` | Open the window on the Logs tab |
 | `/gcensus config` | Open the settings panel |
-| `/gcensus demo` | Toggle an 80-member fake roster |
+| `/gcensus demo` | Toggle a 500-member fake roster |
 
 The window has three tabs: **Census** (the four pie charts), **Finder** and **Logs**. The Logs tab
 shows how many conflicts were found, for example `Logs (27)`.

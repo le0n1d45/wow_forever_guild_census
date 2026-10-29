@@ -14,7 +14,7 @@ end
 
 -- Reads the cached guild roster into the member shape Census.Build expects.
 function Roster.Read()
-    if ns.demoMode then return ns.Demo.Generate(80) end
+    if ns.demoMode then return ns.Demo.Generate() end
 
     local members = {}
     if not IsInGuild() then return members end
