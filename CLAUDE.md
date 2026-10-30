@@ -4,6 +4,7 @@
 
 - When you finish a piece of work, commit and push it automatically without asking first.
 - Run `lua tests/run.lua` (Lua 5.1) before committing; don't commit with failing tests.
+- Add a `CHANGELOG.md` entry under Unreleased for every user-visible change.
 - `ADDON_DESCRIPTION.md` is the player-facing CurseForge text (the README is for developers). When a feature,
   command or default changes, update it alongside the README so the user can paste the new text.
 - Tests run headlessly against a stub (`tests/wow_stub.lua`); they don't prove anything about the real client.
