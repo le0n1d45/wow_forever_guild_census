@@ -2,7 +2,7 @@
 ## Title: Guild Census
 ## Notes: Pie charts of guild roles, professions, classes and levels, built from guild notes.
 ## Author: Le0n1d45
-## Version: 0.3.0
+## Version: 0.5.0
 ## X-License: MIT
 ## SavedVariables: GuildCensusDB
 ## IconTexture: Interface\AddOns\GuildCensus\icon

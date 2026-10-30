@@ -7,6 +7,8 @@ user-visible change, and move it under a version heading when that version is re
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-30
+
 ### Added
 - Officer notes are read as well as public notes, when your guild rank can see them. A hidden or empty
   officer note is skipped without an error.
@@ -14,7 +16,7 @@ user-visible change, and move it under a version heading when that version is re
 - `ADDON_DESCRIPTION.md`: listing text for CurseForge.
 - This changelog.
 
-## [0.3.0] - 2026-10-29
+## [0.4.0] - 2026-10-29
 
 ### Added
 - **Role Finder** and **Profession Finder** tabs, each with a Clear button and an online-only filter.
@@ -33,7 +35,7 @@ user-visible change, and move it under a version heading when that version is re
 ### Fixed
 - `leatherworking` was missing from the default Leatherworking keywords.
 
-## [0.2.0] - 2026-10-29
+## [0.3.0] - 2026-10-29
 
 ### Added
 - Settings panel: include-alts and only-mains checkboxes, editable keyword lists for roles, professions and
@@ -45,9 +47,5 @@ user-visible change, and move it under a version heading when that version is re
 - Addon icon, README with screenshots, MIT license.
 - Separate Forever (Interface 16001) and Retail (Interface 120105) build artifacts from GitHub Actions,
   keeping the newest 5 of each.
-
-## [0.1.0] - 2026-10-28
-
-### Added
-- First version: pie charts of roles, professions, classes and levels read from guild notes, and the
-  `/gcensus` command.
+- Everything from the first version (2026-10-28): pie charts of roles, professions, classes and levels read
+  from guild notes, and the `/gcensus` command.
