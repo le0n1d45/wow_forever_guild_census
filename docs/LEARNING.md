@@ -59,8 +59,10 @@ verify it against the wiki before relying on it.
 
 ## Things that behave differently from what you might expect
 
-- **Only the public note is read.** The roster call also returns the officer note, and we ignore it on
-  purpose.
+- **Both notes are read, the officer note only if you can see it.** The roster call always returns an
+  officer note, but the client leaves it empty for members who aren't allowed to see it, and I haven't
+  confirmed which ranks that includes. `Roster.CombineNotes` joins the two with ` | ` and skips anything
+  that isn't non-empty text, so a hidden officer note is harmless.
 - **Roster data is lazy.** The game only has what the server last sent, so the addon asks for a refresh
   and redraws on `GUILD_ROSTER_UPDATE`.
 - **Names can include the realm** (`Name-Realm`), so `Roster.lua` strips it.

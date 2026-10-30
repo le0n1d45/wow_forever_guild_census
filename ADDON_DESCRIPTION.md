@@ -25,7 +25,7 @@ Pie charts of your guild's roles, professions, classes and levels, read from gui
 
 **See what your guild is made of, and find the right person for the job.**
 
-Guild Census reads your guild members' **public notes** and turns them into pie charts of **roles**
+Guild Census reads your guild members' **public notes** (and officer notes, if you can see them) and turns them into pie charts of **roles**
 (tank, healer, DPS), **professions**, **classes** and **levels**. Two finders then help you pick people:
 a **Role Finder** for filling a group and a **Profession Finder** for finding a crafter.
 
@@ -57,7 +57,7 @@ Type **/gcensus** to open it.
 
 ## Writing notes that work
 
-Guild Census only reads what is in the **public note**, and only matches **whole words** (so "herbs" is
+Guild Census only reads the **public note** (plus the officer note, if your rank can see it), and only matches **whole words** (so "herbs" is
 not mistaken for "bs"). Notes like these work out of the box:
 
 - `Tank` / `Healer` / `DPS`, or a spec such as `Prot`, `Resto`, `Holy`, `Ret`, `Feral`, `Shadow`
@@ -84,8 +84,8 @@ want (for example `heal, healer, healing`). The defaults already cover the commo
 
 ## Good to know
 
-- Characters need their profession or role written in their **public note** to be picked up. Officer
-  notes are not read.
+- Characters need their profession or role written in their **public note** to be picked up. If your
+  guild rank can see **officer notes**, those are read too; if not, they're simply skipped.
 - Dungeon level ranges come from Wowhead's WoW Forever guide, which is still beta data and may change.
 - The numbers come from the guild roster the game has loaded, and refresh when the game updates it.
 - Available for both **WoW Forever** and **Retail**; download the file for your game version.

@@ -115,7 +115,9 @@ listed.
 
 ### How detection works
 
-Detection reads each member's **public** guild note. A keyword matches only as a **whole word**, ignoring
+Detection reads each member's **public** guild note and, when you are allowed to see it, their **officer
+note** too (the two are searched together). If the officer note is hidden from you, it is skipped without
+any error. A keyword matches only as a **whole word**, ignoring
 case: it must not touch a letter on either side. So `bs` matches "BS 300" and "herbs, bs" but not the
 "bs" inside "herbs", and `ret` matches "Ret" but not "secret" or "return". Digits and punctuation count as
 a boundary, so `LW260`, `herb-251` and `(tank)` all match.

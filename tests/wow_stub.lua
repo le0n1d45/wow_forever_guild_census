@@ -133,7 +133,7 @@ function InstallWowStub(options)
         local m = guild[i]
         local online = m.online
         if online == nil then online = true end -- members default to online
-        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, "", online, 0, m.classFile
+        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, m.officerNote, online, 0, m.classFile
     end
     C_GuildInfo = { GuildRoster = function() end }
 

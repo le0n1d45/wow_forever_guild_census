@@ -118,6 +118,31 @@ return function()
             assertEqual(GuildCensusWindow.summary.text, "2 guild members")
         end)
 
+        it("also reads the officer note, and copes when it is hidden", function()
+            local ns = loadAddon({ guild = {
+                { name = "A", level = 60, className = "Priest", classFile = "PRIEST", note = "main", officerNote = "healer" },
+                { name = "B", level = 30, className = "Mage", classFile = "MAGE", note = "", officerNote = "LW 260" },
+                { name = "C", level = 30, className = "Mage", classFile = "MAGE", note = "dps", officerNote = "   " },
+                { name = "D", level = 30, className = "Mage", classFile = "MAGE", note = "dps" },
+            } })
+            local notes = {}
+            for i, m in ipairs(ns.Roster.Read()) do notes[i] = m.note end
+            assertEqual(notes, { "main | healer", "LW 260", "dps", "dps" })
+        end)
+
+        it("CombineNotes ignores anything that is not text", function()
+            local ns = loadAddon()
+            assertEqual(ns.Roster.CombineNotes(nil, nil), "")
+            assertEqual(ns.Roster.CombineNotes("tank", false), "tank")
+            assertEqual(ns.Roster.CombineNotes(12, "tank"), "tank")
+        end)
+
+        it("an officer-note skill number is not glued onto a public-note profession", function()
+            local ns = loadAddon()
+            local note = ns.Roster.CombineNotes("LW", "260")
+            assertEqual(ns.Parser.SkillAfter(note, ns.Parser.ParseList("lw")), nil)
+        end)
+
         it("demo mode fills every chart with legends", function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
