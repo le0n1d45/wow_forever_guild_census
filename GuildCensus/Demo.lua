@@ -131,15 +131,21 @@ local function buildStream(spec, streamIndex, count, rand, members)
         local roleWord = words[k % #words + 1]
         if roleWord ~= "" then parts[#parts + 1] = roleWord end
         local combo = PROFESSION_COMBOS[(k * 5 + streamIndex * 3) % #PROFESSION_COMBOS + 1]
+        -- Stand-ins for the game's own profession data (C_Club): one member in four has it
+        -- alongside the note, and one in nine has it with nothing about professions in the
+        -- note, so the notes-as-fallback merge has both cases to show.
+        local gameOnly = k % 9 == 2
+        local gameData = (k % 4 == 0 or gameOnly) and {} or nil
         for _, profession in ipairs(combo) do
             local spellings = PROFESSION_WORDS[profession]
             local text = spellings[(k + #parts) % #spellings + 1]
+            local skill = math.min(300, math.max(1, math.floor(level * 4.6 + (k * 13 + #parts * 29) % 41)))
             -- About two in three members write their skill, roughly tracking their level.
             if (k + #parts) % 3 ~= 0 then
-                local skill = math.min(300, math.max(1, math.floor(level * 4.6 + (k * 13 + #parts * 29) % 41)))
                 text = text .. string.format(SKILL_FORMATS[(k + #parts) % #SKILL_FORMATS + 1], skill)
             end
-            parts[#parts + 1] = text
+            if gameData then gameData[#gameData + 1] = { key = profession, skill = skill } end
+            if not gameOnly then parts[#parts + 1] = text end
         end
         local note = table.concat(parts, SEPARATORS[k % #SEPARATORS + 1])
 
@@ -156,6 +162,7 @@ local function buildStream(spec, streamIndex, count, rand, members)
             className = CLASS_NAMES[classEntry[1]],
             note = note,
             online = (k + streamIndex) % 2 == 0,
+            professions = gameData and #gameData > 0 and gameData or nil,
         }
     end
 end
@@ -191,6 +198,7 @@ function Demo.Generate(count, seed)
         if i % 25 == 7 then
             local case = CONFLICT_CASES[math.floor(i / 25) % #CONFLICT_CASES + 1]
             member.note = case.note
+            member.professions = nil -- keep the planted conflict exactly as written
             if case.classFile then
                 member.classFile, member.className = case.classFile, CLASS_NAMES[case.classFile]
             end

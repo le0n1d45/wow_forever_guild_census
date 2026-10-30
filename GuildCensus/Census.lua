@@ -56,7 +56,8 @@ end
 local function describeHits(hits)
     local parts = {}
     for _, hit in ipairs(hits) do
-        parts[#parts + 1] = string.format("%s ('%s')", hit.label, hit.word)
+        -- hits that came only from the game's profession data have no keyword
+        parts[#parts + 1] = hit.word and string.format("%s ('%s')", hit.label, hit.word) or hit.label
     end
     return table.concat(parts, ", ")
 end
@@ -116,15 +117,45 @@ function Census.Rules(settings)
     }
 end
 
+-- Combines note-detected professions with the ones the game reported (member.professions,
+-- a list of { key, skill } from Roster). Notes are the fallback: a profession is kept if
+-- either source has it, and where both do, the game's skill level wins over a number
+-- written in the note. Returns hits in Config order.
+local function mergeProfessions(noteHits, gameProfessions)
+    if not gameProfessions or #gameProfessions == 0 then return noteHits end
+    local byKey = {}
+    for _, hit in ipairs(noteHits) do byKey[hit.key] = hit end
+    for _, entry in ipairs(gameProfessions) do
+        local hit = byKey[entry.key]
+        if hit then
+            hit.skill = entry.skill or hit.skill
+            hit.fromGame = true
+        else
+            byKey[entry.key] = {
+                key = entry.key, label = labelFor(ns.Config.PROFESSIONS, entry.key),
+                skill = entry.skill, fromGame = true,
+            }
+        end
+    end
+    local merged = {}
+    for _, def in ipairs(ns.Config.PROFESSIONS) do
+        if byKey[def.key] then merged[#merged + 1] = byKey[def.key] end
+    end
+    return merged
+end
+
 -- The single place a member's note is interpreted, shared by the charts, the
--- conflict log and the finder. member: { name, level, classFile, className, note, online }
+-- conflict log and the finder.
+-- member: { name, level, classFile, className, note, online, professions }, where
+-- professions is optional game-reported data: a list of { key, skill }.
 -- Returns:
 --   mainWord / altWord   the main/alt keyword that matched, or nil
 --   roleHits             note-detected roles: { key, label, word } (conflict checks use these)
 --   roles / roleKeys     roles to count: note hits plus DPS for pure-DPS classes, as a
 --                        label list and a { key = true } set
---   professionHits       { key, label, word, skill }; skill is the level written in
---                        the note ("LW 260"), or nil when none is
+--   professionHits       { key, label, word, skill, fromGame }; skill is the level
+--                        from the game's data, else written in the note ("LW 260"), or
+--                        nil when neither has one; word is nil for game-only hits
 --   professionKeys       { key = true } set of the detected professions
 --   included             false when the alts/mains settings exclude this member
 function Census.Analyze(member, rules)
@@ -132,7 +163,8 @@ function Census.Analyze(member, rules)
     local mainWord = ns.Parser.FirstMatch(member.note, rules.identity.main)
     local altWord = ns.Parser.FirstMatch(member.note, rules.identity.alt)
     local roleHits = ns.Parser.Detect(member.note, rules.roles)
-    local professionHits = ns.Parser.Detect(member.note, rules.professions, true)
+    local professionHits = mergeProfessions(
+        ns.Parser.Detect(member.note, rules.professions, true), member.professions)
 
     local professionKeys = {}
     for _, hit in ipairs(professionHits) do

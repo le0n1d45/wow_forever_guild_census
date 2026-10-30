@@ -33,42 +33,44 @@ Config.ROLES = {
     },
 }
 
+-- `skillLine` and `apiName` are not settings: they identify the profession in the game's
+-- own data (C_Club member info gives a skill line ID and an English name), see Roster.lua.
 Config.PROFESSIONS = {
     {
-        key = "leatherworking",
+        key = "leatherworking", skillLine = 165, apiName = "Leatherworking",
         label = "Leatherworking",
         default = "lw, leatherworking, leatherworker",
         replaces = { "lw, leatherworker" },
     },
-    { key = "skinning", label = "Skinning", default = "skinning, skinner" },
-    { key = "mining", label = "Mining", default = "mining, miner" },
+    { key = "skinning", skillLine = 393, apiName = "Skinning", label = "Skinning", default = "skinning, skinner" },
+    { key = "mining", skillLine = 186, apiName = "Mining", label = "Mining", default = "mining, miner" },
     {
-        key = "herbalism",
+        key = "herbalism", skillLine = 182, apiName = "Herbalism",
         label = "Herbalism",
         default = "herb, herbs, herbalism, herbalist",
         replaces = { "herb, herbalism, herbs" },
     },
     {
-        key = "enchanting",
+        key = "enchanting", skillLine = 333, apiName = "Enchanting",
         label = "Enchanting",
         default = "ench, enchanting, enchanter",
         replaces = { "ench, enchanting" },
     },
     {
-        key = "blacksmith",
+        key = "blacksmith", skillLine = 164, apiName = "Blacksmithing",
         label = "Blacksmith",
         default = "bs, blacksmith, blacksmithing, armorsmith, armorsmithing, weaponsmith, weaponsmithing",
         replaces = { "bs, blacksmith, armorsmith, weaponsmith" },
     },
     {
-        key = "engineering",
+        key = "engineering", skillLine = 202, apiName = "Engineering",
         label = "Engineering",
         default = "engi, engineer, engineering",
         replaces = { "engi, engineering" },
     },
-    { key = "tailor", label = "Tailor", default = "tailor, tailoring" },
+    { key = "tailor", skillLine = 197, apiName = "Tailoring", label = "Tailor", default = "tailor, tailoring" },
     {
-        key = "alchemy",
+        key = "alchemy", skillLine = 171, apiName = "Alchemy",
         label = "Alchemy",
         default = "alch, alchemy, alchemist",
         replaces = { "alch, alchemy" },

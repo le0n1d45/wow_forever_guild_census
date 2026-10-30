@@ -10,7 +10,8 @@ It targets WoW Forever and also builds for Retail. Type `/gcensus` to open it.
 ## What it shows
 
 - **Roles:** tanks, healers and DPS, read from your members' guild notes.
-- **Professions:** read from the same notes.
+- **Professions:** read from the game's own profession data where it provides it, and from the notes
+  otherwise.
 - **Classes:** one slice per class, in class colours.
 - **Levels:** how many members fall in each 10-level range.
 
@@ -84,7 +85,8 @@ because player levels and roles don't matter when you want someone's profession.
 lists everyone with at least one profession. If players write their skill in their note, you can also
 filter by a **skill level** range (for example 225 to 300).
 
-Skill levels are read from the number written right after a profession keyword: `LW 260`, `BS: 310`,
+Where the game reports a member's professions (see below), its skill level is used; otherwise skill
+levels are read from the number written right after a profession keyword: `LW 260`, `BS: 310`,
 `Mining (300)` and `Alch-225` all work, and `LW 260/300` reads as 260. With a profession selected, that
 profession's skill must be in the range; with **Any profession**, any of the member's professions may
 be. Members who don't write a skill are left out as soon as you type a skill bound, since their skill
@@ -114,6 +116,13 @@ listed.
   immediately, and **Reset to defaults** restores the originals.
 
 ### How detection works
+
+**Professions** come from two places, and notes are always the fallback. The game's guild member data
+(`C_Club.GetMemberInfo`) lists up to two professions with a skill rank for each member. Where that is
+filled in, it is used, and its skill rank wins over a number written in the note. A profession that only
+the note mentions is still counted, and a member the game has no data for is read from the note alone. If
+the API is missing or returns nothing (for example, before it is confirmed on Forever), the addon behaves
+exactly as it did with notes only. Roles, mains and alts still come only from notes.
 
 Detection reads each member's **public** guild note and, when you are allowed to see it, their **officer
 note** too (the two are searched together). If the officer note is hidden from you, it is skipped without

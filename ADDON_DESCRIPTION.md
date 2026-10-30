@@ -84,7 +84,10 @@ want (for example `heal, healer, healing`). The defaults already cover the commo
 
 ## Good to know
 
-- Characters need their profession or role written in their **public note** to be picked up. If your
+- Professions (and skill levels) come from the game's own guild data when it provides them, and from notes
+  otherwise. Roles, mains and alts always come from notes.
+- Characters need their role written in their **public note** to be picked up, and their profession too
+  whenever the game doesn't report it. If your
   guild rank can see **officer notes**, those are read too; if not, they're simply skipped.
 - Dungeon level ranges come from Wowhead's WoW Forever guide, which is still beta data and may change.
 - The numbers come from the guild roster the game has loaded, and refresh when the game updates it.

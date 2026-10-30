@@ -103,6 +103,8 @@ function InstallWowStub(options)
     options = options or {}
     dropdownMode = options.dropdown or "modern"
 
+    C_Club = nil -- set below only when options.club is given
+
     -- Legacy dropdown API, present only when the fake client is in "legacy" mode.
     LegacyMenuItems = {}
     UIDropDownMenu_SetWidth, UIDropDownMenu_SetText, UIDropDownMenu_Initialize = nil, nil, nil
@@ -133,9 +135,30 @@ function InstallWowStub(options)
         local m = guild[i]
         local online = m.online
         if online == nil then online = true end -- members default to online
-        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, m.officerNote, online, 0, m.classFile
+        return m.name, "Rank", 1, m.level, m.className, "Zone", m.note, m.officerNote, online, 0, m.classFile,
+            0, 0, false, false, 0, m.guid
     end
     C_GuildInfo = { GuildRoster = function() end }
+
+    -- C_Club (guild members' profession data). options.club = { guildId, members = { [id] = info },
+    -- errors = true to make every call fail }; leave it out to model a client without C_Club.
+    if options.club then
+        local club = options.club
+        local ids = {}
+        for id in pairs(club.members or {}) do ids[#ids + 1] = id end
+        table.sort(ids)
+        local function call(fn)
+            return function(...)
+                if club.errors then error("C_Club unavailable") end
+                return fn(...)
+            end
+        end
+        C_Club = {
+            GetGuildClubId = call(function() return club.guildId end),
+            GetClubMembers = call(function() return ids end),
+            GetMemberInfo = call(function(_, id) return club.members[id] end),
+        }
+    end
 
     -- Retail Settings API (canvas categories); records what the addon registers/opens.
     Settings = {

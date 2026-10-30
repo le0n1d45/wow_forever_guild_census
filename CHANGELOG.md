@@ -8,6 +8,10 @@ user-visible change, and move it under a version heading when that version is re
 ## [Unreleased]
 
 ### Added
+- Professions and skill levels are now also read from the game's own guild member data (`C_Club`) where
+  available. Notes remain the fallback, so nothing changes for members the game has no data for, or if the
+  API isn't there. The game's skill level wins over a number in the note.
+- Demo members include game-reported professions, some with no profession in their note.
 - A manually triggered **Release** workflow: bumps the version from the latest tag, tags the code and
   publishes a GitHub release with the Forever and Retail zips named for the new version.
 

@@ -161,5 +161,24 @@ return function(ns)
             end
             assert(checked > 0, "demo should include pure-DPS members with empty notes")
         end)
+
+        it("stands in for the game's profession data on some members, with and without a note", function()
+            local withBoth, gameOnly = 0, 0
+            local rules = ns.Census.Rules()
+            for _, m in ipairs(ns.Demo.Generate()) do
+                if m.professions then
+                    for _, entry in ipairs(m.professions) do
+                        assert(entry.key and entry.skill, "game data needs a profession and a skill")
+                    end
+                    if #ns.Parser.Detect(m.note, rules.professions) == 0 then
+                        gameOnly = gameOnly + 1
+                    else
+                        withBoth = withBoth + 1
+                    end
+                end
+            end
+            assert(withBoth > 0, "demo should have members with both a note and game data")
+            assert(gameOnly > 0, "demo should have members whose only profession source is game data")
+        end)
     end)
 end

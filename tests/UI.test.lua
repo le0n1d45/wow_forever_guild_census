@@ -143,6 +143,70 @@ return function()
             assertEqual(ns.Parser.SkillAfter(note, ns.Parser.ParseList("lw")), nil)
         end)
 
+        describe("game profession data (C_Club)", function()
+            local function roster(club)
+                return { club = club, guild = {
+                    { name = "Ann", level = 60, className = "Mage", classFile = "MAGE", note = "dps", guid = "G-1" },
+                    { name = "Bob", level = 60, className = "Mage", classFile = "MAGE", note = "LW 100", guid = "G-2" },
+                    { name = "Cy", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-3" },
+                } }
+            end
+            local function professionsOf(ns)
+                local out = {}
+                for _, m in ipairs(ns.Roster.Read()) do out[m.name] = m.professions end
+                return out
+            end
+
+            it("attaches profession data by guid, falling back to the name", function()
+                local ns = loadAddon(roster({ guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 186, profession1Rank = 300,
+                            profession1Name = "Mining" },
+                    [2] = { name = "Bob-Realm", profession1ID = 165, profession1Rank = 150, profession1Name = "Leatherworking",
+                            profession2Name = "Tailoring", profession2Rank = 0 },
+                } }))
+                assertEqual(professionsOf(ns), {
+                    Ann = { { key = "mining", skill = 300 } },
+                    Bob = { { key = "leatherworking", skill = 150 }, { key = "tailor", skill = nil } },
+                })
+            end)
+
+            it("skips untracked professions and empty slots", function()
+                local ns = loadAddon()
+                assertEqual(ns.Roster.ProfessionsFromInfo({ profession1ID = 185, profession1Name = "Cooking",
+                    profession2ID = 0 }), {})
+                assertEqual(ns.Roster.ProfessionsFromInfo(nil), {})
+                assertEqual(ns.Roster.ProfessionKey(nil, "ALCHEMY"), "alchemy")
+                assertEqual(ns.Roster.ProfessionKey(171, nil), "alchemy")
+                assertEqual(ns.Roster.ProfessionKey(nil, nil), nil)
+            end)
+
+            it("a client without C_Club, no guild club, or a failing API just reads notes", function()
+                for _, club in ipairs({ false, { guildId = nil, members = {} }, { guildId = "1", members = { [1] = { guid = "G-1" } },
+                    errors = true } }) do
+                    local ns = loadAddon(roster(club or nil))
+                    assertEqual(professionsOf(ns), {})
+                    assertEqual(#ns.Roster.Read(), 3)
+                end
+            end)
+
+            it("a member the club has no data for simply has none", function()
+                local ns = loadAddon(roster({ guildId = "1", members = { [1] = { guid = "G-9", name = "Zed",
+                    profession1ID = 186 } } }))
+                local read = ns.Roster.Read()
+                assertEqual(read[1].professions, nil)
+                assertEqual(#read, 3)
+            end)
+
+            it("the Profession Finder lists a member whose note has no profession", function()
+                loadAddon(roster({ guildId = "1", members = { [1] = { guid = "G-3", name = "Cy",
+                    profession1ID = 186, profession1Rank = 300, profession1Name = "Mining" } } }))
+                SlashCmdList["GUILDCENSUS"]("professions")
+                local pane = GuildCensusWindow.professionsPane
+                assertEqual(pane.summary.text, "2 players found") -- Bob (note) then Cy (game data)
+                assertEqual(pane.rows[2].professions.text, "Mining (300)")
+            end)
+        end)
+
         it("demo mode fills every chart with legends", function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")

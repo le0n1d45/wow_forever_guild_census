@@ -616,4 +616,80 @@ return function(ns)
             assertEqual(census.professions, { { label = "Mining", count = 1 } })
         end)
     end)
+
+    describe("Game-reported professions (supplemental to notes)", function()
+        local function member(note, professions)
+            return { name = "A", level = 60, classFile = "MAGE", className = "Mage", note = note,
+                online = true, professions = professions }
+        end
+        local function hits(m)
+            return ns.Census.Analyze(m, ns.Census.Rules()).professionHits
+        end
+
+        it("uses the game's data when the note says nothing about professions", function()
+            local h = hits(member("Raids Tue", { { key = "mining", skill = 300 } }))
+            assertEqual(#h, 1)
+            assertEqual(h[1].key, "mining")
+            assertEqual(h[1].label, "Mining")
+            assertEqual(h[1].skill, 300)
+            assertEqual(h[1].word, nil)
+            assertEqual(h[1].fromGame, true)
+        end)
+
+        it("falls back to the note when the game has no data", function()
+            for _, game in ipairs({ false, {} }) do
+                local h = hits(member("LW 260", game or nil))
+                assertEqual(#h, 1)
+                assertEqual(h[1].key, "leatherworking")
+                assertEqual(h[1].skill, 260)
+                assertEqual(h[1].fromGame, nil)
+            end
+        end)
+
+        it("the game's skill wins over a number in the note, and the keyword is kept", function()
+            local h = hits(member("LW 260", { { key = "leatherworking", skill = 275 } }))
+            assertEqual(#h, 1)
+            assertEqual(h[1].skill, 275)
+            assertEqual(h[1].word, "lw")
+        end)
+
+        it("keeps the note's skill when the game gives a profession without a rank", function()
+            local h = hits(member("LW 260", { { key = "leatherworking" } }))
+            assertEqual(h[1].skill, 260)
+        end)
+
+        it("takes the union: a game profession plus one only the note mentions", function()
+            local h = hits(member("Tailor 150", { { key = "mining", skill = 100 } }))
+            assertEqual(#h, 2)
+            assertEqual(h[1].key, "mining") -- Config order
+            assertEqual(h[2].key, "tailor")
+            assertEqual(h[2].skill, 150)
+        end)
+
+        it("feeds the census charts and the Finder", function()
+            local members = {
+                member("Raids Tue", { { key = "mining", skill = 300 } }),
+                member("tank, LW 100", nil),
+            }
+            local census = ns.Census.Build(members)
+            local counts = {}
+            for _, slice in ipairs(census.professions) do counts[slice.label] = slice.count end
+            assertEqual(counts, { Mining = 1, Leatherworking = 1 })
+
+            local found = ns.Census.Find(members, { profession = "mining", minSkill = 250 })
+            assertEqual(#found, 1)
+            assertEqual(found[1].professionDetails, { { key = "mining", label = "Mining", skill = 300 } })
+        end)
+
+        it("never excludes anyone, and a third profession is logged with a readable message", function()
+            local m = member("Tailor, Herb", { { key = "mining", skill = 1 }, { key = "alchemy", skill = 1 } })
+            local census = ns.Census.Build({ m })
+            assertEqual(census.total, 1)
+            assertEqual(#census.conflicts, 1)
+            assertEqual(census.conflicts[1].kind, "too-many-professions")
+            -- game-only hits have no keyword, so they are listed by label alone (Config order)
+            assert(string.find(census.conflicts[1].message, "Mining, Herbalism ('herb'), Tailor ('tailor'), Alchemy", 1, true),
+                census.conflicts[1].message)
+        end)
+    end)
 end
