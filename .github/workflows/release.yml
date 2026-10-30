@@ -1,0 +1,111 @@
+name: Release
+
+# Run by hand from the Actions tab. Finds the latest tag, bumps the version, writes it to
+# the TOC, tags the commit and publishes a GitHub release with the Forever and Retail zips.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the latest tag to increase
+        type: choice
+        options: [minor, patch, major]
+        default: minor
+      version:
+        description: Exact version instead (e.g. 1.0.0). Leave empty to bump the latest tag.
+        type: string
+        required: false
+
+permissions:
+  contents: write # push the version commit and tag, create the release
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags are needed to find the previous version
+
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1 zip
+
+      - name: Run tests
+        run: lua5.1 tests/run.lua
+
+      - name: Work out the new version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          EXPLICIT: ${{ inputs.version }}
+        run: |
+          previous=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          previous="${previous:-0.0.0}"
+          if [ -n "$EXPLICIT" ]; then
+            next="$EXPLICIT"
+          else
+            IFS=. read -r major minor patch <<< "$previous"
+            case "$BUMP" in
+              major) next="$((major + 1)).0.0" ;;
+              minor) next="$major.$((minor + 1)).0" ;;
+              patch) next="$major.$minor.$((patch + 1))" ;;
+            esac
+          fi
+          if ! [[ "$next" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$next' is not a MAJOR.MINOR.PATCH version"; exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/$next" > /dev/null; then
+            echo "::error::Tag $next already exists"; exit 1
+          fi
+          if [ "$(printf '%s\n%s\n' "$previous" "$next" | sort -V | tail -n 1)" != "$next" ]; then
+            echo "::error::$next is not newer than the latest tag $previous"; exit 1
+          fi
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "Releasing $next (previous tag: $previous)"
+
+      # The TOC may already carry the new version (bumped by hand ahead of time); only
+      # commit when it actually changes.
+      - name: Bump the TOC version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i "s/^## Version:.*/## Version: $VERSION/" GuildCensus/GuildCensus.toc
+          grep -x "## Version: $VERSION" GuildCensus/GuildCensus.toc
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git commit -am "Release $VERSION"
+          fi
+
+      - name: Tag and push
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag "$VERSION"
+          git push origin HEAD:main "$VERSION"
+
+      # Zips are named for the version and keep GuildCensus/ as the top-level folder.
+      - name: Build release zips
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir release
+          for flavor in "Forever 16001" "Retail 120105"; do
+            set -- $flavor
+            tools/stage_addon.sh "$2" "stage/$1"
+            (cd "stage/$1" && zip -qr "$GITHUB_WORKSPACE/release/GuildCensus-$1-$VERSION.zip" GuildCensus)
+          done
+          ls -l release
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+        run: |
+          gh release create "$VERSION" release/*.zip \
+            --title "Guild Census $VERSION" \
+            --generate-notes --notes-start-tag "$PREVIOUS"

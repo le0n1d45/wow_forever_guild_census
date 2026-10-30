@@ -30,13 +30,10 @@ jobs:
       # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
       # zip's top-level folder without wrapping a zip inside a zip. The repo's TOC
       # targets Forever; each flavor's copy gets its own Interface number.
+      # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
+      # zip's top-level folder without wrapping a zip inside a zip.
       - name: Stage addon
-        run: |
-          mkdir dist
-          cp -r GuildCensus dist/
-          cp LICENSE dist/GuildCensus/
-          sed -i 's/^## Interface:.*/## Interface: ${{ matrix.interface }}/' dist/GuildCensus/GuildCensus.toc
-          grep -x '## Interface: ${{ matrix.interface }}' dist/GuildCensus/GuildCensus.toc
+        run: tools/stage_addon.sh ${{ matrix.interface }} dist
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -7,6 +7,10 @@ user-visible change, and move it under a version heading when that version is re
 
 ## [Unreleased]
 
+### Added
+- A manually triggered **Release** workflow: bumps the version from the latest tag, tags the code and
+  publishes a GitHub release with the Forever and Retail zips named for the new version.
+
 ## [0.5.0] - 2026-10-30
 
 ### Added
