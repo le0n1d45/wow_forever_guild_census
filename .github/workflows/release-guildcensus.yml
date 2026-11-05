@@ -1,4 +1,4 @@
-name: Release
+name: GuildCensus Release
 
 # Run by hand from the Actions tab. Finds the latest tag, bumps the version, writes it to
 # the TOC, tags the commit and publishes a GitHub release with the Forever and Retail zips.
@@ -18,7 +18,7 @@ on:
 permissions:
   contents: write # push the version commit and tag, create the release
 
-concurrency: release
+concurrency: guildcensus-release
 
 jobs:
   release:

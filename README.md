@@ -184,7 +184,7 @@ reported for every guild member regardless of the alts/mains filters.
   names; it does not check rendering or Forever API compatibility.
 - **Builds:** `.github/workflows/build.yml` publishes the Forever and Retail artifacts and keeps the
   newest 5 of each.
-- **Releases:** run **Actions > Release > Run workflow** by hand (it never runs on its own). It takes the
+- **Releases:** run **Actions > GuildCensus Release > Run workflow** by hand (it never runs on its own). It takes the
   newest `X.Y.Z` tag, bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
   tags the commit and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and
   `GuildCensus-Retail-<version>.zip`. It only runs from `main` and runs the tests first.
