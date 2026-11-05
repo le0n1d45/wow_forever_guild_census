@@ -164,6 +164,15 @@ return function()
             assertEqual(m.soft, false)
         end)
 
+        it("LineText reads leftText, or surfaces it from args", function()
+            assertEqual(Probe.LineText({ leftText = "Wolf" }), "Wolf")
+            assertEqual(Probe.LineText({ args = { { field = "x" }, { stringVal = "Prairie Stalker" } } }), "Prairie Stalker")
+            TooltipUtil = { SurfaceArgs = function(line) line.leftText = "Surfaced" end }
+            assertEqual(Probe.LineText({ args = {} }), "Surfaced")
+            TooltipUtil = nil
+            assertEqual(Probe.LineText(nil), nil)
+        end)
+
         it("IsTracking assumes yes when the client can't say, and reads active flags otherwise", function()
             C_Minimap = nil
             assertEqual(Probe.IsTracking(), true)

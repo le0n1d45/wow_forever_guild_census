@@ -73,6 +73,22 @@ function Probe.IsTracking()
     return not ok or tracking
 end
 
+-- The text of one tooltip line. Raw tooltip data keeps its text in `args` until
+-- TooltipUtil.SurfaceArgs copies it onto the line as leftText, so try both.
+function Probe.LineText(line)
+    if type(line) ~= "table" then return nil end
+    if line.leftText == nil and type(TooltipUtil) == "table" and TooltipUtil.SurfaceArgs then
+        pcall(TooltipUtil.SurfaceArgs, line)
+    end
+    if line.leftText ~= nil then return line.leftText end
+    if type(line.args) == "table" then
+        for _, arg in ipairs(line.args) do
+            if type(arg) == "table" and arg.stringVal ~= nil then return arg.stringVal end
+        end
+    end
+    return nil
+end
+
 -- Scans the minimap for tooltips naming the hunted mob. Returns centres as offsets from the
 -- minimap's centre in minimap units ({ { dx, dy }, ... }), or nil when the probe isn't
 -- available. `step` is the grid spacing.
@@ -87,7 +103,7 @@ function Probe.Find(minimap, hunted, step)
             local data = C_TooltipInfo.GetMinimapMouseover()
             if data and data.lines then
                 for _, line in ipairs(data.lines) do
-                    if ns.Hunt.Matches(hunted, line.leftText) then
+                    if ns.Hunt.Matches(hunted, Probe.LineText(line)) then
                         hits[#hits + 1] = p
                         break
                     end
@@ -99,6 +115,33 @@ function Probe.Find(minimap, hunted, step)
         if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(false) end
     end)
     return Probe.Clusters(hits, step * 1.5)
+end
+
+-- A one-line outline of a table for the debug report: key=type pairs (short strings shown),
+-- the first line of data.lines expanded one level.
+local function outline(value, depth)
+    if type(value) ~= "table" then
+        local ok, text = pcall(tostring, value)
+        text = ok and text or "<unreadable>"
+        if type(value) == "string" then return '"' .. text:sub(1, 30) .. '"' end
+        return text
+    end
+    if depth <= 0 then return "{...}" end
+    local keys = {}
+    for k in pairs(value) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for i = 1, math.min(#keys, 12) do
+        parts[#parts + 1] = tostring(keys[i]) .. "=" .. outline(value[keys[i]], depth - 1)
+    end
+    return "{" .. table.concat(parts, ", ") .. (#keys > 12 and ", ..." or "") .. "}"
+end
+
+function Probe.Describe(data)
+    local lines = type(data) == "table" and data.lines
+    local count = type(lines) == "table" and #lines or "none"
+    return "lines=" .. tostring(count) .. " data=" .. outline(data, 1)
+        .. (type(lines) == "table" and lines[1] and (" line1=" .. outline(lines[1], 3)) or "")
 end
 
 -- For /mobhunt debug: runs the same scan as Find, but records what the client actually returned
@@ -118,7 +161,7 @@ function Probe.Diagnose(minimap, step)
         return report
     end
     local radius = minimap:GetWidth() / 2
-    local points, withTooltip, samples, seen = 0, 0, {}, {}
+    local points, withTooltip, samples, seen, shapes = 0, 0, {}, {}, {}
     local ok, err = pcall(function()
         if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(true) end
         for _, p in ipairs(Probe.Grid(radius, step)) do
@@ -127,8 +170,13 @@ function Probe.Diagnose(minimap, step)
             local data = C_TooltipInfo.GetMinimapMouseover()
             if data then
                 withTooltip = withTooltip + 1
-                local first = data.lines and data.lines[1] and data.lines[1].leftText
+                local first = data.lines and Probe.LineText(data.lines[1])
                 local text = pcall(tostring, first) and tostring(first) or "<unreadable>"
+                local shape = Probe.Describe(data)
+                if not seen[shape] and #shapes < 4 then
+                    seen[shape] = true
+                    shapes[#shapes + 1] = shape .. " @" .. p[1] .. "," .. p[2]
+                end
                 if not seen[text] and #samples < 6 then
                     seen[text] = true
                     samples[#samples + 1] = text .. " @" .. p[1] .. "," .. p[2]
@@ -142,6 +190,7 @@ function Probe.Diagnose(minimap, step)
     add("Minimap width " .. tostring(minimap:GetWidth()) .. ", probed " .. points .. " points, "
         .. withTooltip .. " returned a tooltip" .. (ok and "" or (", ERROR: " .. tostring(err))))
     for _, s in ipairs(samples) do add("  tooltip line 1: " .. s) end
+    for _, s in ipairs(shapes) do add("  tooltip shape: " .. s) end
     if withTooltip == 0 then
         add("No tooltips at all: the soft cursor or its coordinates may not work this way on this client.")
     end
