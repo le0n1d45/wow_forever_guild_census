@@ -11,7 +11,7 @@ How to use it:
 2. **Description field:** paste everything under "Description" below, between the two `---` lines.
 3. **Screenshots:** there are none yet. CurseForge can't show images stored in this repo, so take
    in-game screenshots (the alert, the nameplate marker, the minimap ring) and upload them to the project
-   gallery. The icon is `assets/mobhunter-icon.png` in the repo root.
+   gallery. The icon is `assets/mobhunter-icon.png` (or `.jpg`) in the repo root.
 
 ## Summary
 
