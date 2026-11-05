@@ -49,6 +49,7 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 - `/mobhunt stop`: stop hunting
 - `/mobhunt`: show what you're hunting
 - `/mobhunt button on` / `off`: show or hide the Target button (remembered between sessions)
+- `/mobhunt options`: open the options page (also under **Options > AddOns > MobHunter**). It has a box and Start/Stop buttons to hunt, the Target button checkbox, and a button that creates the macro, so you never have to type a command
 - `/mobhunt macro`: creates a "MobHunter" macro for your action bar that targets the mob you're hunting
 - `/mobhunt target`: explains why a slash command can't target, and points to the macro
 

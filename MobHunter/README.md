@@ -7,6 +7,7 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt <name>` | Start hunting. Part of a name is enough: `/mobhunt pillager` finds "Defias Pillager". |
 | `/mobhunt stop` | Stop hunting. |
 | `/mobhunt` | Show what you're hunting. |
+| `/mobhunt options` | Opens the options page (also under Options > AddOns > MobHunter): Target button checkbox, hunt box with Start/Stop, create-macro and debug buttons. Everything the commands do is also there. |
 | `/mobhunt button on\|off` | Show or hide the Target button (saved in `MobHunterDB`; default on). |
 | `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |
 | `/mobhunt debug` | Opens a copyable window with what the minimap probe can and can't do on this client (also saved as `lastDebug` in the SavedVariables file after `/reload`). |
