@@ -175,16 +175,16 @@ reported for every guild member regardless of the alts/mains filters.
 ## Other addons in this repo
 
 - **MobHunter** (`MobHunter/`): `/mobhunt <mob name>` alerts you when that mob is in range or is one of your
-  minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build and release workflows
-  still package only Guild Census.
+  minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build workflow packages it; there is
+  no MobHunter release workflow yet.
 
 ## Development
 
 - **Tests:** `lua tests/run.lua` (Lua 5.1) runs note-parsing and census tests plus headless UI tests
   against a strict WoW widget stub (`tests/wow_stub.lua`). The stub checks logic and widget-method
   names; it does not check rendering or Forever API compatibility.
-- **Builds:** `.github/workflows/build.yml` publishes the Forever and Retail artifacts and keeps the
-  newest 5 of each.
+- **Builds:** `.github/workflows/build.yml` publishes Forever and Retail artifacts for both Guild Census and MobHunter
+  (`GuildCensus-Forever-N`, `MobHunter-Retail-N`, ...) and keeps the newest 5 of each.
 - **Releases:** run **Actions > GuildCensus Release > Run workflow** by hand (it never runs on its own). It takes the
   newest `guildcensus-X.Y.Z` tag (or, for the first run, the newest older plain `X.Y.Z` tag), bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
   tags the commit as `guildcensus-<version>` and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and

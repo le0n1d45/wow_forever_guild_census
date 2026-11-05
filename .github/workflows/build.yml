@@ -10,7 +10,7 @@ permissions:
   actions: write # needed to delete old artifacts
 
 env:
-  KEEP_ARTIFACTS: 5 # per flavor
+  KEEP_ARTIFACTS: 5 # per addon and flavor
 
 jobs:
   build:
@@ -18,22 +18,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - flavor: Forever
-            interface: "16001"
-          - flavor: Retail
-            interface: "120105"
+          - { addon: GuildCensus, flavor: Forever, interface: "16001" }
+          - { addon: GuildCensus, flavor: Retail, interface: "120105" }
+          - { addon: MobHunter, flavor: Forever, interface: "16001" }
+          - { addon: MobHunter, flavor: Retail, interface: "120105" }
     env:
-      ARTIFACT_PREFIX: GuildCensus-${{ matrix.flavor }}-
+      ARTIFACT_PREFIX: ${{ matrix.addon }}-${{ matrix.flavor }}-
     steps:
       - uses: actions/checkout@v4
 
-      # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
-      # zip's top-level folder without wrapping a zip inside a zip. The repo's TOC
-      # targets Forever; each flavor's copy gets its own Interface number.
-      # GitHub zips artifacts itself; staging in dist/ keeps GuildCensus/ as the
-      # zip's top-level folder without wrapping a zip inside a zip.
+      # GitHub zips artifacts itself; staging in dist/ keeps the addon folder as the zip's
+      # top-level folder without wrapping a zip inside a zip. The repo's TOCs target Forever;
+      # each flavor's copy gets its own Interface number.
       - name: Stage addon
-        run: tools/stage_addon.sh ${{ matrix.interface }} dist
+        run: tools/stage_addon.sh ${{ matrix.interface }} dist ${{ matrix.addon }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
