@@ -340,11 +340,13 @@ return function()
             C_TooltipInfo = { GetMinimapMouseover = function() return { lines = { { leftText = "Herb" } } } end }
             SlashCmdList["MOBHUNT"]("debug")
             local all = table.concat(printed, "\n")
-            assert(all:find("probed", 1, true) and all:find("Herb", 1, true))
+            assert(all:find("window", 1, true))
+            assertEqual(MobHunterReportFrame.shown, true)
+            assert(table.concat(MobHunterDB.lastDebug, "\n"):find("Herb", 1, true))
             C_TooltipInfo = nil
-            printed = {}
             SlashCmdList["MOBHUNT"]("debug")
-            assert(table.concat(printed, "\n"):find("unavailable", 1, true))
+            assert(table.concat(MobHunterDB.lastDebug, "\n"):find("unavailable", 1, true))
+            MobHunterDB = nil
         end)
 
         test("stays quiet when nothing matches", function()

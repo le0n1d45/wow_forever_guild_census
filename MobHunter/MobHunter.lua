@@ -137,6 +137,39 @@ local function hideIcons()
     for _, icon in ipairs(icons) do icon:Hide() end
 end
 
+-- A window with the text in a selectable box, so it can be copied with Ctrl+C (chat can't be).
+local reportFrame
+local function showReport(title, text)
+    if not reportFrame then
+        reportFrame = CreateFrame("Frame", "MobHunterReportFrame", UIParent, "BasicFrameTemplateWithInset")
+        reportFrame:SetSize(520, 360)
+        reportFrame:SetPoint("CENTER")
+        reportFrame:SetFrameStrata("DIALOG")
+        reportFrame:SetMovable(true)
+        reportFrame:EnableMouse(true)
+        reportFrame:RegisterForDrag("LeftButton")
+        reportFrame:SetScript("OnDragStart", reportFrame.StartMoving)
+        reportFrame:SetScript("OnDragStop", reportFrame.StopMovingOrSizing)
+        if UISpecialFrames then table.insert(UISpecialFrames, "MobHunterReportFrame") end -- Esc closes it
+        local scroll = CreateFrame("ScrollFrame", "MobHunterReportScroll", reportFrame, "UIPanelScrollFrameTemplate")
+        scroll:SetPoint("TOPLEFT", 12, -32)
+        scroll:SetPoint("BOTTOMRIGHT", -32, 12)
+        local box = CreateFrame("EditBox", nil, scroll)
+        box:SetMultiLine(true)
+        box:SetAutoFocus(false)
+        box:SetFontObject(ChatFontNormal or GameFontHighlight)
+        box:SetWidth(470)
+        box:SetScript("OnEscapePressed", function() reportFrame:Hide() end)
+        scroll:SetScrollChild(box)
+        reportFrame.box = box
+    end
+    if type(reportFrame.TitleText) == "table" then reportFrame.TitleText:SetText(title) end
+    reportFrame.box:SetText(text)
+    reportFrame:Show()
+    reportFrame.box:SetFocus()
+    reportFrame.box:HighlightText() -- selected: just press Ctrl+C
+end
+
 local function alert(name)
     local sound = (SOUNDKIT and SOUNDKIT.RAID_WARNING) or ALERT_SOUND
     pcall(PlaySound, sound)
@@ -266,7 +299,11 @@ SlashCmdList["MOBHUNT"] = function(msg)
         end
         say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
     elseif command.action == "debug" then
-        for _, line in ipairs(ns.Probe.Diagnose(Minimap, PROBE_STEP)) do say(line) end
+        local report = ns.Probe.Diagnose(Minimap, PROBE_STEP)
+        MobHunterDB = MobHunterDB or {}
+        MobHunterDB.lastDebug = report -- also lands in the SavedVariables file on /reload or logout
+        showReport("MobHunter debug", table.concat(report, "\n"))
+        say("debug info is in the window (already selected: press Ctrl+C to copy). It is also saved to MobHunter.lua in your WTF\\Account\\<account>\\SavedVariables folder after /reload.")
     elseif command.action == "macro" then
         if InCombatLockdown() then
             say("can't create a macro during combat.")
