@@ -257,6 +257,15 @@ return function()
             assertEqual(#sounds, 1)
         end)
 
+        test("once a mob is seen the button targets its nameplate, not the typed name", function()
+            install({ plates = { { unitToken = "nameplate2" } }, names = { nameplate2 = "Defias Pillager" } })
+            SlashCmdList["MOBHUNT"]("pillager")
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target nameplate2")
+            local frame = MobHunterEventFrame
+            frame.scripts.OnEvent(frame, "NAME_PLATE_UNIT_REMOVED", "nameplate2")
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target pillager")
+        end)
+
         test("stays quiet when nothing matches", function()
             install({ plates = { { unitToken = "nameplate1" } }, names = { nameplate1 = "Wolf" } })
             SlashCmdList["MOBHUNT"]("pillager")

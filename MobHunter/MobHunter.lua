@@ -15,6 +15,7 @@ local ticker
 local markers = {} -- nameplate unit token -> marker frame
 local ring -- minimap ring (a set of lines)
 local pendingMacro = false
+local seenToken -- nameplate token of a mob that matched; "/target <token>" is exact, unlike a name
 
 local frame = CreateFrame("Frame", addonName .. "EventFrame")
 local handlers = {}
@@ -34,7 +35,7 @@ local function applyMacro()
     end
     pendingMacro = false
     button:SetAttribute("type", "macro")
-    button:SetAttribute("macrotext", hunted and ("/target " .. hunted) or "")
+    button:SetAttribute("macrotext", hunted and ("/target " .. (seenToken or hunted)) or "")
     button:SetText(hunted and ("Target " .. hunted) or "MobHunter")
     if hunted then button:Show() else button:Hide() end
 end
@@ -43,7 +44,7 @@ local function createButton()
     button = CreateFrame("Button", "MobHunterTargetButton", UIParent, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     button:SetSize(200, 28)
     button:SetPoint("TOP", UIParent, "TOP", 0, -140)
-    button:RegisterForClicks("AnyUp")
+    button:RegisterForClicks("AnyUp", "AnyDown") -- the ActionButtonUseKeyDown setting picks which one fires
     button:SetMovable(true)
     button:RegisterForDrag("RightButton")
     button:SetScript("OnDragStart", button.StartMoving)
@@ -140,6 +141,8 @@ local function scan()
     for _, unit in ipairs(ns.Hunt.Scan(tracker, hunted, readUnits())) do
         alert(unit.name)
         showMarker(unit)
+        seenToken = unit.token
+        applyMacro()
     end
 
     -- 2) mobs among the minimap's tracking dots, when something is being tracked
@@ -157,7 +160,7 @@ local function scan()
 end
 
 local function stop()
-    hunted = nil
+    hunted, seenToken = nil, nil
     tracker = ns.Hunt.NewTracker()
     if ticker then ticker:Cancel(); ticker = nil end
     hideMarkers()
@@ -191,6 +194,10 @@ end
 
 function handlers.NAME_PLATE_UNIT_REMOVED(token)
     if markers[token] then markers[token]:Hide() end
+    if token == seenToken then
+        seenToken = nil
+        applyMacro()
+    end
 end
 
 function handlers.PLAYER_REGEN_ENABLED()
