@@ -31,6 +31,23 @@ local function showButton()
     return not (MobHunterDB and MobHunterDB.showButton == false)
 end
 
+-- An ordinary character macro ("MobHunter") that mirrors the button's text, for players who'd
+-- rather have a bar button. Macro text isn't protected, so it can be edited out of combat.
+local MACRO_NAME, MACRO_ICON = "MobHunter", 134400
+local function syncMacro(create)
+    if not (GetMacroIndexByName and EditMacro) then return false end
+    local index = GetMacroIndexByName(MACRO_NAME)
+    if (not index or index == 0) and create and CreateMacro then
+        local ok = pcall(CreateMacro, MACRO_NAME, MACRO_ICON, "/mobhunt", true)
+        if not ok then return false end
+        index = GetMacroIndexByName(MACRO_NAME)
+    end
+    if not index or index == 0 then return false end
+    local name = seenName or hunted
+    pcall(EditMacro, index, nil, nil, name and ("/target " .. name) or "/mobhunt")
+    return true
+end
+
 local function applyMacro()
     if not button then return end
     if InCombatLockdown() then
@@ -38,6 +55,7 @@ local function applyMacro()
         return
     end
     pendingMacro = false
+    syncMacro(false)
     button:SetAttribute("type", "macro")
     local name = seenName or hunted
     button:SetAttribute("macrotext", name and ("/target " .. name) or "")
@@ -247,14 +265,25 @@ SlashCmdList["MOBHUNT"] = function(msg)
             applyMacro()
         end
         say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
+    elseif command.action == "debug" then
+        for _, line in ipairs(ns.Probe.Diagnose(Minimap, PROBE_STEP)) do say(line) end
+    elseif command.action == "macro" then
+        if InCombatLockdown() then
+            say("can't create a macro during combat.")
+        elseif syncMacro(true) then
+            applyMacro()
+            say("macro |cffffff00MobHunter|r is ready. Open /macro and drag it to an action bar. It follows your hunt and targets the mob it matched.")
+        else
+            say("couldn't create the macro (the macro list may be full).")
+        end
     elseif command.action == "target" then
         -- Targeting is protected: it only runs from a click or keypress on a secure button, never
         -- from a slash command. A macro can click the button (shown or not) instead.
-        say("addons can't target from a slash command. Put |cffffff00/click MobHunterTargetButton|r in a macro (or bind a key under Keybindings > AddOns > MobHunter).")
+        say("addons can't target from a slash command. Type |cffffff00/mobhunt macro|r to make a MobHunter macro for your action bar (or bind a key under Keybindings > AddOns > MobHunter).")
     elseif command.action == "status" then
         say(hunted and ("hunting |cffffff00" .. hunted .. "|r.") or "not hunting anything. Type /mobhunt <mob name>.")
     else
-        say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt button on|off, /mobhunt target.")
+        say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt button on|off, /mobhunt macro.")
     end
 end
 

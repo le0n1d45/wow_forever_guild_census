@@ -100,3 +100,50 @@ function Probe.Find(minimap, hunted, step)
     end)
     return Probe.Clusters(hits, step * 1.5)
 end
+
+-- For /mobhunt debug: runs the same scan as Find, but records what the client actually returned
+-- so a probe that finds nothing can be told apart from one that can't run. Returns a list of
+-- report lines.
+function Probe.Diagnose(minimap, step)
+    local report = {}
+    local function add(text) report[#report + 1] = text end
+    add("Minimap: " .. (minimap and "found" or "MISSING")
+        .. ", UpdateMouseoverAtPoint: " .. tostring(minimap and type(minimap.UpdateMouseoverAtPoint) or "n/a")
+        .. ", SetUsingSoftCursor: " .. tostring(minimap and type(minimap.SetUsingSoftCursor) or "n/a")
+        .. ", C_TooltipInfo.GetMinimapMouseover: "
+        .. tostring(type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetMinimapMouseover) or "missing"))
+    add("Tracking something: " .. tostring(Probe.IsTracking()))
+    if not Probe.Available(minimap) then
+        add("Probe unavailable, so no minimap icons can be placed.")
+        return report
+    end
+    local radius = minimap:GetWidth() / 2
+    local points, withTooltip, samples, seen = 0, 0, {}, {}
+    local ok, err = pcall(function()
+        if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(true) end
+        for _, p in ipairs(Probe.Grid(radius, step)) do
+            points = points + 1
+            minimap:UpdateMouseoverAtPoint(radius + p[1], radius + p[2])
+            local data = C_TooltipInfo.GetMinimapMouseover()
+            if data then
+                withTooltip = withTooltip + 1
+                local first = data.lines and data.lines[1] and data.lines[1].leftText
+                local text = pcall(tostring, first) and tostring(first) or "<unreadable>"
+                if not seen[text] and #samples < 6 then
+                    seen[text] = true
+                    samples[#samples + 1] = text .. " @" .. p[1] .. "," .. p[2]
+                end
+            end
+        end
+    end)
+    pcall(function()
+        if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(false) end
+    end)
+    add("Minimap width " .. tostring(minimap:GetWidth()) .. ", probed " .. points .. " points, "
+        .. withTooltip .. " returned a tooltip" .. (ok and "" or (", ERROR: " .. tostring(err))))
+    for _, s in ipairs(samples) do add("  tooltip line 1: " .. s) end
+    if withTooltip == 0 then
+        add("No tooltips at all: the soft cursor or its coordinates may not work this way on this client.")
+    end
+    return report
+end

@@ -45,6 +45,7 @@ return function()
             assertEqual(Hunt.ParseCommand(nil), { action = "status" })
             assertEqual(Hunt.ParseCommand("help"), { action = "help" })
             assertEqual(Hunt.ParseCommand("target"), { action = "target" })
+            assertEqual(Hunt.ParseCommand("macro"), { action = "macro" })
             assertEqual(Hunt.ParseCommand("Button OFF"), { action = "button", on = false })
             assertEqual(Hunt.ParseCommand("button on"), { action = "button", on = true })
             assertEqual(Hunt.ParseCommand("button"), { action = "button" })
@@ -314,7 +315,36 @@ return function()
         test("/mobhunt target explains the /click macro instead of trying to target", function()
             install()
             SlashCmdList["MOBHUNT"]("target")
-            assert(printed[1]:find("/click MobHunterTargetButton", 1, true))
+            assert(printed[1]:find("/mobhunt macro", 1, true))
+        end)
+
+        test("/mobhunt macro makes a character macro that follows the hunt", function()
+            install({ plates = { { unitToken = "nameplate2" } }, names = { nameplate2 = "Prairie Stalker" } })
+            local macros = {}
+            GetMacroIndexByName = function(name) return macros[name] and 1 or 0 end
+            CreateMacro = function(name, _, body) macros[name] = body end
+            EditMacro = function(_, _, _, body) macros.MobHunter = body end
+            SlashCmdList["MOBHUNT"]("macro")
+            assertEqual(macros.MobHunter, "/mobhunt")
+            SlashCmdList["MOBHUNT"]("stalker")
+            assertEqual(macros.MobHunter, "/target Prairie Stalker")
+            SlashCmdList["MOBHUNT"]("stop")
+            assertEqual(macros.MobHunter, "/mobhunt")
+            GetMacroIndexByName, CreateMacro, EditMacro = nil, nil, nil
+        end)
+
+        test("/mobhunt debug reports what the minimap probe sees", function()
+            install()
+            rawset(Minimap, "SetUsingSoftCursor", function() end)
+            rawset(Minimap, "UpdateMouseoverAtPoint", function() end)
+            C_TooltipInfo = { GetMinimapMouseover = function() return { lines = { { leftText = "Herb" } } } end }
+            SlashCmdList["MOBHUNT"]("debug")
+            local all = table.concat(printed, "\n")
+            assert(all:find("probed", 1, true) and all:find("Herb", 1, true))
+            C_TooltipInfo = nil
+            printed = {}
+            SlashCmdList["MOBHUNT"]("debug")
+            assert(table.concat(printed, "\n"):find("unavailable", 1, true))
         end)
 
         test("stays quiet when nothing matches", function()

@@ -8,7 +8,9 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt stop` | Stop hunting. |
 | `/mobhunt` | Show what you're hunting. |
 | `/mobhunt button on\|off` | Show or hide the Target button (saved in `MobHunterDB`; default on). |
-| `/mobhunt target` | Explains how to target from a macro: a slash command can't target (protected), so use `/click MobHunterTargetButton`. |
+| `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |
+| `/mobhunt debug` | Prints what the minimap probe can and can't do on this client. |
+| `/mobhunt target` | Explains that a slash command can't target (protected) and points to `/mobhunt macro`. |
 
 When a match shows up you get a **sound**, a **chat and on-screen message**, a red **marker above the mob's
 nameplate**, and, if the mob is one of your minimap tracking dots, **MobHunter's icon drawn over its dot on the minimap**. A **Target
