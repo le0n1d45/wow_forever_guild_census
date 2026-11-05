@@ -185,8 +185,8 @@ reported for every guild member regardless of the alts/mains filters.
 - **Builds:** `.github/workflows/build.yml` publishes the Forever and Retail artifacts and keeps the
   newest 5 of each.
 - **Releases:** run **Actions > GuildCensus Release > Run workflow** by hand (it never runs on its own). It takes the
-  newest `X.Y.Z` tag, bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
-  tags the commit and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and
+  newest `guildcensus-X.Y.Z` tag (or, for the first run, the newest older plain `X.Y.Z` tag), bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
+  tags the commit as `guildcensus-<version>` and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and
   `GuildCensus-Retail-<version>.zip`. It only runs from `main` and runs the tests first.
 - **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`. Add `--size N --jpeg PATH` (needs
   Pillow) for a larger JPEG; the repo's copies are in `assets/`.

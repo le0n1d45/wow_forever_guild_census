@@ -2,6 +2,8 @@ name: GuildCensus Release
 
 # Run by hand from the Actions tab. Finds the latest tag, bumps the version, writes it to
 # the TOC, tags the commit and publishes a GitHub release with the Forever and Retail zips.
+# Tags are "guildcensus-X.Y.Z" so other addons in this repo can version independently. The
+# plain "X.Y.Z" tags from before the prefix are the starting point for the first prefixed one.
 on:
   workflow_dispatch:
     inputs:
@@ -19,6 +21,9 @@ permissions:
   contents: write # push the version commit and tag, create the release
 
 concurrency: guildcensus-release
+
+env:
+  TAG_PREFIX: guildcensus-
 
 jobs:
   release:
@@ -41,7 +46,14 @@ jobs:
           BUMP: ${{ inputs.bump }}
           EXPLICIT: ${{ inputs.version }}
         run: |
-          previous=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          # Latest version of this addon: prefixed tags first, then the legacy plain tags.
+          latest() { git tag --list "$1*" | sed "s/^$1//" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true; }
+          previous=$(latest "$TAG_PREFIX")
+          previous_tag="$TAG_PREFIX$previous"
+          if [ -z "$previous" ]; then
+            previous=$(latest "")
+            previous_tag="$previous"
+          fi
           previous="${previous:-0.0.0}"
           if [ -n "$EXPLICIT" ]; then
             next="$EXPLICIT"
@@ -56,15 +68,16 @@ jobs:
           if ! [[ "$next" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::'$next' is not a MAJOR.MINOR.PATCH version"; exit 1
           fi
-          if git rev-parse -q --verify "refs/tags/$next" > /dev/null; then
-            echo "::error::Tag $next already exists"; exit 1
+          if git rev-parse -q --verify "refs/tags/$TAG_PREFIX$next" > /dev/null; then
+            echo "::error::Tag $TAG_PREFIX$next already exists"; exit 1
           fi
           if [ "$(printf '%s\n%s\n' "$previous" "$next" | sort -V | tail -n 1)" != "$next" ]; then
             echo "::error::$next is not newer than the latest tag $previous"; exit 1
           fi
           echo "previous=$previous" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
           echo "version=$next" >> "$GITHUB_OUTPUT"
-          echo "Releasing $next (previous tag: $previous)"
+          echo "Releasing $TAG_PREFIX$next (previous tag: ${previous_tag:-none})"
 
       # The TOC may already carry the new version (bumped by hand ahead of time); only
       # commit when it actually changes.
@@ -84,8 +97,8 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          git tag "$VERSION"
-          git push origin HEAD:main "$VERSION"
+          git tag "$TAG_PREFIX$VERSION"
+          git push origin HEAD:main "$TAG_PREFIX$VERSION"
 
       # Zips are named for the version and keep GuildCensus/ as the top-level folder.
       - name: Build release zips
@@ -104,8 +117,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
-          PREVIOUS: ${{ steps.version.outputs.previous }}
+          PREVIOUS_TAG: ${{ steps.version.outputs.previous_tag }}
         run: |
-          gh release create "$VERSION" release/*.zip \
+          gh release create "$TAG_PREFIX$VERSION" release/*.zip \
             --title "Guild Census $VERSION" \
-            --generate-notes --notes-start-tag "$PREVIOUS"
+            --generate-notes ${PREVIOUS_TAG:+--notes-start-tag "$PREVIOUS_TAG"}

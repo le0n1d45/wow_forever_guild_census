@@ -7,6 +7,11 @@ user-visible change, and move it under a version heading when that version is re
 
 ## [Unreleased]
 
+### Changed
+- Release tags are now `guildcensus-X.Y.Z` so other addons in this repo can version separately. The
+  earlier plain `0.5.0` and `0.6.0` tags stay as they are and are the starting point for the first prefixed one.
+- The release workflow is named **GuildCensus Release**.
+
 ### Added
 - Professions and skill levels are now also read from the game's own guild member data (`C_Club`) where
   available. Notes remain the fallback, so nothing changes for members the game has no data for, or if the
