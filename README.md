@@ -174,8 +174,9 @@ reported for every guild member regardless of the alts/mains filters.
 
 ## Other addons in this repo
 
-- **MobHunter** (`MobHunter/`): a blank scaffold for now. It loads and answers `/mobhunter`. The build and
-  release workflows still package only Guild Census.
+- **MobHunter** (`MobHunter/`): `/mobhunt <mob name>` alerts you when that mob is in range or is one of your
+  minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build and release workflows
+  still package only Guild Census.
 
 ## Development
 

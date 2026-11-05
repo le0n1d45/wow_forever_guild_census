@@ -34,9 +34,10 @@ function assertEqual(actual, expected)
 end
 
 -- Loads an addon file the way the WoW client does: chunk called with (addonName, ns).
-function loadAddonFile(ns, name)
-    local chunk = assert(loadfile("GuildCensus/" .. name))
-    chunk("GuildCensus", ns)
+function loadAddonFile(ns, name, addon)
+    addon = addon or "GuildCensus"
+    local chunk = assert(loadfile(addon .. "/" .. name))
+    chunk(addon, ns)
 end
 
 -- Same order as the .toc.
@@ -59,6 +60,8 @@ dofile("tests/Demo.test.lua")(ns)
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()
+
+dofile("tests/MobHunter.test.lua")()
 
 print(string.format("\n%d passed, %d failed", passed, failures))
 os.exit(failures == 0 and 0 or 1)
