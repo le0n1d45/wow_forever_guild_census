@@ -10,8 +10,8 @@ How to use it:
    characters).
 2. **Description field:** paste everything under "Description" below, between the two `---` lines.
 3. **Screenshots:** CurseForge can't show images stored in this repo, so upload them to the project
-   gallery. `docs/MobHunter_minimap_icon.png` is the minimap icon in action; still to take: the alert, the
-   nameplate marker and the Hunt window. The icon is `assets/mobhunter-icon.png` (or `.jpg`) in the repo root.
+   gallery. `docs/MobHunter_hunt_window.png` (Hunt window, nameplate marker and Target button) and
+   `docs/MobHunter_minimap_icon.png` (the minimap icon) are ready to upload. The icon is `assets/mobhunter-icon.png` (or `.jpg`) in the repo root.
 
 ## Summary
 

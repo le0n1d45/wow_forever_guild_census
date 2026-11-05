@@ -19,6 +19,10 @@ nameplate**, and, if the mob is one of your minimap tracking dots, **MobHunter's
 button** appears on screen only while a matching mob is in targeting range (inside the Hunt window; drag the window with the left mouse button) and can be bound to a key under
 **Options > Keybindings > AddOns > MobHunter**. Pressing it runs `/target <the matched mob's full name>` (e.g. `/target Prairie Stalker` after `/mobhunt stalker`).
 
+![The Hunt window and the nameplate marker over a hunted mob (Prairie Stalker); the Target button reads "Target Prairie Stalker"](../docs/MobHunter_hunt_window.png)
+
+*Real client, Forever: hunting "stalker". The Hunt window shows the status and the Target button, and the red marker sits above the mob.*
+
 ![MobHunter's icon (the red crosshair) drawn over a hunted mob's tracking dot on the minimap](../docs/MobHunter_minimap_icon.png)
 
 *Real client, Forever: a hunted mob among the tracking dots, with the MobHunter icon over its dot.*
