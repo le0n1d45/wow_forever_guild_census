@@ -20,7 +20,7 @@ on:
 permissions:
   contents: write # push the version commit and tag, create the release
 
-concurrency: guildcensus-release
+concurrency: release # shared with the other release workflows: they all push to main
 
 env:
   TAG_PREFIX: guildcensus-

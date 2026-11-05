@@ -175,8 +175,7 @@ reported for every guild member regardless of the alts/mains filters.
 ## Other addons in this repo
 
 - **MobHunter** (`MobHunter/`): `/mobhunt <mob name>` alerts you when that mob is in range or is one of your
-  minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build workflow packages it; there is
-  no MobHunter release workflow yet.
+  minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build and release workflows package it.
 
 ## Development
 
@@ -189,6 +188,9 @@ reported for every guild member regardless of the alts/mains filters.
   newest `guildcensus-X.Y.Z` tag (or, for the first run, the newest older plain `X.Y.Z` tag), bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
   tags the commit as `guildcensus-<version>` and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and
   `GuildCensus-Retail-<version>.zip`. It only runs from `main` and runs the tests first.
+  **Actions > MobHunter Release** does the same for MobHunter (tags `mobhunter-<version>`, zips
+  `MobHunter-<flavor>-<version>.zip`, version in `MobHunter/MobHunter.toc`, starting from 0.1.0). Release runs
+  are queued one at a time because they all push to `main`.
 - **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`. Add `--size N --jpeg PATH` (needs
   Pillow) for a larger JPEG; the repo's copies are in `assets/`.
 - **Client notes:** WoW runs Lua 5.1; use `C_Spell` / `C_Item` rather than removed globals, don't
