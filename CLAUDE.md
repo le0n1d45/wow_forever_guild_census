@@ -5,8 +5,10 @@
 - When you finish a piece of work, commit and push it automatically without asking first.
 - Run `lua tests/run.lua` (Lua 5.1) before committing; don't commit with failing tests.
 - Add a `CHANGELOG.md` entry under Unreleased for every user-visible change.
-- `ADDON_DESCRIPTION.md` is the player-facing CurseForge text (the README is for developers). When a feature,
-  command or default changes, update it alongside the README so the user can paste the new text.
+- Each addon has an `ADDON_DESCRIPTION.md` in its folder (`GuildCensus/`, `MobHunter/`): the player-facing
+  CurseForge text (the README is for developers). When a feature, command or default changes, update that
+  addon's file alongside the README so the user can paste the new text. The staging script keeps these out
+  of the zips.
 - Tests run headlessly against a stub (`tests/wow_stub.lua`); they don't prove anything about the real client.
 - Track work with Beads (`bd`), not TODO lists. This repo opts in to the Beads **team-maintainer** profile
   below: at the end of a task, close finished beads, run the tests, then commit and push without asking

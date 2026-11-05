@@ -26,7 +26,7 @@ user-visible change, and move it under a version heading when that version is re
 - Officer notes are read as well as public notes, when your guild rank can see them. A hidden or empty
   officer note is skipped without an error.
 - `docs/LEARNING.md`: where the WoW APIs and Forever details came from, and what is still unverified.
-- `ADDON_DESCRIPTION.md`: listing text for CurseForge.
+- `GuildCensus/ADDON_DESCRIPTION.md` and `MobHunter/ADDON_DESCRIPTION.md`: listing text for CurseForge.
 - This changelog.
 
 ## [0.4.0] - 2026-10-29

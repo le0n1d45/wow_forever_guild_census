@@ -10,7 +10,7 @@ How to use it:
    characters).
 2. **Description field:** paste everything under "Description" below, between the two `---` lines.
 3. **Screenshots:** CurseForge can't show images stored in this repo, so upload them to the project
-   gallery instead of linking them. The best ones are in `docs/`: `GuildCensus_results_role_finder.png`,
+   gallery instead of linking them. The best ones are in `docs/` (relative to the repo root): `GuildCensus_results_role_finder.png`,
    `GuildCensus_results_profession_finder.png`, `census.png` and `settings.png`.
 
 ## Summary
