@@ -37,7 +37,7 @@ local function applyMacro()
     button:SetAttribute("type", "macro")
     button:SetAttribute("macrotext", hunted and ("/target " .. (seenToken or hunted)) or "")
     button:SetText(hunted and ("Target " .. hunted) or "MobHunter")
-    if hunted then button:Show() else button:Hide() end
+    if seenToken then button:Show() else button:Hide() end -- only while a match is in range
 end
 
 local function createButton()
