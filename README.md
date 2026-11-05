@@ -191,7 +191,8 @@ reported for every guild member regardless of the alts/mains filters.
   **Actions > MobHunter Release** does the same for MobHunter (tags `mobhunter-<version>`, zips
   `MobHunter-<flavor>-<version>.zip`, version in `MobHunter/MobHunter.toc`, starting from 0.1.0). Release runs
   are queued one at a time because they all push to `main`.
-- **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`. Add `--size N --jpeg PATH` (needs
+- **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`, and `tools/make_mobhunter_icon.py`
+  regenerates `MobHunter/icon.tga` (plus `assets/mobhunter-icon.png` with `--preview-dir assets --size 512`). Add `--size N --jpeg PATH` (needs
   Pillow) for a larger JPEG; the repo's copies are in `assets/`.
 - **Client notes:** WoW runs Lua 5.1; use `C_Spell` / `C_Item` rather than removed globals, don't
   register `COMBAT_LOG_EVENT_UNFILTERED`, and guard values with `issecretvalue`.
