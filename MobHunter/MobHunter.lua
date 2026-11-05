@@ -48,7 +48,15 @@ local function syncMacro(create)
     return true
 end
 
-local function applyMacro()
+local applyMacro
+
+local function setShowButton(on)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.showButton = on and true or false
+    applyMacro()
+end
+
+function applyMacro()
     if not button then return end
     if InCombatLockdown() then
         pendingMacro = true
@@ -251,6 +259,7 @@ function handlers.ADDON_LOADED(loadedName)
     MobHunterDB = MobHunterDB or {}
     if MobHunterDB.showButton == nil then MobHunterDB.showButton = true end
     createButton()
+    if ns.Options then ns.Options.Register() end
     frame:UnregisterEvent("ADDON_LOADED")
 end
 
@@ -282,6 +291,25 @@ end
 _G["BINDING_HEADER_MOBHUNTER"] = "MobHunter"
 _G["BINDING_NAME_CLICK MobHunterTargetButton:LeftButton"] = "Target the hunted mob"
 
+local function showDebug()
+    local report = ns.Probe.Diagnose(Minimap, PROBE_STEP)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.lastDebug = report -- also lands in the SavedVariables file on /reload or logout
+    showReport("MobHunter debug", table.concat(report, "\n"))
+    say("debug info is in the window (already selected: press Ctrl+C to copy). It is also saved to MobHunter.lua in your WTF\\Account\\<account>\\SavedVariables folder after /reload.")
+end
+
+local function createMacro()
+    if InCombatLockdown() then
+        say("can't create a macro during combat.")
+    elseif syncMacro(true) then
+        applyMacro()
+        say("macro |cffffff00MobHunter|r is ready. Open /macro and drag it to an action bar. It follows your hunt and targets the mob it matched.")
+    else
+        say("couldn't create the macro (the macro list may be full).")
+    end
+end
+
 SLASH_MOBHUNT1 = "/mobhunt"
 SLASH_MOBHUNT2 = "/mobhunter"
 SlashCmdList["MOBHUNT"] = function(msg)
@@ -292,27 +320,14 @@ SlashCmdList["MOBHUNT"] = function(msg)
         stop()
         say("stopped.")
     elseif command.action == "button" then
-        MobHunterDB = MobHunterDB or {}
-        if command.on ~= nil then
-            MobHunterDB.showButton = command.on
-            applyMacro()
-        end
+        if command.on ~= nil then setShowButton(command.on) end
         say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
+    elseif command.action == "options" then
+        if ns.Options and ns.Options.Open then ns.Options.Open() end
     elseif command.action == "debug" then
-        local report = ns.Probe.Diagnose(Minimap, PROBE_STEP)
-        MobHunterDB = MobHunterDB or {}
-        MobHunterDB.lastDebug = report -- also lands in the SavedVariables file on /reload or logout
-        showReport("MobHunter debug", table.concat(report, "\n"))
-        say("debug info is in the window (already selected: press Ctrl+C to copy). It is also saved to MobHunter.lua in your WTF\\Account\\<account>\\SavedVariables folder after /reload.")
+        showDebug()
     elseif command.action == "macro" then
-        if InCombatLockdown() then
-            say("can't create a macro during combat.")
-        elseif syncMacro(true) then
-            applyMacro()
-            say("macro |cffffff00MobHunter|r is ready. Open /macro and drag it to an action bar. It follows your hunt and targets the mob it matched.")
-        else
-            say("couldn't create the macro (the macro list may be full).")
-        end
+        createMacro()
     elseif command.action == "target" then
         -- Targeting is protected: it only runs from a click or keypress on a secure button, never
         -- from a slash command. A macro can click the button (shown or not) instead.
@@ -324,4 +339,5 @@ SlashCmdList["MOBHUNT"] = function(msg)
     end
 end
 
-ns.MobHunter = { Start = start, Stop = stop, Scan = scan }
+ns.MobHunter = { Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
+    GetShowButton = showButton, CreateMacro = createMacro, ShowDebug = showDebug }

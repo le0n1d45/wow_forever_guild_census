@@ -9,4 +9,5 @@
 
 Hunt.lua
 Probe.lua
+Options.lua
 MobHunter.lua

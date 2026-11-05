@@ -46,6 +46,7 @@ return function()
             assertEqual(Hunt.ParseCommand("help"), { action = "help" })
             assertEqual(Hunt.ParseCommand("target"), { action = "target" })
             assertEqual(Hunt.ParseCommand("macro"), { action = "macro" })
+            assertEqual(Hunt.ParseCommand("Options"), { action = "options" })
             assertEqual(Hunt.ParseCommand("Button OFF"), { action = "button", on = false })
             assertEqual(Hunt.ParseCommand("button on"), { action = "button", on = true })
             assertEqual(Hunt.ParseCommand("button"), { action = "button" })
@@ -240,7 +241,7 @@ return function()
             UnitIsPlayer = function() return false end
             SlashCmdList = {}
             local mh = {}
-            for _, file in ipairs({ "Hunt.lua", "Probe.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
+            for _, file in ipairs({ "Hunt.lua", "Probe.lua", "Options.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
             return mh
         end
 
@@ -356,6 +357,52 @@ return function()
             SlashCmdList["MOBHUNT"]("debug")
             assert(table.concat(MobHunterDB.lastDebug, "\n"):find("unavailable", 1, true))
             MobHunterDB = nil
+        end)
+
+        test("registers an options page whose checkbox drives the button setting", function()
+            local registered
+            Settings = {
+                RegisterCanvasLayoutCategory = function(panel, name) return { panel = panel, name = name, GetID = function() return 7 end } end,
+                RegisterAddOnCategory = function(c) registered = c end,
+                OpenToCategory = function(id) Settings.opened = id end,
+            }
+            local mh = install()
+            MobHunterDB = { showButton = true }
+            local frame = MobHunterEventFrame
+            frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
+            assertEqual(registered.name, "MobHunter")
+            local box = mh.Options.panel.controls.showButton
+            rawset(box, "GetChecked", function() return false end)
+            box.scripts.OnClick(box)
+            assertEqual(MobHunterDB.showButton, false)
+            assertEqual(mh.MobHunter.GetShowButton(), false)
+            SlashCmdList["MOBHUNT"]("options")
+            assertEqual(Settings.opened, 7)
+            MobHunterDB, Settings = nil, nil
+        end)
+
+        test("the options page can start and stop a hunt without slash commands", function()
+            Settings = { RegisterCanvasLayoutCategory = function(panel, name) return { GetID = function() return 1 end } end,
+                RegisterAddOnCategory = function() end }
+            local mh = install()
+            MobHunterDB = { showButton = true }
+            local frame = MobHunterEventFrame
+            frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
+            local c = mh.Options.panel.controls
+            rawset(c.huntName, "GetText", function() return "  Prairie Stalker " end)
+            c.start.scripts.OnClick(c.start)
+            assert(MobHunterTargetButton.attrs.macrotext == "/target prairie stalker")
+            c.stop.scripts.OnClick(c.stop)
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "")
+            -- the macro button does what /mobhunt macro does
+            local macros = {}
+            GetMacroIndexByName = function(n) return macros[n] and 1 or 0 end
+            CreateMacro = function(n, _, body) macros[n] = body end
+            EditMacro = function(_, _, _, body) macros.MobHunter = body end
+            c.macro.scripts.OnClick(c.macro)
+            assertEqual(macros.MobHunter, "/mobhunt")
+            GetMacroIndexByName, CreateMacro, EditMacro = nil, nil, nil
+            MobHunterDB, Settings = nil, nil
         end)
 
         test("stays quiet when nothing matches", function()
