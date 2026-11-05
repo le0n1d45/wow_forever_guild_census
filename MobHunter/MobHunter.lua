@@ -1,6 +1,6 @@
 local addonName, ns = ...
 
--- /mobhunt <name>: alerts (sound, text, a marker over the mob's nameplate, a ring on the
+-- /mobhunt <name>: alerts (sound, text, a marker over the mob's nameplate, a MobHunter icon on the
 -- minimap) when a mob with that name comes into range. Targeting it is left to the player:
 -- TargetUnit is protected, so the addon only offers a button and a keybind that run
 -- "/target <name>" when pressed.
@@ -13,7 +13,7 @@ local hunted -- normalized name being hunted, or nil
 local tracker = ns.Hunt.NewTracker()
 local ticker
 local markers = {} -- nameplate unit token -> marker frame
-local ring -- minimap ring (a set of lines)
+local icons = {} -- minimap icon frames
 local pendingMacro = false
 local seenToken -- nameplate token of a mob that matched; "/target <token>" is exact, unlike a name
 
@@ -78,32 +78,40 @@ local function hideMarkers()
     for _, marker in pairs(markers) do marker:Hide() end
 end
 
--- A red ring on the minimap, drawn from line segments so it needs no texture files.
-local RING_SEGMENTS, RING_RADIUS = 20, 9
-local function showRing(dx, dy)
-    if not (Minimap and Minimap.CreateLine) then return end
-    if not ring then
-        ring = {}
-        for i = 1, RING_SEGMENTS do
-            local line = Minimap:CreateLine(nil, "OVERLAY")
-            line:SetThickness(2)
-            line:SetColorTexture(1, 0.2, 0.2, 1)
-            ring[i] = line
-        end
+-- MobHunter's icon on the minimap, one per hunted mob found among the tracking dots. The
+-- client draws the dots itself and gives addons no way to hide them, so the icon is a child
+-- frame above the minimap, larger than a dot, covering it.
+local ICON_PATH = "Interface\\AddOns\\MobHunter\\icon"
+local ICON_SIZE, MAX_ICONS = 20, 8
+local function iconFor(i)
+    local icon = icons[i]
+    if not icon then
+        icon = CreateFrame("Frame", nil, Minimap)
+        icon:SetSize(ICON_SIZE, ICON_SIZE)
+        icon:SetFrameStrata("HIGH")
+        icon.texture = icon:CreateTexture(nil, "OVERLAY")
+        icon.texture:SetAllPoints()
+        icon.texture:SetTexture(ICON_PATH)
+        icons[i] = icon
     end
-    local radius = Minimap:GetWidth() / 2
-    local cx, cy = radius + dx, radius + dy
-    for i, line in ipairs(ring) do
-        local a1 = (i - 1) / RING_SEGMENTS * 2 * math.pi
-        local a2 = i / RING_SEGMENTS * 2 * math.pi
-        line:SetStartPoint("BOTTOMLEFT", Minimap, cx + RING_RADIUS * math.cos(a1), cy + RING_RADIUS * math.sin(a1))
-        line:SetEndPoint("BOTTOMLEFT", Minimap, cx + RING_RADIUS * math.cos(a2), cy + RING_RADIUS * math.sin(a2))
-        line:Show()
-    end
+    return icon
 end
 
-local function hideRing()
-    for _, line in ipairs(ring or {}) do line:Hide() end
+-- centres: list of { dx, dy } offsets from the minimap's middle, as Probe.Find returns them.
+local function showIcons(centres)
+    if not (Minimap and CreateFrame) then return end
+    local radius = Minimap:GetWidth() / 2
+    for i = 1, math.min(#centres, MAX_ICONS) do
+        local icon = iconFor(i)
+        icon:ClearAllPoints()
+        icon:SetPoint("CENTER", Minimap, "BOTTOMLEFT", radius + centres[i][1], radius + centres[i][2])
+        icon:Show()
+    end
+    for i = math.min(#centres, MAX_ICONS) + 1, #icons do icons[i]:Hide() end
+end
+
+local function hideIcons()
+    for _, icon in ipairs(icons) do icon:Hide() end
 end
 
 local function alert(name)
@@ -145,16 +153,16 @@ local function scan()
         applyMacro()
     end
 
-    -- 2) mobs among the minimap's tracking dots, when something is being tracked
+    -- 2) mobs among the minimap's tracking dots, when something is being tracked (they get our icon)
     if ns.Probe.Available(Minimap) and ns.Probe.IsTracking() then
         local centres = ns.Probe.Find(Minimap, hunted, PROBE_STEP) or {}
         if #centres > 0 then
             if not tracker.onMinimap then alert(hunted) end
             tracker.onMinimap = true
-            showRing(centres[1][1], centres[1][2])
+            showIcons(centres)
         else
             tracker.onMinimap = nil
-            hideRing()
+            hideIcons()
         end
     end
 end
@@ -164,7 +172,7 @@ local function stop()
     tracker = ns.Hunt.NewTracker()
     if ticker then ticker:Cancel(); ticker = nil end
     hideMarkers()
-    hideRing()
+    hideIcons()
     applyMacro()
 end
 

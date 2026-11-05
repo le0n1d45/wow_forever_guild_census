@@ -268,6 +268,32 @@ return function()
             assertEqual(MobHunterTargetButton.shown, false)
         end)
 
+        test("a hunted mob among the tracking dots gets MobHunter's icon on the minimap, removed when it goes", function()
+            local mh = install()
+            local dotUp = true
+            local cursor
+            rawset(Minimap, "SetUsingSoftCursor", function() end)
+            rawset(Minimap, "UpdateMouseoverAtPoint", function(_, x, y) cursor = { x, y } end)
+            C_TooltipInfo = { GetMinimapMouseover = function()
+                if dotUp and (cursor[1] - 80) ^ 2 + (cursor[2] - 90) ^ 2 <= 16 then
+                    return { lines = { { leftText = "Defias Pillager" } } }
+                end
+            end }
+            local minimapChildren = {}
+            local baseCreate = CreateFrame
+            CreateFrame = function(kind, name, parent, ...)
+                local f = baseCreate(kind, name, parent, ...)
+                if parent == Minimap then minimapChildren[#minimapChildren + 1] = f end
+                return f
+            end
+            SlashCmdList["MOBHUNT"]("pillager")
+            assertEqual(#minimapChildren, 1)
+            assertEqual(minimapChildren[1].shown, true)
+            dotUp = false
+            mh.MobHunter.Scan()
+            assertEqual(minimapChildren[1].shown, false)
+        end)
+
         test("stays quiet when nothing matches", function()
             install({ plates = { { unitToken = "nameplate1" } }, names = { nameplate1 = "Wolf" } })
             SlashCmdList["MOBHUNT"]("pillager")

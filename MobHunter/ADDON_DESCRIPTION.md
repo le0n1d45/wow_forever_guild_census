@@ -10,7 +10,7 @@ How to use it:
    characters).
 2. **Description field:** paste everything under "Description" below, between the two `---` lines.
 3. **Screenshots:** there are none yet. CurseForge can't show images stored in this repo, so take
-   in-game screenshots (the alert, the nameplate marker, the minimap ring) and upload them to the project
+   in-game screenshots (the alert, the nameplate marker, the minimap icon) and upload them to the project
    gallery. The icon is `assets/mobhunter-icon.png` (or `.jpg`) in the repo root.
 
 ## Summary
@@ -27,7 +27,7 @@ Type /mobhunt and a mob's name: get a sound and a marker when it comes into rang
 
 Type **/mobhunt** followed by a mob's name, and MobHunter watches for it while you play. When it appears you
 get a **sound**, a message on screen, and a **red marker above the mob**. If the mob is one of your **minimap
-tracking dots**, it gets a **red ring on the minimap** too.
+tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (the game can't hide its dot, so the icon covers it).
 
 ## How to use it
 

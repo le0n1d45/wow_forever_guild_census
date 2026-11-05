@@ -9,7 +9,7 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt` | Show what you're hunting. |
 
 When a match shows up you get a **sound**, a **chat and on-screen message**, a red **marker above the mob's
-nameplate**, and, if the mob is one of your minimap tracking dots, a **red ring on the minimap**. A **Target
+nameplate**, and, if the mob is one of your minimap tracking dots, **MobHunter's icon drawn over its dot on the minimap**. A **Target
 button** appears on screen only while a matching mob is in targeting range (drag it with the right mouse button) and can be bound to a key under
 **Options > Keybindings > AddOns > MobHunter**. Pressing it runs `/target` on that mob's nameplate.
 
@@ -20,7 +20,8 @@ button** appears on screen only while a matching mob is in targeting range (drag
 2. **Minimap tracking dots**, when you are tracking something (Find Herbs, Track Beasts, ...). The game has
    no call that lists minimap blips, so MobHunter does what the NodeSight addon does: it moves the
    minimap's soft cursor over a grid of points and reads the tooltip the game would show there. A dot
-   whose tooltip names the hunted mob gets the ring.
+   whose tooltip names the hunted mob gets the icon. The dot itself can't be hidden by an addon, so the icon (a child frame of the minimap,
+   larger than a dot) covers it.
 
 ## Why it doesn't target the mob by itself
 
