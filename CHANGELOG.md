@@ -8,7 +8,7 @@ user-visible change, and move it under a version heading when that version is re
 ## [Unreleased]
 
 ### Changed
-- MobHunter: an options page (Options > AddOns > MobHunter, or `/mobhunt options`) with the Target button checkbox, a box and Start/Stop buttons to hunt without typing a command, a button that creates the MobHunter macro, and a button for the minimap debug window.
+- MobHunter: a Hunt window (box, Start/Stop, status and the Target button; hidden by default, drag to move) and an options page (Options > AddOns > MobHunter, or `/mobhunt options`) with checkboxes for showing the Hunt window and for the Target button inside it, a button that creates the MobHunter macro, and a button for the minimap debug window. `/mobhunt window` toggles the window. The Target button now lives in the Hunt window instead of floating on its own.
 - MobHunter: `/mobhunt button on|off` shows or hides the Target button (saved between sessions). `/mobhunt macro` creates a "MobHunter" character macro for your action bar that follows the hunt (`/target <matched name>`); `/mobhunt target` explains why a slash command itself cannot target.
 - MobHunter: the minimap probe now reads tooltip text from `args` when `leftText` is missing, and `/mobhunt debug` also dumps the shape of the tooltips it gets back.
 - MobHunter: `/mobhunt debug` opens a window with what the minimap probe sees (which calls exist, how many points returned a tooltip, sample tooltip lines), selected so Ctrl+C copies it, and saves it to `MobHunterDB.lastDebug`.

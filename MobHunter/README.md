@@ -7,15 +7,16 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt <name>` | Start hunting. Part of a name is enough: `/mobhunt pillager` finds "Defias Pillager". |
 | `/mobhunt stop` | Stop hunting. |
 | `/mobhunt` | Show what you're hunting. |
-| `/mobhunt options` | Opens the options page (also under Options > AddOns > MobHunter): Target button checkbox, hunt box with Start/Stop, create-macro and debug buttons. Everything the commands do is also there. |
-| `/mobhunt button on\|off` | Show or hide the Target button (saved in `MobHunterDB`; default on). |
+| `/mobhunt options` | Opens the options page (also under Options > AddOns > MobHunter): checkboxes for the Hunt window and for the Target button in it, plus create-macro and debug buttons. |
+| `/mobhunt window` | Show or hide the Hunt window (a box, Start/Stop, status and the Target button; saved in `MobHunterDB`, hidden by default). |
+| `/mobhunt button on\|off` | Show or hide the Target button in the Hunt window (saved in `MobHunterDB`; default on). |
 | `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |
 | `/mobhunt debug` | Opens a copyable window with what the minimap probe can and can't do on this client (also saved as `lastDebug` in the SavedVariables file after `/reload`). |
 | `/mobhunt target` | Explains that a slash command can't target (protected) and points to `/mobhunt macro`. |
 
 When a match shows up you get a **sound**, a **chat and on-screen message**, a red **marker above the mob's
 nameplate**, and, if the mob is one of your minimap tracking dots, **MobHunter's icon drawn over its dot on the minimap**. A **Target
-button** appears on screen only while a matching mob is in targeting range (drag it with the right mouse button) and can be bound to a key under
+button** appears on screen only while a matching mob is in targeting range (inside the Hunt window; drag the window with the left mouse button) and can be bound to a key under
 **Options > Keybindings > AddOns > MobHunter**. Pressing it runs `/target <the matched mob's full name>` (e.g. `/target Prairie Stalker` after `/mobhunt stalker`).
 
 ## What it looks at

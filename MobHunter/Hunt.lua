@@ -30,6 +30,7 @@ function Hunt.ParseCommand(msg)
     if text == "stop" or text == "off" or text == "clear" then return { action = "stop" } end
     if text == "help" or text == "?" then return { action = "help" } end
     if text == "target" then return { action = "target" } end
+    if text == "window" then return { action = "window" } end
     if text == "options" or text == "config" or text == "settings" then return { action = "options" } end
     if text == "debug" then return { action = "debug" } end
     if text == "macro" then return { action = "macro" } end

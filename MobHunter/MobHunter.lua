@@ -71,16 +71,24 @@ function applyMacro()
     if seenToken and showButton() then button:Show() else button:Hide() end -- only while a match is in range
 end
 
+local huntWindow
 local function createButton()
-    button = CreateFrame("Button", "MobHunterTargetButton", UIParent, "SecureActionButtonTemplate, UIPanelButtonTemplate")
-    button:SetSize(200, 28)
-    button:SetPoint("TOP", UIParent, "TOP", 0, -140)
-    button:RegisterForClicks("AnyUp", "AnyDown") -- the ActionButtonUseKeyDown setting picks which one fires
-    button:SetMovable(true)
-    button:RegisterForDrag("RightButton")
-    button:SetScript("OnDragStart", button.StartMoving)
-    button:SetScript("OnDragStop", button.StopMovingOrSizing)
-    button:Hide()
+    huntWindow = ns.HuntWindow.Create({
+        onStart = function(text) ns.MobHunter.Start(ns.Hunt.Normalize(text)) end,
+        onStop = function() ns.MobHunter.Stop() end,
+    })
+    button = huntWindow.targetButton
+    huntWindow.frame:SetShown(ns.HuntWindow.ShouldShow())
+end
+
+local function setShowWindow(on)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.showHuntWindow = on and true or false
+    if huntWindow then huntWindow.frame:SetShown(on and true or false) end
+end
+
+local function getShowWindow()
+    return MobHunterDB ~= nil and MobHunterDB.showHuntWindow == true
 end
 
 local function markerFor(token)
@@ -233,6 +241,7 @@ end
 
 local function stop()
     hunted, seenToken, seenName = nil, nil, nil
+    if huntWindow then huntWindow.SetHunting(nil) end
     tracker = ns.Hunt.NewTracker()
     if ticker then ticker:Cancel(); ticker = nil end
     hideMarkers()
@@ -244,6 +253,7 @@ local function start(name)
     stop()
     hunted = name
     if not button then createButton() end
+    huntWindow.SetHunting(name)
     applyMacro()
     if C_Timer and C_Timer.NewTicker then ticker = C_Timer.NewTicker(SCAN_SECONDS, scan) end
     say("hunting |cffffff00" .. name .. "|r. Type /mobhunt stop to cancel.")
@@ -322,6 +332,9 @@ SlashCmdList["MOBHUNT"] = function(msg)
     elseif command.action == "button" then
         if command.on ~= nil then setShowButton(command.on) end
         say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
+    elseif command.action == "window" then
+        setShowWindow(not getShowWindow())
+        say("the Hunt window is " .. (getShowWindow() and "shown" or "hidden") .. ".")
     elseif command.action == "options" then
         if ns.Options and ns.Options.Open then ns.Options.Open() end
     elseif command.action == "debug" then
@@ -335,9 +348,9 @@ SlashCmdList["MOBHUNT"] = function(msg)
     elseif command.action == "status" then
         say(hunted and ("hunting |cffffff00" .. hunted .. "|r.") or "not hunting anything. Type /mobhunt <mob name>.")
     else
-        say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt button on|off, /mobhunt macro.")
+        say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt window to show or hide the Hunt window, /mobhunt options.")
     end
 end
 
 ns.MobHunter = { Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
-    GetShowButton = showButton, CreateMacro = createMacro, ShowDebug = showDebug }
+    GetShowButton = showButton, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }

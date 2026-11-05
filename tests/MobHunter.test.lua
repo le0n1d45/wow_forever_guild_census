@@ -47,6 +47,7 @@ return function()
             assertEqual(Hunt.ParseCommand("target"), { action = "target" })
             assertEqual(Hunt.ParseCommand("macro"), { action = "macro" })
             assertEqual(Hunt.ParseCommand("Options"), { action = "options" })
+            assertEqual(Hunt.ParseCommand("window"), { action = "window" })
             assertEqual(Hunt.ParseCommand("Button OFF"), { action = "button", on = false })
             assertEqual(Hunt.ParseCommand("button on"), { action = "button", on = true })
             assertEqual(Hunt.ParseCommand("button"), { action = "button" })
@@ -206,6 +207,7 @@ return function()
                 if k == "SetAttribute" then return function(self, a, v) self.attrs[a] = v end end
                 if k == "Show" then return function(self) self.shown = true end end
                 if k == "Hide" then return function(self) self.shown = false end end
+                if k == "SetShown" then return function(self, on) self.shown = on and true or false end end
                 if k == "GetWidth" then return function() return 140 end end
                 return function() return t end -- any other method: no-op returning itself
             end })
@@ -241,7 +243,7 @@ return function()
             UnitIsPlayer = function() return false end
             SlashCmdList = {}
             local mh = {}
-            for _, file in ipairs({ "Hunt.lua", "Probe.lua", "Options.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
+            for _, file in ipairs({ "Hunt.lua", "Probe.lua", "HuntWindow.lua", "Options.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
             return mh
         end
 
@@ -381,27 +383,49 @@ return function()
             MobHunterDB, Settings = nil, nil
         end)
 
-        test("the options page can start and stop a hunt without slash commands", function()
-            Settings = { RegisterCanvasLayoutCategory = function(panel, name) return { GetID = function() return 1 end } end,
+        test("the Hunt window starts and stops a hunt, and the options toggle it and the Target button", function()
+            Settings = { RegisterCanvasLayoutCategory = function() return { GetID = function() return 1 end } end,
                 RegisterAddOnCategory = function() end }
-            local mh = install()
+            local mh = install({ plates = { { unitToken = "nameplate2" } }, names = { nameplate2 = "Prairie Stalker" } })
             MobHunterDB = { showButton = true }
             local frame = MobHunterEventFrame
             frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
             local c = mh.Options.panel.controls
-            rawset(c.huntName, "GetText", function() return "  Prairie Stalker " end)
-            c.start.scripts.OnClick(c.start)
-            assert(MobHunterTargetButton.attrs.macrotext == "/target prairie stalker")
-            c.stop.scripts.OnClick(c.stop)
-            assertEqual(MobHunterTargetButton.attrs.macrotext, "")
-            -- the macro button does what /mobhunt macro does
+
+            -- hidden by default; the options checkbox shows it
+            assertEqual(MobHunterHuntFrame.shown, false)
+            rawset(c.showWindow, "GetChecked", function() return true end)
+            c.showWindow.scripts.OnClick(c.showWindow)
+            assertEqual(MobHunterHuntFrame.shown, true)
+            assertEqual(MobHunterDB.showHuntWindow, true)
+
+            -- the window's box + Start hunts; the Target button lives in the window
+            local edit
+            for _, f in ipairs(frames) do if f.scripts and f.scripts.OnEnterPressed then edit = f end end
+            rawset(edit, "GetText", function() return "  Prairie Stalker " end)
+            edit.scripts.OnEnterPressed(edit)
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target Prairie Stalker")
+            assertEqual(MobHunterTargetButton.shown, true)
+
+            -- unticking "Target button in the Hunt window" hides it but the macro stays armed
+            rawset(c.showButton, "GetChecked", function() return false end)
+            c.showButton.scripts.OnClick(c.showButton)
+            assertEqual(MobHunterTargetButton.shown, false)
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target Prairie Stalker")
+
+            -- the macro button creates the MobHunter macro, like /mobhunt macro
             local macros = {}
             GetMacroIndexByName = function(n) return macros[n] and 1 or 0 end
             CreateMacro = function(n, _, body) macros[n] = body end
             EditMacro = function(_, _, _, body) macros.MobHunter = body end
             c.macro.scripts.OnClick(c.macro)
-            assertEqual(macros.MobHunter, "/mobhunt")
+            assert(macros.MobHunter)
             GetMacroIndexByName, CreateMacro, EditMacro = nil, nil, nil
+
+            SlashCmdList["MOBHUNT"]("stop")
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "")
+            SlashCmdList["MOBHUNT"]("window")
+            assertEqual(MobHunterHuntFrame.shown, false)
             MobHunterDB, Settings = nil, nil
         end)
 

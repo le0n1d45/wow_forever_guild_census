@@ -16,19 +16,27 @@ local function build()
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("MobHunter")
 
-    local box = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    box:SetPoint("TOPLEFT", 12, -44)
-    box:SetScript("OnClick", function(self)
-        ns.MobHunter.SetShowButton(self:GetChecked() and true or false)
-    end)
-    panel.controls.showButton = box
-    local label = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    label:SetPoint("TOPLEFT", 44, -50)
-    label:SetText("Show the Target button when a hunted mob is in range")
-
-    local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    hint:SetPoint("TOPLEFT", 44, -76)
-    hint:SetText("Turned off, the key binding and the action bar macro still work.")
+    local function addCheckbox(key, text, y, hintText, onChange)
+        local box = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+        box:SetPoint("TOPLEFT", 12, y)
+        box:SetScript("OnClick", function(self) onChange(self:GetChecked() and true or false) end)
+        panel.controls[key] = box
+        local label = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        label:SetPoint("TOPLEFT", 44, y - 6)
+        label:SetText(text)
+        if hintText then
+            local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+            hint:SetPoint("TOPLEFT", 44, y - 28)
+            hint:SetText(hintText)
+        end
+        return box
+    end
+    local windowBox = addCheckbox("showWindow", "Show the Hunt window", -44,
+        "A small window to type a mob's name, Start/Stop, and the Target button.",
+        function(on) ns.MobHunter.SetShowWindow(on) end)
+    local buttonBox = addCheckbox("showButton", "Show the Target button in the Hunt window", -88,
+        "Turned off, the key binding and the action bar macro still work.",
+        function(on) ns.MobHunter.SetShowButton(on) end)
 
     local function addButton(key, text, x, y, width, onClick)
         local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -40,33 +48,18 @@ local function build()
         return button
     end
 
-    -- Hunting without a slash command: type a name, press Start.
-    local huntLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    huntLabel:SetPoint("TOPLEFT", 16, -120)
-    huntLabel:SetText("Hunt a mob (part of the name is enough)")
-    local name = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
-    name:SetSize(220, 22)
-    name:SetPoint("TOPLEFT", 22, -144)
-    name:SetAutoFocus(false)
-    name:SetMaxLetters(80)
-    local function startHunt()
-        local text = name:GetText()
-        if text and text ~= "" then ns.MobHunter.Start(ns.Hunt.Normalize(text)) end
-        name:ClearFocus()
-    end
-    name:SetScript("OnEnterPressed", startHunt)
-    name:SetScript("OnEscapePressed", name.ClearFocus)
-    panel.controls.huntName = name
-    addButton("start", "Start", 252, -143, 70, startHunt)
-    addButton("stop", "Stop", 328, -143, 70, function() ns.MobHunter.Stop() end)
-
-    addButton("macro", "Create the MobHunter macro", 16, -190, 220, function() ns.MobHunter.CreateMacro() end)
-    addButton("debug", "Minimap debug info", 244, -190, 160, function() ns.MobHunter.ShowDebug() end)
+    addButton("macro", "Create the MobHunter macro", 16, -140, 220, function() ns.MobHunter.CreateMacro() end)
+    addButton("debug", "Minimap debug info", 244, -140, 160, function() ns.MobHunter.ShowDebug() end)
 
     local function populate()
-        box:SetChecked(ns.MobHunter.GetShowButton())
+        windowBox:SetChecked(ns.MobHunter.GetShowWindow())
+        buttonBox:SetChecked(ns.MobHunter.GetShowButton())
     end
-    panel.OnDefault = function() ns.MobHunter.SetShowButton(true); populate() end
+    panel.OnDefault = function()
+        ns.MobHunter.SetShowWindow(false)
+        ns.MobHunter.SetShowButton(true)
+        populate()
+    end
     panel:SetScript("OnShow", populate)
     populate()
     return panel
