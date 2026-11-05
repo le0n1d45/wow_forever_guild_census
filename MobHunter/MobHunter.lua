@@ -6,7 +6,7 @@ local addonName, ns = ...
 -- "/target <name>" when pressed.
 
 local SCAN_SECONDS = 1
-local PROBE_STEP = 6 -- minimap units between probe points
+local PROBE_STEP = 8 -- minimap units between probe points (NodeSight uses 8)
 local ALERT_SOUND = 8959 -- raid warning; used only if SOUNDKIT doesn't name it
 
 local hunted -- normalized name being hunted, or nil
@@ -226,7 +226,7 @@ local function scan()
     end
 
     -- 2) mobs among the minimap's tracking dots, when something is being tracked (they get our icon)
-    if ns.Probe.Available(Minimap) and ns.Probe.IsTracking() then
+    if not InCombatLockdown() and ns.Probe.Available(Minimap) and ns.Probe.IsTracking() then
         local centres = ns.Probe.Find(Minimap, hunted, PROBE_STEP) or {}
         if #centres > 0 then
             if not tracker.onMinimap then alert(hunted) end

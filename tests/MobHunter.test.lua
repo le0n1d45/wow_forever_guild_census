@@ -126,8 +126,10 @@ return function()
 
         -- A fake minimap whose soft cursor "hovers" a tracking dot named `dotName` at (dotX, dotY).
         local function fakeMinimap(dotName, dotX, dotY, radius)
-            Probe.Reset()
             local m = { cursor = nil, soft = false, softCalls = {} }
+            function m:GetLeft() return 0 end
+            function m:GetBottom() return 0 end
+            function m:GetEffectiveScale() return 1 end
             function m:GetWidth() return radius * 2 end
             function m:SetUsingSoftCursor(on) self.soft = on; self.softCalls[#self.softCalls + 1] = on end
             function m:UpdateMouseoverAtPoint(x, y) self.cursor = { x, y } end
@@ -176,33 +178,19 @@ return function()
             assertEqual(Probe.LineText(nil), nil)
         end)
 
-        it("Find moves on to the next coordinate mode until one returns tooltip content", function()
-            Probe.Reset()
-            -- This client wants centre-relative coordinates: the dot is at (10, 20) from the middle.
-            local m = { cursor = nil }
+        it("Find passes screen coordinates: (left + x) * scale, (bottom + y) * scale, as NodeSight does", function()
+            local calls = {}
+            local m = {}
             function m:GetWidth() return 140 end
+            function m:GetLeft() return 100 end
+            function m:GetBottom() return 50 end
+            function m:GetEffectiveScale() return 2 end
             function m:SetUsingSoftCursor() end
-            function m:UpdateMouseoverAtPoint(x, y) self.cursor = { x, y } end
-            C_TooltipInfo = { GetMinimapMouseover = function()
-                local x, y = m.cursor[1], m.cursor[2]
-                if (x - 10) ^ 2 + (y - 20) ^ 2 <= 16 then
-                    return { lines = { { leftText = "Prairie Stalker" } } }
-                end
-                return { lines = {} }
-            end }
-            assertEqual(#Probe.Find(m, "stalker", 6), 0)      -- minimap-local: nothing, moves on
-            assertEqual(Probe.modes[Probe.mode].name, "centre-relative")
-            local centres = Probe.Find(m, "stalker", 6)
-            assertEqual(#centres, 1)
-            assertEqual(Probe.locked, true)
-            Probe.Reset()
-        end)
-
-        it("LineText for an empty tooltip is nothing, and Reset restores the first mode", function()
-            Probe.mode, Probe.locked = 3, true
-            Probe.Reset()
-            assertEqual(Probe.mode, 1)
-            assertEqual(Probe.locked, false)
+            function m:UpdateMouseoverAtPoint(x, y) calls[#calls + 1] = { x, y } end
+            C_TooltipInfo = { GetMinimapMouseover = function() return { lines = {} } end }
+            Probe.Find(m, "x", 70)
+            -- first grid point is (-70, 0) from the centre: minimap-local (0, 70)
+            assertEqual(calls[1], { (100 + 0) * 2, (50 + 70) * 2 })
         end)
 
         it("IsTracking assumes yes when the client can't say, and reads active flags otherwise", function()
@@ -319,6 +307,9 @@ return function()
             local mh = install()
             local dotUp = true
             local cursor
+            rawset(Minimap, "GetLeft", function() return 0 end)
+            rawset(Minimap, "GetBottom", function() return 0 end)
+            rawset(Minimap, "GetEffectiveScale", function() return 1 end)
             rawset(Minimap, "SetUsingSoftCursor", function() end)
             rawset(Minimap, "UpdateMouseoverAtPoint", function(_, x, y) cursor = { x, y } end)
             C_TooltipInfo = { GetMinimapMouseover = function()
@@ -377,6 +368,9 @@ return function()
 
         test("/mobhunt debug reports what the minimap probe sees", function()
             install()
+            rawset(Minimap, "GetLeft", function() return 0 end)
+            rawset(Minimap, "GetBottom", function() return 0 end)
+            rawset(Minimap, "GetEffectiveScale", function() return 1 end)
             rawset(Minimap, "SetUsingSoftCursor", function() end)
             rawset(Minimap, "UpdateMouseoverAtPoint", function() end)
             C_TooltipInfo = { GetMinimapMouseover = function() return { lines = { { leftText = "Herb" } } } end }

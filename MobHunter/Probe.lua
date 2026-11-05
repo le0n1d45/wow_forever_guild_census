@@ -89,52 +89,31 @@ function Probe.LineText(line)
     return nil
 end
 
--- UpdateMouseoverAtPoint's coordinate space is undocumented, so Find tries these until one
--- produces tooltips with content (an empty area gives a tooltip with no lines). Each maps an
--- offset from the minimap's centre to the call's arguments; nil means "can't compute here".
-local function frameOrigin(minimap)
+-- Where the minimap sits on screen and at what scale. UpdateMouseoverAtPoint takes screen
+-- coordinates: the point's offset from the minimap's bottom-left, plus the minimap's own
+-- bottom-left, times its effective scale (NodeSight, github.com/Krelock/NodeSight, calls it
+-- as `((left + x) * scale, (bottom + y) * scale)`). Nil when the minimap has no position yet.
+local function origin(minimap)
     if type(minimap.GetLeft) ~= "function" or type(minimap.GetBottom) ~= "function" then return nil end
     local left, bottom = minimap:GetLeft(), minimap:GetBottom()
     if type(left) ~= "number" or type(bottom) ~= "number" then return nil end
-    return left, bottom
-end
-Probe.modes = {
-    { name = "minimap-local", point = function(m, r, dx, dy) return r + dx, r + dy end },
-    { name = "centre-relative", point = function(_, _, dx, dy) return dx, dy end },
-    { name = "screen-scaled", point = function(m, r, dx, dy)
-        local left, bottom = frameOrigin(m)
-        if not left then return nil end
-        local scale = type(m.GetEffectiveScale) == "function" and m:GetEffectiveScale() or 1
-        return (left + r + dx) * scale, (bottom + r + dy) * scale
-    end },
-    { name = "screen", point = function(m, r, dx, dy)
-        local left, bottom = frameOrigin(m)
-        if not left then return nil end
-        return left + r + dx, bottom + r + dy
-    end },
-    { name = "normalised", point = function(m, r, dx, dy) return (r + dx) / (r * 2), (r + dy) / (r * 2) end },
-}
-Probe.mode = 1       -- index into Probe.modes in use
-Probe.locked = false -- true once that mode has returned a tooltip with content
-
-function Probe.Reset()
-    Probe.mode, Probe.locked = 1, false
+    local scale = type(minimap.GetEffectiveScale) == "function" and minimap:GetEffectiveScale() or 1
+    return left, bottom, type(scale) == "number" and scale or 1
 end
 
 local function hasLines(data)
     return type(data) == "table" and type(data.lines) == "table" and #data.lines > 0
 end
 
--- Probes every grid point in one coordinate mode. Returns hits (points whose tooltip names
--- `hunted`, if given), the number of points with content, and up to `maxSamples` first lines.
-local function scanMode(minimap, mode, hunted, step, maxSamples)
+-- Probes every grid point. Returns the points whose tooltip names `hunted` (if given), how
+-- many points had tooltip content, and up to `maxSamples` distinct first lines.
+local function scan(minimap, hunted, step, maxSamples)
+    local left, bottom, scale = origin(minimap)
+    if not left then return nil end
     local radius = minimap:GetWidth() / 2
-    local hits, filled, samples = {}, 0, {}
-    local seen = {}
+    local hits, filled, samples, seen = {}, 0, {}, {}
     for _, p in ipairs(Probe.Grid(radius, step)) do
-        local x, y = Probe.modes[mode].point(minimap, radius, p[1], p[2])
-        if not x then break end
-        minimap:UpdateMouseoverAtPoint(x, y)
+        minimap:UpdateMouseoverAtPoint((left + radius + p[1]) * scale, (bottom + radius + p[2]) * scale)
         local data = C_TooltipInfo.GetMinimapMouseover()
         if hasLines(data) then
             filled = filled + 1
@@ -157,29 +136,22 @@ end
 
 -- Scans the minimap for tooltips naming the hunted mob. Returns centres as offsets from the
 -- minimap's centre in minimap units ({ { dx, dy }, ... }), or nil when the probe isn't
--- available. `step` is the grid spacing. Until a coordinate mode has produced content, each
--- scan that finds nothing at all moves on to the next mode.
+-- available. `step` is the grid spacing. The soft cursor is on only while probing.
 function Probe.Find(minimap, hunted, step)
     if not Probe.Available(minimap) then return nil end
-    local hits, filled = {}, 0
+    local hits = {}
     pcall(function()
         if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(true) end
-        hits, filled = scanMode(minimap, Probe.mode, hunted, step)
+        hits = scan(minimap, hunted, step) or {}
     end)
     pcall(function()
         if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(false) end
     end)
-    if filled > 0 then
-        Probe.locked = true
-    elseif not Probe.locked then
-        Probe.mode = Probe.mode % #Probe.modes + 1
-    end
     return Probe.Clusters(hits, step * 1.5)
 end
 
--- For /mobhunt debug: runs the scan in every coordinate mode and records what the client
--- returned, so a probe that finds nothing can be told apart from one that can't run. Locks
--- the mode with the most content. Returns a list of report lines.
+-- For /mobhunt debug: runs one scan and records what the client returned, so a probe that
+-- finds nothing can be told apart from one that can't run. Returns a list of report lines.
 function Probe.Diagnose(minimap, step)
     local report = {}
     local function add(text) report[#report + 1] = text end
@@ -193,28 +165,24 @@ function Probe.Diagnose(minimap, step)
         add("Probe unavailable, so no minimap icons can be placed.")
         return report
     end
-    add("Minimap width " .. tostring(minimap:GetWidth()) .. ". Current mode: " .. Probe.modes[Probe.mode].name
-        .. (Probe.locked and " (locked)" or ""))
-    local best, bestFilled = nil, 0
-    for index, mode in ipairs(Probe.modes) do
-        local ok, hits, filled, samples = pcall(function()
-            minimap:SetUsingSoftCursor(true)
-            return scanMode(minimap, index, nil, step, 4)
-        end)
-        pcall(function() minimap:SetUsingSoftCursor(false) end)
-        if ok then
-            add(mode.name .. ": " .. filled .. " points with tooltip content")
-            for _, sample in ipairs(samples) do add("    line 1: " .. sample) end
-            if filled > bestFilled then best, bestFilled = index, filled end
-        else
-            add(mode.name .. ": ERROR " .. tostring(hits))
-        end
-    end
-    if best then
-        Probe.mode, Probe.locked = best, true
-        add("Using mode: " .. Probe.modes[best].name)
+    local left, bottom, scale = origin(minimap)
+    add("Minimap width " .. tostring(minimap:GetWidth()) .. ", left " .. tostring(left) .. ", bottom "
+        .. tostring(bottom) .. ", scale " .. tostring(scale))
+    local ok, hits, filled, samples = pcall(function()
+        minimap:SetUsingSoftCursor(true)
+        return scan(minimap, nil, step, 6)
+    end)
+    pcall(function() minimap:SetUsingSoftCursor(false) end)
+    if not ok then
+        add("ERROR: " .. tostring(hits))
+    elseif not hits then
+        add("The minimap has no screen position yet.")
     else
-        add("No mode returned any tooltip content. Is something tracked, with a dot on the minimap right now?")
+        add(filled .. " points returned tooltip content")
+        for _, sample in ipairs(samples) do add("  line 1: " .. sample) end
+        if filled == 0 then
+            add("Nothing under any point. Is something tracked, with a dot on the minimap right now?")
+        end
     end
     return report
 end
