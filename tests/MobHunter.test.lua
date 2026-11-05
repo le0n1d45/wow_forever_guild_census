@@ -126,6 +126,7 @@ return function()
 
         -- A fake minimap whose soft cursor "hovers" a tracking dot named `dotName` at (dotX, dotY).
         local function fakeMinimap(dotName, dotX, dotY, radius)
+            Probe.Reset()
             local m = { cursor = nil, soft = false, softCalls = {} }
             function m:GetWidth() return radius * 2 end
             function m:SetUsingSoftCursor(on) self.soft = on; self.softCalls[#self.softCalls + 1] = on end
@@ -173,6 +174,35 @@ return function()
             assertEqual(Probe.LineText({ args = {} }), "Surfaced")
             TooltipUtil = nil
             assertEqual(Probe.LineText(nil), nil)
+        end)
+
+        it("Find moves on to the next coordinate mode until one returns tooltip content", function()
+            Probe.Reset()
+            -- This client wants centre-relative coordinates: the dot is at (10, 20) from the middle.
+            local m = { cursor = nil }
+            function m:GetWidth() return 140 end
+            function m:SetUsingSoftCursor() end
+            function m:UpdateMouseoverAtPoint(x, y) self.cursor = { x, y } end
+            C_TooltipInfo = { GetMinimapMouseover = function()
+                local x, y = m.cursor[1], m.cursor[2]
+                if (x - 10) ^ 2 + (y - 20) ^ 2 <= 16 then
+                    return { lines = { { leftText = "Prairie Stalker" } } }
+                end
+                return { lines = {} }
+            end }
+            assertEqual(#Probe.Find(m, "stalker", 6), 0)      -- minimap-local: nothing, moves on
+            assertEqual(Probe.modes[Probe.mode].name, "centre-relative")
+            local centres = Probe.Find(m, "stalker", 6)
+            assertEqual(#centres, 1)
+            assertEqual(Probe.locked, true)
+            Probe.Reset()
+        end)
+
+        it("LineText for an empty tooltip is nothing, and Reset restores the first mode", function()
+            Probe.mode, Probe.locked = 3, true
+            Probe.Reset()
+            assertEqual(Probe.mode, 1)
+            assertEqual(Probe.locked, false)
         end)
 
         it("IsTracking assumes yes when the client can't say, and reads active flags otherwise", function()

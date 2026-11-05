@@ -63,7 +63,7 @@ EULA before publishing.
 
 - `Minimap:UpdateMouseoverAtPoint` and `C_TooltipInfo.GetMinimapMouseover`: the second is on the Warcraft
   Wiki for Forever 1.60.1; the first came from NodeSight's source and has no wiki page I could read. The
-  coordinate space (assumed: units from the minimap's bottom-left) is a guess.
+  coordinate space is a guess, so the probe tries five styles and keeps the first that returns tooltip content (`/mobhunt debug` shows which).
 - That tracked creatures list their name on a tooltip line, and that probing works in combat.
 - That nameplate unit names are readable (they may be "secret values" in some situations; MobHunter treats
   an unreadable name as "no match").
