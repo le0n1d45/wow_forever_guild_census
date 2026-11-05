@@ -15,7 +15,7 @@ local ticker
 local markers = {} -- nameplate unit token -> marker frame
 local icons = {} -- minimap icon frames
 local pendingMacro = false
-local seenToken -- nameplate token of a mob that matched; "/target <token>" is exact, unlike a name
+local seenToken, seenName -- nameplate token and full name of a mob that matched; "/target" needs the full name
 
 local frame = CreateFrame("Frame", addonName .. "EventFrame")
 local handlers = {}
@@ -35,8 +35,9 @@ local function applyMacro()
     end
     pendingMacro = false
     button:SetAttribute("type", "macro")
-    button:SetAttribute("macrotext", hunted and ("/target " .. (seenToken or hunted)) or "")
-    button:SetText(hunted and ("Target " .. hunted) or "MobHunter")
+    local name = seenName or hunted
+    button:SetAttribute("macrotext", name and ("/target " .. name) or "")
+    button:SetText(name and ("Target " .. name) or "MobHunter")
     if seenToken then button:Show() else button:Hide() end -- only while a match is in range
 end
 
@@ -149,7 +150,7 @@ local function scan()
     for _, unit in ipairs(ns.Hunt.Scan(tracker, hunted, readUnits())) do
         alert(unit.name)
         showMarker(unit)
-        seenToken = unit.token
+        seenToken, seenName = unit.token, unit.name
         applyMacro()
     end
 
@@ -168,7 +169,7 @@ local function scan()
 end
 
 local function stop()
-    hunted, seenToken = nil, nil
+    hunted, seenToken, seenName = nil, nil, nil
     tracker = ns.Hunt.NewTracker()
     if ticker then ticker:Cancel(); ticker = nil end
     hideMarkers()
@@ -203,7 +204,7 @@ end
 function handlers.NAME_PLATE_UNIT_REMOVED(token)
     if markers[token] then markers[token]:Hide() end
     if token == seenToken then
-        seenToken = nil
+        seenToken, seenName = nil, nil
         applyMacro()
     end
 end

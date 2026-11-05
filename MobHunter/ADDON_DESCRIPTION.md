@@ -53,7 +53,7 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 
 - The **Target** button appears only while a matching mob is in targeting range (a minimap-only sighting doesn't show it), and hides again when the mob leaves. Drag it with the **right mouse button** to move it.
 - To use a key instead, open **Options > Keybindings > AddOns > MobHunter** and bind **Target the hunted mob**.
-- The button targets the mob that triggered the alert. If several match, it is the most recent one.
+- The button reads "Target <full mob name>" and targets that name (e.g. hunting "stalker" gives "Target Prairie Stalker"). If several matching mobs are near, it picks the nearest with that name.
 - The button can't appear or disappear during combat; it updates when combat ends. Your keybind works either way.
 
 ## Why it doesn't target for you
