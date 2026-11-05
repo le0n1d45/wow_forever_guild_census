@@ -12,6 +12,6 @@ addon="${3:-GuildCensus}"
 mkdir -p "$dest"
 cp -r "$addon" "$dest/"
 cp LICENSE "$dest/$addon/"
-rm -f "$dest/$addon/scratchpad.md" "$dest/$addon/ADDON_DESCRIPTION.md" # working notes and listing text, not part of the addon
+rm -f "$dest/$addon/scratchpad.md" # working notes, not part of the addon
 sed -i "s/^## Interface:.*/## Interface: $interface/" "$dest/$addon/$addon.toc"
 grep -x "## Interface: $interface" "$dest/$addon/$addon.toc"
