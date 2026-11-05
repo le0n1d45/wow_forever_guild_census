@@ -44,6 +44,10 @@ return function()
             assertEqual(Hunt.ParseCommand(""), { action = "status" })
             assertEqual(Hunt.ParseCommand(nil), { action = "status" })
             assertEqual(Hunt.ParseCommand("help"), { action = "help" })
+            assertEqual(Hunt.ParseCommand("target"), { action = "target" })
+            assertEqual(Hunt.ParseCommand("Button OFF"), { action = "button", on = false })
+            assertEqual(Hunt.ParseCommand("button on"), { action = "button", on = true })
+            assertEqual(Hunt.ParseCommand("button"), { action = "button" })
         end)
     end)
 
@@ -292,6 +296,25 @@ return function()
             dotUp = false
             mh.MobHunter.Scan()
             assertEqual(minimapChildren[1].shown, false)
+        end)
+
+        test("/mobhunt button off keeps the button hidden even with a mob in range; on brings it back", function()
+            install({ plates = { { unitToken = "nameplate2" } }, names = { nameplate2 = "Defias Pillager" } })
+            MobHunterDB = { showButton = true }
+            SlashCmdList["MOBHUNT"]("button off")
+            assertEqual(MobHunterDB.showButton, false)
+            SlashCmdList["MOBHUNT"]("pillager")
+            assertEqual(MobHunterTargetButton.shown, false)
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target Defias Pillager") -- /click still works
+            SlashCmdList["MOBHUNT"]("button on")
+            assertEqual(MobHunterTargetButton.shown, true)
+            MobHunterDB = nil
+        end)
+
+        test("/mobhunt target explains the /click macro instead of trying to target", function()
+            install()
+            SlashCmdList["MOBHUNT"]("target")
+            assert(printed[1]:find("/click MobHunterTargetButton", 1, true))
         end)
 
         test("stays quiet when nothing matches", function()

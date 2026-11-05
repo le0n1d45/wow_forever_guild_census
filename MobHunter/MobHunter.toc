@@ -4,6 +4,7 @@
 ## Author: Le0n1d45
 ## Version: 0.1.0
 ## X-License: MIT
+## SavedVariables: MobHunterDB
 ## IconTexture: Interface\AddOns\MobHunter\icon
 
 Hunt.lua

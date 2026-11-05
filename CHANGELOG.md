@@ -8,6 +8,7 @@ user-visible change, and move it under a version heading when that version is re
 ## [Unreleased]
 
 ### Changed
+- MobHunter: `/mobhunt button on|off` shows or hides the Target button (saved between sessions). `/mobhunt target` explains the `/click MobHunterTargetButton` macro, since a slash command itself cannot target.
 - MobHunter: hunted mobs found among your minimap tracking dots now get MobHunter's icon drawn over the dot (up to 8), replacing the red ring.
 - MobHunter: the Target button only shows while a matching mob is in targeting range, and hides when it leaves.
 - MobHunter: the Target button now targets the spotted mob by its full name (e.g. "Target Prairie Stalker" after hunting "stalker") instead of the typed text, so partial matches work, and fires on both mouse-down and mouse-up so it works whichever way the "cast on key press" setting is set.

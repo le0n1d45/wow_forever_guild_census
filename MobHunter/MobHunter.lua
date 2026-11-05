@@ -27,6 +27,10 @@ end
 -- The "Target" button is a secure button: its macro text can only be changed out of combat,
 -- so a change made in combat waits for PLAYER_REGEN_ENABLED. The keybind works either way.
 local button
+local function showButton()
+    return not (MobHunterDB and MobHunterDB.showButton == false)
+end
+
 local function applyMacro()
     if not button then return end
     if InCombatLockdown() then
@@ -38,7 +42,7 @@ local function applyMacro()
     local name = seenName or hunted
     button:SetAttribute("macrotext", name and ("/target " .. name) or "")
     button:SetText(name and ("Target " .. name) or "MobHunter")
-    if seenToken then button:Show() else button:Hide() end -- only while a match is in range
+    if seenToken and showButton() then button:Show() else button:Hide() end -- only while a match is in range
 end
 
 local function createButton()
@@ -193,6 +197,8 @@ end
 
 function handlers.ADDON_LOADED(loadedName)
     if loadedName ~= addonName then return end
+    MobHunterDB = MobHunterDB or {}
+    if MobHunterDB.showButton == nil then MobHunterDB.showButton = true end
     createButton()
     frame:UnregisterEvent("ADDON_LOADED")
 end
@@ -234,10 +240,21 @@ SlashCmdList["MOBHUNT"] = function(msg)
     elseif command.action == "stop" then
         stop()
         say("stopped.")
+    elseif command.action == "button" then
+        MobHunterDB = MobHunterDB or {}
+        if command.on ~= nil then
+            MobHunterDB.showButton = command.on
+            applyMacro()
+        end
+        say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
+    elseif command.action == "target" then
+        -- Targeting is protected: it only runs from a click or keypress on a secure button, never
+        -- from a slash command. A macro can click the button (shown or not) instead.
+        say("addons can't target from a slash command. Put |cffffff00/click MobHunterTargetButton|r in a macro (or bind a key under Keybindings > AddOns > MobHunter).")
     elseif command.action == "status" then
         say(hunted and ("hunting |cffffff00" .. hunted .. "|r.") or "not hunting anything. Type /mobhunt <mob name>.")
     else
-        say("/mobhunt <mob name> to start, /mobhunt stop to cancel.")
+        say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt button on|off, /mobhunt target.")
     end
 end
 

@@ -22,12 +22,18 @@ function Hunt.Matches(hunted, name)
     return ok and found or false
 end
 
--- "/mobhunt <name>" -> { action = "hunt", name }, plus "stop", "status" (empty) and "help".
+-- "/mobhunt <name>" -> { action = "hunt", name }, plus "stop", "status" (empty), "help",
+-- "target" and "button on|off" ({ action = "button", on = true|false }).
 function Hunt.ParseCommand(msg)
     local text = Hunt.Normalize(msg)
     if text == "" then return { action = "status" } end
     if text == "stop" or text == "off" or text == "clear" then return { action = "stop" } end
     if text == "help" or text == "?" then return { action = "help" } end
+    if text == "target" then return { action = "target" } end
+    if text == "button on" or text == "button off" then
+        return { action = "button", on = text == "button on" }
+    end
+    if text == "button" then return { action = "button" } end
     return { action = "hunt", name = text }
 end
 

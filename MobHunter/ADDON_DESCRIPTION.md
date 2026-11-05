@@ -48,12 +48,16 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 - `/mobhunt <name>`: start hunting
 - `/mobhunt stop`: stop hunting
 - `/mobhunt`: show what you're hunting
+- `/mobhunt button on` / `off`: show or hide the Target button (remembered between sessions)
+- `/mobhunt target`: tells you how to target from a macro (see below)
 
 ## Setting up the Target button
 
 - The **Target** button appears only while a matching mob is in targeting range (a minimap-only sighting doesn't show it), and hides again when the mob leaves. Drag it with the **right mouse button** to move it.
 - To use a key instead, open **Options > Keybindings > AddOns > MobHunter** and bind **Target the hunted mob**.
 - The button reads "Target <full mob name>" and targets that name (e.g. hunting "stalker" gives "Target Prairie Stalker"). If several matching mobs are near, it picks the nearest with that name.
+- **Don't want the button?** Type **/mobhunt button off**. The key binding and macro below keep working.
+- **Want it in a macro?** Put **/click MobHunterTargetButton** in a macro. (A **/mobhunt target** command isn't possible: the game only lets a click or key press target, never a slash command. **/mobhunt target** just reminds you of this line.)
 - The button can't appear or disappear during combat; it updates when combat ends. Your keybind works either way.
 
 ## Why it doesn't target for you
