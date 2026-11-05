@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: MobHunter
+## Notes: Work in progress.
+## Author: Le0n1d45
+## Version: 0.1.0
+## X-License: MIT
+
+MobHunter.lua

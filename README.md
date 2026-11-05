@@ -172,6 +172,11 @@ Matching all three roles is not a conflict, since some classes can do all three.
 The log is informational only. Logged members are still counted in every chart, and conflicts are
 reported for every guild member regardless of the alts/mains filters.
 
+## Other addons in this repo
+
+- **MobHunter** (`MobHunter/`): a blank scaffold for now. It loads and answers `/mobhunter`. The build and
+  release workflows still package only Guild Census.
+
 ## Development
 
 - **Tests:** `lua tests/run.lua` (Lua 5.1) runs note-parsing and census tests plus headless UI tests
