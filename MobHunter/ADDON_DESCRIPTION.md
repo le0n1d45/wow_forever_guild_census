@@ -28,7 +28,7 @@ Type /mobhunt and a mob's name: get a sound and a marker when it comes into rang
 
 Type **/mobhunt** followed by a mob's name, and MobHunter watches for it while you play. When it appears you
 get a **sound**, a message on screen, and a **red marker above the mob**. If the mob is one of your **minimap
-tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (the game can't hide its dot, so the icon covers it).
+tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (the game can't hide its dot, so the icon sits on top of it).
 
 ## How to use it
 
