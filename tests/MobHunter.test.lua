@@ -265,6 +265,22 @@ return function()
             assertEqual(#Probe.Find(m, "plainstrider", 6), 3)
         end)
 
+        it("Advance spreads a scan over many calls and ends with the same dots as Find", function()
+            local m = fakeMinimap("Defias Pillager", 70, 80, 70)
+            local whole = Probe.Find(m, "pillager", 8)
+            Probe.fitRadius, Probe.fitScans = nil, nil
+            local job = Probe.StartScan(m, "pillager", 8)
+            local calls, done, centres = 0, false, nil
+            while not done do
+                done, centres = Probe.Advance(job, 40)
+                calls = calls + 1
+                assert(calls < 500)
+            end
+            assert(calls > 5, "calls " .. calls)
+            assertEqual(#centres, #whole)
+            assertEqual(m.soft, false)
+        end)
+
         it("Find passes screen coordinates: (left + x) * scale, (bottom + y) * scale, as NodeSight does", function()
             local calls = {}
             local m = {}
@@ -412,12 +428,32 @@ return function()
                 if parent == Minimap then minimapChildren[#minimapChildren + 1] = f end
                 return f
             end
+            local clock = 0
+            GetTime = function() return clock end
+            -- the scan is spread over frames: run the driver's OnUpdate until it stops itself
+            local function pump()
+                local frames = 0
+                while MobHunterDriverFrame and MobHunterDriverFrame.scripts.OnUpdate do
+                    MobHunterDriverFrame.scripts.OnUpdate()
+                    frames = frames + 1
+                    assert(frames < 2000, "the scan never finished")
+                end
+                return frames
+            end
             SlashCmdList["MOBHUNT"]("pillager")
+            assertEqual(#minimapChildren, 0) -- nothing yet: the scan has only been queued
+            assert(pump() > 3, "the scan should take several frames, not one")
             assertEqual(#minimapChildren, 1)
             assertEqual(minimapChildren[1].shown, true)
             dotUp = false
             mh.MobHunter.Scan()
+            pump()
+            assertEqual(minimapChildren[1].shown, true) -- too soon: the next scan waits
+            clock = 100
+            mh.MobHunter.Scan()
+            pump()
             assertEqual(minimapChildren[1].shown, false)
+            GetTime = nil
         end)
 
         test("/mobhunt button off keeps the button hidden even with a mob in range; on brings it back", function()

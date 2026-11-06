@@ -6,7 +6,8 @@ local addonName, ns = ...
 -- "/target <name>" when pressed.
 
 local SCAN_SECONDS = 1
-local PROBE_STEP = 6 -- minimap units between probe points; a dot answers within about 5, so 6 leaves no gaps
+local PROBE_STEP = 8 -- minimap units between probe points; a dot answers within about 10, so 8 leaves no gaps
+local PROBES_PER_FRAME = 40 -- minimap probes done per frame, so a scan never stalls the game
 local ALERT_SOUND = 8959 -- raid warning; used only if SOUNDKIT doesn't name it
 
 local hunted -- normalized name being hunted, or nil
@@ -236,6 +237,44 @@ local function targetIsHunted()
     return ns.Hunt.Matches(hunted, UnitName("target"))
 end
 
+-- The minimap scan runs as a job advanced a few probes per frame, then waits (longer after
+-- scans that found nothing) before the next one.
+local job, nextScan, emptyScans = nil, 0, 0
+local driver
+
+local function now()
+    return GetTime and GetTime() or 0
+end
+
+local function stopJob()
+    job = nil
+    if driver then driver:SetScript("OnUpdate", nil) end
+end
+
+local function finishMinimapScan(centres)
+    if #centres > 0 then
+        emptyScans = 0
+        if not tracker.onMinimap and not targetIsHunted() then alert(hunted) end
+        tracker.onMinimap = true
+        showIcons(centres)
+    else
+        emptyScans = emptyScans + 1
+        tracker.onMinimap = nil
+        hideIcons()
+    end
+    nextScan = now() + SCAN_SECONDS * (1 + math.min(emptyScans, 3))
+end
+
+local function advanceJob()
+    if not job then return end
+    if not hunted or InCombatLockdown() then return stopJob() end
+    local done, centres = ns.Probe.Advance(job, PROBES_PER_FRAME)
+    if done then
+        stopJob()
+        finishMinimapScan(centres)
+    end
+end
+
 local function scan()
     if not hunted then return end
 
@@ -248,21 +287,20 @@ local function scan()
     end
 
     -- 2) mobs among the minimap's tracking dots, when something is being tracked (they get our icon)
-    if not InCombatLockdown() and ns.Probe.Available(Minimap) and ns.Probe.IsTracking() then
-        local centres = ns.Probe.Find(Minimap, hunted, PROBE_STEP) or {}
-        if #centres > 0 then
-            if not tracker.onMinimap and not targetIsHunted() then alert(hunted) end
-            tracker.onMinimap = true
-            showIcons(centres)
-        else
-            tracker.onMinimap = nil
-            hideIcons()
+    if not job and now() >= nextScan and not InCombatLockdown() and ns.Probe.Available(Minimap)
+        and ns.Probe.IsTracking() then
+        job = ns.Probe.StartScan(Minimap, hunted, PROBE_STEP)
+        if job then
+            driver = driver or CreateFrame("Frame", "MobHunterDriverFrame")
+            driver:SetScript("OnUpdate", advanceJob)
         end
     end
 end
 
 local function stop()
     hunted, seenToken, seenName = nil, nil, nil
+    stopJob()
+    nextScan, emptyScans = 0, 0
     if huntWindow then huntWindow.SetHunting(nil) end
     tracker = ns.Hunt.NewTracker()
     if ticker then ticker:Cancel(); ticker = nil end

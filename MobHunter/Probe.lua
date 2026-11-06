@@ -228,47 +228,117 @@ function Probe.FitBest(points)
     return bestCentres, bestRadius
 end
 
--- Scans the minimap for tooltips naming the hunted mob. Returns the dots' positions as offsets
--- from the minimap's centre in minimap units ({ { dx, dy }, ... }), or nil when the probe isn't
--- available. `step` is the coarse grid spacing; the area around every coarse hit is re-probed
--- on a finer grid (FINE units) before Fit picks the dots out. The soft cursor is on only while
--- probing.
+-- A scan is a job that does a little work per call, so the game never stalls on one frame:
+-- StartScan makes it, Advance runs up to `budget` probes (or one fit) and says when it is done.
+-- Phases: "coarse" (a grid over the whole minimap), "fine" (a finer grid around every coarse
+-- hit, so the edges of the hit blobs are measured), "fit" (Fit, one radius per call while the
+-- radius is being worked out), "done". `step` is the coarse grid spacing in minimap units.
 local FINE = 4
-function Probe.Find(minimap, hunted, step)
+local FULL_SEARCH_EVERY = 10
+
+function Probe.StartScan(minimap, hunted, step)
     if not Probe.Available(minimap) then return nil end
-    local centres = {}
-    pcall(function()
-        if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(true) end
-        local points = scan(minimap, hunted, step)
-        local coarse = {}
-        for _, p in ipairs(points or {}) do
-            if p[3] > 0 then coarse[#coarse + 1] = p end
+    local left, bottom, scale = origin(minimap)
+    if not left then return nil end
+    local radius = minimap:GetWidth() / 2
+    return {
+        minimap = minimap, hunted = hunted, step = step, left = left, bottom = bottom, scale = scale,
+        radius = radius, phase = "coarse", queue = Probe.Grid(radius, step), index = 1,
+        points = {}, coarse = {}, centres = {},
+    }
+end
+
+local function finishFit(job, centres, radiusUsed)
+    job.centres, job.fitRadiusUsed, job.phase = centres, radiusUsed, "done"
+    if radiusUsed then Probe.fitRadius = radiusUsed end
+    Probe.last = { points = #job.points, hits = #job.coarse, radius = radiusUsed, centres = centres }
+end
+
+local function fitStep(job)
+    if not job.radii then
+        Probe.fitScans = (Probe.fitScans or 0) + 1
+        if Probe.fitRadius and Probe.fitScans % FULL_SEARCH_EVERY ~= 0 then
+            local centres = Probe.Fit(job.points, Probe.fitRadius)
+            if #centres > 0 then return finishFit(job, centres, Probe.fitRadius) end
         end
-        if #coarse == 0 then return end
-        local left, bottom, scale = origin(minimap)
-        local radius = minimap:GetWidth() / 2
-        local done = {}
-        for _, c in ipairs(coarse) do
-            for fx = -step, step, FINE do
-                for fy = -step, step, FINE do
-                    local px, py = c[1] + fx, c[2] + fy
-                    local key = math.floor(px / FINE + 0.5) * 100000 + math.floor(py / FINE + 0.5)
-                    if not done[key] and px * px + py * py <= radius * radius then
-                        done[key] = true
-                        local data = probeAt(minimap, left, bottom, scale, radius, px, py)
-                        points[#points + 1] = { px, py, Probe.CountMatches(hunted, data) }
+        job.radii, job.radiusIndex, job.bestCost = RADII, 1, math.huge
+    end
+    local r = job.radii[job.radiusIndex]
+    local centres, misfit = Probe.Fit(job.points, r)
+    local cost = misfit + DOT_COST * #centres
+    if #centres > 0 and cost < job.bestCost then
+        job.bestCost, job.bestCentres, job.bestRadius = cost, centres, r
+    end
+    job.radiusIndex = job.radiusIndex + 1
+    if job.radiusIndex > #job.radii then finishFit(job, job.bestCentres or {}, job.bestRadius) end
+end
+
+local function probeQueue(job, budget)
+    local count = 0
+    while job.index <= #job.queue and count < budget do
+        local p = job.queue[job.index]
+        job.index = job.index + 1
+        count = count + 1
+        local data = probeAt(job.minimap, job.left, job.bottom, job.scale, job.radius, p[1], p[2])
+        local n = Probe.CountMatches(job.hunted, data)
+        local point = { p[1], p[2], n }
+        job.points[#job.points + 1] = point
+        if job.phase == "coarse" and n > 0 then job.coarse[#job.coarse + 1] = point end
+    end
+    return job.index > #job.queue
+end
+
+local function advance(job, budget)
+    if job.phase == "coarse" or job.phase == "fine" then
+        if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(true) end
+        local finished = probeQueue(job, budget)
+        if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(false) end
+        if finished and job.phase == "coarse" then
+            if #job.coarse == 0 then
+                job.phase = "done"
+                Probe.last = { points = #job.points, hits = 0, centres = {} }
+                return
+            end
+            local queue, seen = {}, {}
+            for _, c in ipairs(job.coarse) do
+                for fx = -job.step, job.step, FINE do
+                    for fy = -job.step, job.step, FINE do
+                        local px, py = c[1] + fx, c[2] + fy
+                        local key = math.floor(px / FINE + 0.5) * 100000 + math.floor(py / FINE + 0.5)
+                        if not seen[key] and px * px + py * py <= job.radius * job.radius then
+                            seen[key] = true
+                            queue[#queue + 1] = { px, py }
+                        end
                     end
                 end
             end
+            job.phase, job.queue, job.index = "fine", queue, 1
+        elseif finished then
+            job.phase = "fit"
         end
-        local radiusUsed
-        centres, radiusUsed = Probe.FitBest(points)
-        Probe.last = { points = #points, hits = #coarse, radius = radiusUsed, centres = centres }
-    end)
-    pcall(function()
-        if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(false) end
-    end)
-    return centres
+    elseif job.phase == "fit" then
+        fitStep(job)
+    end
+end
+
+-- Returns done, centres. centres are the dots' offsets from the minimap's centre in minimap
+-- units ({ { dx, dy }, ... }). Never raises: an error ends the job with no dots.
+function Probe.Advance(job, budget)
+    local ok = pcall(advance, job, budget or 50)
+    if not ok then
+        pcall(function() if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(false) end end)
+        job.phase, job.centres = "done", {}
+    end
+    return job.phase == "done", job.centres
+end
+
+-- The whole scan in one go (for /mobhunt debug and tests; the addon itself spreads it over frames).
+-- Returns the centres, or nil when the probe isn't available.
+function Probe.Find(minimap, hunted, step)
+    local job = Probe.StartScan(minimap, hunted, step)
+    if not job then return nil end
+    repeat until Probe.Advance(job, math.huge)
+    return job.centres
 end
 
 -- For /mobhunt debug: runs one scan and records what the client returned, so a probe that
