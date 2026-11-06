@@ -48,6 +48,8 @@ local function syncMacro(create)
     return true
 end
 
+local huntWindow -- the Hunt window (created on ADDON_LOADED)
+
 local function soundOn()
     return not (MobHunterDB and MobHunterDB.playSound == false)
 end
@@ -55,6 +57,7 @@ end
 local function setPlaySound(on)
     MobHunterDB = MobHunterDB or {}
     MobHunterDB.playSound = on and true or false
+    if huntWindow then huntWindow.SetSound(on) end
 end
 
 local applyMacro
@@ -80,11 +83,12 @@ function applyMacro()
     if seenToken and showButton() then button:Show() else button:Hide() end -- only while a match is in range
 end
 
-local huntWindow
 local function createButton()
     huntWindow = ns.HuntWindow.Create({
         onStart = function(text) ns.MobHunter.Start(ns.Hunt.Normalize(text)) end,
         onStop = function() ns.MobHunter.Stop() end,
+        onSound = function(on) ns.MobHunter.SetPlaySound(on) end,
+        isSound = function() return ns.MobHunter.GetPlaySound() end,
     })
     button = huntWindow.targetButton
     huntWindow.frame:SetShown(ns.HuntWindow.ShouldShow())
@@ -374,4 +378,4 @@ SlashCmdList["MOBHUNT"] = function(msg)
 end
 
 ns.MobHunter = { Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
-    GetShowButton = showButton, SetPlaySound = setPlaySound, GetPlaySound = soundOn, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }
+    GetShowButton = showButton, GetWindow = function() return huntWindow end, SetPlaySound = setPlaySound, GetPlaySound = soundOn, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }

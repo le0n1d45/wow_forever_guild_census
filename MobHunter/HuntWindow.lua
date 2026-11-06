@@ -11,10 +11,10 @@ local function db()
     return MobHunterDB
 end
 
--- callbacks: onStart(text), onStop(). Returns { frame, edit, status, targetButton }.
+-- callbacks: onStart(text), onStop(), onSound(on), isSound(). Returns { frame, edit, status, targetButton }.
 function HuntWindow.Create(callbacks)
     local frame = CreateFrame("Frame", "MobHunterHuntFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(300, 150)
+    frame:SetSize(300, 175)
     frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
     frame:SetFrameStrata("MEDIUM")
     frame:SetMovable(true)
@@ -55,13 +55,23 @@ function HuntWindow.Create(callbacks)
     status:SetPoint("TOPLEFT", 22, -66)
     status:SetText("Not hunting.")
 
+    local sound = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+    sound:SetPoint("TOPLEFT", 16, -86)
+    sound:SetScript("OnClick", function(self) callbacks.onSound(self:GetChecked() and true or false) end)
+    local soundLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    soundLabel:SetPoint("LEFT", sound, "RIGHT", 2, 1)
+    soundLabel:SetText("Play a sound when found")
+
     local targetButton = CreateFrame("Button", "MobHunterTargetButton", frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     targetButton:SetSize(260, 28)
     targetButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 16)
     targetButton:RegisterForClicks("AnyUp", "AnyDown") -- the ActionButtonUseKeyDown setting picks which one fires
     targetButton:Hide()
 
-    local window = { frame = frame, edit = edit, status = status, targetButton = targetButton }
+    local window = { frame = frame, edit = edit, status = status, targetButton = targetButton, sound = sound }
+
+    function window.SetSound(on) sound:SetChecked(on and true or false) end
+    frame:HookScript("OnShow", function() window.SetSound(callbacks.isSound()) end)
 
     function window.SetHunting(name)
         status:SetText(name and ("Hunting: |cffffff00" .. name .. "|r") or "Not hunting.")

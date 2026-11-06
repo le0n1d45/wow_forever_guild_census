@@ -61,6 +61,7 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 
 ## Setting up the Target button
 
+- The Hunt window also has a **Play a sound when found** checkbox, the same setting as in the options.
 - The **Target** button appears only while a matching mob is in targeting range (a minimap-only sighting doesn't show it), and hides again when the mob leaves. It lives in the **Hunt window**, so if that window is hidden you won't see it (the key binding and macro still work). Drag the window with the **left mouse button** to move it.
 - To use a key instead, open **Options > Keybindings > AddOns > MobHunter** and bind **Target the hunted mob**.
 - The button reads "Target <full mob name>" and targets that name (e.g. hunting "stalker" gives "Target Prairie Stalker"). If several matching mobs are near, it picks the nearest with that name.

@@ -10,7 +10,7 @@ user-visible change, and move it under a version heading when that version is re
 ### Changed
 - MobHunter: a Hunt window (box, Start/Stop, status and the Target button; hidden by default, drag to move) and an options page (Options > AddOns > MobHunter, or `/mobhunt options`) with checkboxes for showing the Hunt window and for the Target button inside it, a button that creates the MobHunter macro, and a button for the minimap debug window. `/mobhunt window` toggles the window. The Target button now lives in the Hunt window instead of floating on its own.
 - MobHunter: `/mobhunt button on|off` shows or hides the Target button (saved between sessions). `/mobhunt macro` creates a "MobHunter" character macro for your action bar that follows the hunt (`/target <matched name>`); `/mobhunt target` explains why a slash command itself cannot target.
-- MobHunter: a "Play a sound when a hunted mob is found" checkbox in the options (on by default); `/mobhunt sound on|off` does the same.
+- MobHunter: a "Play a sound when a hunted mob is found" checkbox in the options and in the Hunt window (on by default); `/mobhunt sound on|off` does the same.
 - MobHunter: dots close together on the minimap each get an icon (before, nearby dots merged into one). A dot answers the probe within roughly 10-15 units (the radius is worked out from the data each time), so overlapping dots show up in the tooltip as repeated names; MobHunter counts those repeats and fits one dot per unexplained count (`Probe.Fit`). The area around each coarse hit is re-probed on a 4-unit grid, the coarse grid is back to 6 units, and the icon limit is 24.
 - MobHunter: no alert sound for a hunted mob you already have targeted.
 - MobHunter: the minimap icon is about half the size (11 px, was 20).

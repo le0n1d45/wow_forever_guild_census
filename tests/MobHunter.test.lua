@@ -563,6 +563,14 @@ return function()
             SlashCmdList["MOBHUNT"]("stalker")
             assertEqual(#sounds, 0) -- found, but silent
             SlashCmdList["MOBHUNT"]("stop")
+            -- the Hunt window has the same checkbox
+            local windowBox = mh.MobHunter.GetWindow().sound
+            rawset(windowBox, "GetChecked", function() return true end)
+            windowBox.scripts.OnClick(windowBox)
+            assertEqual(MobHunterDB.playSound, true)
+            rawset(windowBox, "GetChecked", function() return false end)
+            windowBox.scripts.OnClick(windowBox)
+            assertEqual(MobHunterDB.playSound, false)
             SlashCmdList["MOBHUNT"]("sound on")
             SlashCmdList["MOBHUNT"]("stalker")
             assertEqual(#sounds, 1)
