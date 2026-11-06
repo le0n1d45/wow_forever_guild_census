@@ -78,7 +78,7 @@ which keeps it within Blizzard's addon rules.
 - This is an early version. The minimap check reads the game's minimap tooltips, which the game doesn't
   officially offer to addons, so it may behave differently on some clients or stop working after a game update.
 - Mobs are matched by name only, and each one alerts once while it stays in range.
-- Dead mobs and other players are ignored.
+- Dead mobs and other players are ignored, and a hunted mob you already have targeted doesn't make a sound.
 - Available for both **WoW Forever** and **Retail**; download the file for your game version. It has been
   built for Forever first, and the minimap check is not confirmed on Retail.
 

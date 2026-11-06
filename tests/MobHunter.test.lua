@@ -453,6 +453,15 @@ return function()
             MobHunterDB, Settings = nil, nil
         end)
 
+        test("no alert sound for a hunted mob that is already the player's target", function()
+            install({ plates = { { unitToken = "nameplate1" }, { unitToken = "nameplate2" } },
+                names = { nameplate1 = "Prairie Stalker", nameplate2 = "Prairie Stalker" } })
+            UnitIsUnit = function(token, other) return token == "nameplate1" and other == "target" end
+            SlashCmdList["MOBHUNT"]("stalker")
+            assertEqual(#sounds, 1) -- only nameplate2, the one not targeted
+            UnitIsUnit = nil
+        end)
+
         test("stays quiet when nothing matches", function()
             install({ plates = { { unitToken = "nameplate1" } }, names = { nameplate1 = "Wolf" } })
             SlashCmdList["MOBHUNT"]("pillager")

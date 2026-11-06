@@ -208,10 +208,18 @@ local function readUnits()
                 guid = UnitGUID(token),
                 isDead = UnitIsDead(token),
                 isPlayer = UnitIsPlayer(token),
+                isTarget = UnitIsUnit and UnitIsUnit(token, "target") or false,
             }
         end
     end
     return units
+end
+
+-- True when the player's current target is a mob being hunted: already found, so no sound.
+local function targetIsHunted()
+    if not (UnitExists and UnitExists("target")) then return false end
+    if UnitIsPlayer("target") or UnitIsDead("target") then return false end
+    return ns.Hunt.Matches(hunted, UnitName("target"))
 end
 
 local function scan()
@@ -219,7 +227,7 @@ local function scan()
 
     -- 1) mobs in range (nameplates)
     for _, unit in ipairs(ns.Hunt.Scan(tracker, hunted, readUnits())) do
-        alert(unit.name)
+        if not unit.isTarget then alert(unit.name) end
         showMarker(unit)
         seenToken, seenName = unit.token, unit.name
         applyMacro()
@@ -229,7 +237,7 @@ local function scan()
     if not InCombatLockdown() and ns.Probe.Available(Minimap) and ns.Probe.IsTracking() then
         local centres = ns.Probe.Find(Minimap, hunted, PROBE_STEP) or {}
         if #centres > 0 then
-            if not tracker.onMinimap then alert(hunted) end
+            if not tracker.onMinimap and not targetIsHunted() then alert(hunted) end
             tracker.onMinimap = true
             showIcons(centres)
         else
