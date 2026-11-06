@@ -112,18 +112,6 @@ return function()
             assert(#points > 9)
         end)
 
-        it("Clusters groups touching points and returns each centre", function()
-            local centres = Probe.Clusters({ { 0, 0 }, { 4, 0 }, { 8, 0 }, { 40, 40 }, { 44, 40 } }, 5)
-            assertEqual(#centres, 2)
-            table.sort(centres, function(a, b) return a[1] < b[1] end)
-            assertEqual(centres[1], { 4, 0 })
-            assertEqual(centres[2], { 42, 40 })
-        end)
-
-        it("Clusters of nothing is nothing", function()
-            assertEqual(Probe.Clusters({}, 5), {})
-        end)
-
         -- A fake minimap whose soft cursor "hovers" a tracking dot named `dotName` at (dotX, dotY).
         local function fakeMinimap(dotName, dotX, dotY, radius)
             local m = { cursor = nil, soft = false, softCalls = {} }
@@ -178,35 +166,67 @@ return function()
             assertEqual(Probe.LineText(nil), nil)
         end)
 
-        it("Split gives one centre for one dot and two for two dots that overlap", function()
-            local function disc(cx, cy, r)
-                local pts = {}
-                for x = cx - r, cx + r, 2 do
-                    for y = cy - r, cy + r, 2 do
-                        if (x - cx) ^ 2 + (y - cy) ^ 2 <= r * r then pts[#pts + 1] = { x, y } end
+        it("CountMatches counts every matching name, including repeats on one line", function()
+            local data = { lines = { { leftText = "Greater Plainstrider\nGreater Plainstrider\nMoonlit Arz" },
+                { leftText = "Greater Plainstrider" } } }
+            assertEqual(Probe.CountMatches("plainstrider", data), 3)
+            assertEqual(Probe.CountMatches("arz", data), 1)
+            assertEqual(Probe.CountMatches("wolf", data), 0)
+            assertEqual(Probe.CountMatches("wolf", { lines = {} }), 0)
+            assertEqual(Probe.CountMatches("wolf", nil), 0)
+        end)
+
+        -- Probe results for dots with a 15-unit hit radius on a 3-unit grid: n = dots covering a point.
+        local function counts(dots)
+            local points = {}
+            for x = 0, 120, 3 do
+                for y = 0, 120, 3 do
+                    local n = 0
+                    for _, d in ipairs(dots) do
+                        if (x - d[1]) ^ 2 + (y - d[2]) ^ 2 <= 225 then n = n + 1 end
                     end
+                    points[#points + 1] = { x, y, n }
                 end
-                return pts
             end
-            local one = Probe.Split(disc(50, 50, 5), 5)
-            assertEqual(#one, 1)
-            assert(math.abs(one[1][1] - 50) < 2 and math.abs(one[1][2] - 50) < 2)
-            local both = disc(50, 50, 5)
-            for _, p in ipairs(disc(58, 50, 5)) do both[#both + 1] = p end
-            assertEqual(#Probe.Split(both, 5), 2)
+            return points
+        end
+        local function near(centres, x, y)
+            for _, c in ipairs(centres) do
+                if math.abs(c[1] - x) <= 4 and math.abs(c[2] - y) <= 4 then return true end
+            end
+            return false
+        end
+
+        it("Fit finds one dot at its middle", function()
+            local centres = Probe.Fit(counts({ { 60, 60 } }), 15)
+            assertEqual(#centres, 1)
+            assert(near(centres, 60, 60))
+        end)
+
+        it("Fit separates dots that overlap, because the counts show two dots", function()
+            local dots = { { 45, 60 }, { 58, 60 }, { 100, 20 } } -- the first two are 13 apart
+            local centres = Probe.Fit(counts(dots), 15)
+            assertEqual(#centres, 3)
+            for _, d in ipairs(dots) do assert(near(centres, d[1], d[2]), "missing " .. d[1] .. "," .. d[2]) end
+        end)
+
+        it("Fit of nothing is nothing", function()
+            assertEqual(Probe.Fit(counts({}), 15), {})
         end)
 
         it("Find reports dots that sit close together separately", function()
             local m = fakeMinimap("Greater Plainstrider", 60, 70, 70)
-            local dots = { { 60, 70 }, { 68, 70 }, { 100, 100 } }
-            local HIT = 5
+            local dots = { { 55, 70 }, { 68, 70 }, { 105, 100 } }
             C_TooltipInfo = { GetMinimapMouseover = function()
                 local x, y = m.cursor[1], m.cursor[2]
+                local lines
                 for _, d in ipairs(dots) do
-                    if (x - d[1]) ^ 2 + (y - d[2]) ^ 2 <= HIT * HIT then
-                        return { lines = { { leftText = "Greater Plainstrider" } } }
+                    if (x - d[1]) ^ 2 + (y - d[2]) ^ 2 <= 15 * 15 then
+                        lines = lines or {}
+                        lines[#lines + 1] = { leftText = "Greater Plainstrider" }
                     end
                 end
+                return { lines = lines or {} }
             end }
             assertEqual(#Probe.Find(m, "plainstrider", 6), 3)
         end)
