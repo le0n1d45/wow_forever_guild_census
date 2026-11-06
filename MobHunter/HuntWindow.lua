@@ -1,6 +1,7 @@
 local _, ns = ...
 
--- The Hunt window: a box to type the mob's name, Start and Stop, a status line, and the Target
+-- The Hunt window: a box to type a mob's name (more boxes with "Add hunt"; a box also takes a
+-- comma-separated list), Start and Stop, a status line, the sound checkbox and the Target
 -- button (the secure button MobHunter.lua keeps armed). Whether the window is shown is a
 -- setting (MobHunterDB.showHuntWindow); the options page and /mobhunt window both flip it.
 local HuntWindow = {}
@@ -11,10 +12,15 @@ local function db()
     return MobHunterDB
 end
 
--- callbacks: onStart(text), onStop(), onSound(on), isSound(). Returns { frame, edit, status, targetButton }.
+local MAX_ROWS = 8
+local ROW_HEIGHT = 26
+local TOP = 36 -- where the first text box sits, below the title
+
+-- callbacks: onStart(text) (the boxes' text joined with commas), onStop(), onSound(on),
+-- isSound(). Returns { frame, edit (the first box), rows, status, targetButton, sound, ... }.
 function HuntWindow.Create(callbacks)
     local frame = CreateFrame("Frame", "MobHunterHuntFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(300, 175)
+    frame:SetSize(300, 194)
     frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
     frame:SetFrameStrata("MEDIUM")
     frame:SetMovable(true)
@@ -27,56 +33,137 @@ function HuntWindow.Create(callbacks)
     frame:SetScript("OnShow", function() db().showHuntWindow = true end)
     frame:SetScript("OnHide", function() db().showHuntWindow = false end)
 
-    local edit = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    edit:SetSize(170, 22)
-    edit:SetPoint("TOPLEFT", 20, -36)
-    edit:SetAutoFocus(false)
-    edit:SetMaxLetters(80)
-    local function start()
-        local text = edit:GetText()
-        if text and text ~= "" then callbacks.onStart(text) end
-        edit:ClearFocus()
-    end
-    edit:SetScript("OnEnterPressed", start)
-    edit:SetScript("OnEscapePressed", edit.ClearFocus)
+    local window = { frame = frame, rows = {}, count = 1 }
+    local startButton, stopButton, addButton, status, sound, soundLabel, targetButton
 
-    local startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    local function texts()
+        local list = {}
+        for i = 1, window.count do list[#list + 1] = window.rows[i].edit:GetText() or "" end
+        return table.concat(list, ",")
+    end
+
+    local function start()
+        local text = texts()
+        if text:gsub("[%s,]", "") ~= "" then callbacks.onStart(text) end
+        for i = 1, window.count do window.rows[i].edit:ClearFocus() end
+    end
+
+    -- Everything below the boxes moves down as boxes are added, and the window grows with it.
+    local function layout()
+        for i, row in ipairs(window.rows) do
+            if i <= window.count then
+                row.edit:ClearAllPoints()
+                row.edit:SetPoint("TOPLEFT", 20, -(TOP + (i - 1) * ROW_HEIGHT))
+                row.edit:Show()
+                if row.remove then row.remove:Show() end
+            else
+                row.edit:Hide()
+                if row.remove then row.remove:Hide() end
+            end
+        end
+        local below = TOP + window.count * ROW_HEIGHT
+        addButton:ClearAllPoints()
+        addButton:SetPoint("TOPLEFT", 20, -below)
+        addButton:SetShown(window.count < MAX_ROWS)
+        status:ClearAllPoints()
+        status:SetPoint("TOPLEFT", 22, -(below + 28))
+        sound:ClearAllPoints()
+        sound:SetPoint("TOPLEFT", 16, -(below + 48))
+        frame:SetHeight(below + 48 + 28 + 12 + 28 + 16)
+    end
+
+    local function newRow(i)
+        local edit = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        edit:SetSize(170, 22)
+        edit:SetAutoFocus(false)
+        edit:SetMaxLetters(80)
+        edit:SetScript("OnEnterPressed", start)
+        edit:SetScript("OnEscapePressed", edit.ClearFocus)
+        local row = { edit = edit }
+        if i > 1 then
+            -- A small button that drops this box (the ones below move up).
+            local remove = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+            remove:SetSize(22, 22)
+            remove:SetPoint("LEFT", edit, "RIGHT", 6, 0)
+            remove:SetText("x")
+            remove:SetScript("OnClick", function()
+                for j = i, window.count - 1 do
+                    window.rows[j].edit:SetText(window.rows[j + 1].edit:GetText() or "")
+                end
+                window.rows[window.count].edit:SetText("")
+                window.count = window.count - 1
+                layout()
+            end)
+            row.remove = remove
+        end
+        window.rows[i] = row
+        return row
+    end
+
+    local first = newRow(1)
+    window.edit = first.edit
+
+    startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     startButton:SetSize(50, 22)
-    startButton:SetPoint("LEFT", edit, "RIGHT", 6, 0)
+    startButton:SetPoint("LEFT", first.edit, "RIGHT", 6, 0)
     startButton:SetText("Start")
     startButton:SetScript("OnClick", start)
-    local stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     stopButton:SetSize(50, 22)
     stopButton:SetPoint("LEFT", startButton, "RIGHT", 2, 0)
     stopButton:SetText("Stop")
     stopButton:SetScript("OnClick", function() callbacks.onStop() end)
 
-    local status = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    status:SetPoint("TOPLEFT", 22, -66)
+    addButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    addButton:SetSize(110, 22)
+    addButton:SetText("Add hunt")
+    addButton:SetScript("OnClick", function()
+        if window.count >= MAX_ROWS then return end
+        window.count = window.count + 1
+        local row = window.rows[window.count] or newRow(window.count)
+        row.edit:SetText("")
+        layout()
+        row.edit:SetFocus()
+    end)
+
+    status = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     status:SetText("Not hunting.")
 
-    local sound = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-    sound:SetPoint("TOPLEFT", 16, -86)
+    sound = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
     sound:SetScript("OnClick", function(self) callbacks.onSound(self:GetChecked() and true or false) end)
-    local soundLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    soundLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     soundLabel:SetPoint("LEFT", sound, "RIGHT", 2, 1)
     soundLabel:SetText("Play a sound when found")
 
-    local targetButton = CreateFrame("Button", "MobHunterTargetButton", frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    targetButton = CreateFrame("Button", "MobHunterTargetButton", frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     targetButton:SetSize(260, 28)
     targetButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 16)
     targetButton:RegisterForClicks("AnyUp", "AnyDown") -- the ActionButtonUseKeyDown setting picks which one fires
     targetButton:Hide()
 
-    local window = { frame = frame, edit = edit, status = status, targetButton = targetButton, sound = sound }
+    window.startButton, window.stopButton, window.addButton = startButton, stopButton, addButton
+    window.status, window.sound, window.targetButton = status, sound, targetButton
+    window.Layout = layout
 
     function window.SetSound(on) sound:SetChecked(on and true or false) end
     frame:HookScript("OnShow", function() window.SetSound(callbacks.isSound()) end)
 
-    function window.SetHunting(name)
-        status:SetText(name and ("Hunting: |cffffff00" .. name .. "|r") or "Not hunting.")
-        if name then edit:SetText(name) end
+    -- names: the list being hunted, or nil when not hunting. The boxes show one name each.
+    function window.SetHunting(names)
+        if names and #names > 0 then
+            status:SetText("Hunting: |cffffff00" .. table.concat(names, ", ") .. "|r")
+            window.count = math.min(#names, MAX_ROWS)
+            for i = 1, window.count do
+                local row = window.rows[i] or newRow(i)
+                row.edit:SetText(names[i])
+            end
+            layout()
+        else
+            status:SetText("Not hunting.")
+        end
     end
+
+    layout()
     return window
 end
 

@@ -11,7 +11,7 @@ local PROBES_PER_FRAME = 30 -- minimap probes done per frame, so a scan never st
 local PROBE_MS = 1 -- ...and at most about this many milliseconds of them per frame
 local ALERT_SOUND = 8959 -- raid warning; used only if SOUNDKIT doesn't name it
 
-local hunted -- normalized name being hunted, or nil
+local hunted -- list of normalized names being hunted, or nil
 local tracker = ns.Hunt.NewTracker()
 local ticker
 local markers = {} -- nameplate unit token -> marker frame
@@ -45,7 +45,7 @@ local function syncMacro(create)
         index = GetMacroIndexByName(MACRO_NAME)
     end
     if not index or index == 0 then return false end
-    local name = seenName or hunted
+    local name = seenName or (hunted and hunted[1])
     pcall(EditMacro, index, nil, nil, name and ("/target " .. name) or "/mobhunt")
     return true
 end
@@ -79,7 +79,7 @@ function applyMacro()
     pendingMacro = false
     syncMacro(false)
     button:SetAttribute("type", "macro")
-    local name = seenName or hunted
+    local name = seenName or (hunted and hunted[1])
     button:SetAttribute("macrotext", name and ("/target " .. name) or "")
     button:SetText(name and ("Target " .. name) or "MobHunter")
     if seenToken and showButton() then button:Show() else button:Hide() end -- only while a match is in range
@@ -87,7 +87,7 @@ end
 
 local function createButton()
     huntWindow = ns.HuntWindow.Create({
-        onStart = function(text) ns.MobHunter.Start(ns.Hunt.Normalize(text)) end,
+        onStart = function(text) ns.MobHunter.Start(text) end,
         onStop = function() ns.MobHunter.Stop() end,
         onSound = function(on) ns.MobHunter.SetPlaySound(on) end,
         isSound = function() return ns.MobHunter.GetPlaySound() end,
@@ -255,7 +255,7 @@ end
 local function finishMinimapScan(centres)
     if #centres > 0 then
         emptyScans = 0
-        if not tracker.onMinimap and not targetIsHunted() then alert(hunted) end
+        if not tracker.onMinimap and not targetIsHunted() then alert(ns.Hunt.Describe(hunted)) end
         tracker.onMinimap = true
         showIcons(centres)
     else
@@ -310,14 +310,17 @@ local function stop()
     applyMacro()
 end
 
-local function start(name)
+-- names: a list of normalized names, or text like "raptor, lion".
+local function start(names)
+    if type(names) ~= "table" then names = ns.Hunt.ParseNames(names) end
+    if #names == 0 then return end
     stop()
-    hunted = name
+    hunted = names
     if not button then createButton() end
-    huntWindow.SetHunting(name)
+    huntWindow.SetHunting(names)
     applyMacro()
     if C_Timer and C_Timer.NewTicker then ticker = C_Timer.NewTicker(SCAN_SECONDS, scan) end
-    say("hunting |cffffff00" .. name .. "|r. Type /mobhunt stop to cancel.")
+    say("hunting |cffffff00" .. ns.Hunt.Describe(names) .. "|r. Type /mobhunt stop to cancel.")
     local ok, shown = pcall(GetCVar, "nameplateShowEnemies")
     if ok and shown == "0" then
         say("enemy nameplates are off, so mobs in range can't be seen. Turn them on (Options > Interface > Names, or the V key).")
@@ -387,7 +390,7 @@ SLASH_MOBHUNT2 = "/mobhunter"
 SlashCmdList["MOBHUNT"] = function(msg)
     local command = ns.Hunt.ParseCommand(msg)
     if command.action == "hunt" then
-        start(command.name)
+        start(command.names)
     elseif command.action == "stop" then
         stop()
         say("stopped.")
@@ -411,7 +414,7 @@ SlashCmdList["MOBHUNT"] = function(msg)
         -- from a slash command. A macro can click the button (shown or not) instead.
         say("addons can't target from a slash command. Type |cffffff00/mobhunt macro|r to make a MobHunter macro for your action bar (or bind a key under Keybindings > AddOns > MobHunter).")
     elseif command.action == "status" then
-        say(hunted and ("hunting |cffffff00" .. hunted .. "|r.") or "not hunting anything. Type /mobhunt <mob name>.")
+        say(hunted and ("hunting |cffffff00" .. ns.Hunt.Describe(hunted) .. "|r.") or "not hunting anything. Type /mobhunt <mob name>, or several: /mobhunt raptor, lion.")
     else
         say("/mobhunt <mob name> to start, /mobhunt stop to cancel, /mobhunt window to show or hide the Hunt window, /mobhunt options.")
     end

@@ -4,11 +4,11 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 
 | Command | What it does |
 | --- | --- |
-| `/mobhunt <name>` | Start hunting. Part of a name is enough: `/mobhunt pillager` finds "Defias Pillager". |
+| `/mobhunt <name>` | Start hunting. Part of a name is enough: `/mobhunt pillager` finds "Defias Pillager". Several at once, comma-separated: `/mobhunt raptor, lion`. |
 | `/mobhunt stop` | Stop hunting. |
 | `/mobhunt` | Show what you're hunting. |
 | `/mobhunt options` | Opens the options page (also under Options > AddOns > MobHunter): checkboxes for the Hunt window and for the Target button in it, plus create-macro and debug buttons. |
-| `/mobhunt window` | Show or hide the Hunt window (a box, Start/Stop, status and the Target button; saved in `MobHunterDB`, hidden by default). |
+| `/mobhunt window` | Show or hide the Hunt window (boxes for the mobs to hunt, "Add hunt", Start/Stop, status, the sound checkbox and the Target button; saved in `MobHunterDB`, hidden by default). |
 | `/mobhunt sound on\|off` | Turn the alert sound on or off (also a checkbox in the options; saved in `MobHunterDB`; default on). |
 | `/mobhunt button on\|off` | Show or hide the Target button in the Hunt window (saved in `MobHunterDB`; default on). |
 | `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |

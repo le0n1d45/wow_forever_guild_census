@@ -36,9 +36,36 @@ return function()
         end)
     end)
 
+    describe("MobHunter Hunt.ParseNames / lists", function()
+        it("splits on commas, normalizes, and drops empties and repeats", function()
+            assertEqual(Hunt.ParseNames("Raptor, LION,,  raptor ,Dire  Wolf"), { "raptor", "lion", "dire wolf" })
+            assertEqual(Hunt.ParseNames(""), {})
+            assertEqual(Hunt.ParseNames(nil), {})
+        end)
+
+        it("Matches takes a list and matches any of it; Describe joins it", function()
+            assert(Hunt.Matches({ "raptor", "lion" }, "Savannah Lion"))
+            assert(Hunt.Matches({ "raptor", "lion" }, "Bloodtalon Raptor"))
+            assert(not Hunt.Matches({ "raptor", "lion" }, "Wolf"))
+            assert(not Hunt.Matches({}, "Wolf"))
+            assertEqual(Hunt.Describe({ "raptor", "lion" }), "raptor, lion")
+            assertEqual(Hunt.Describe("wolf"), "wolf")
+        end)
+
+        it("Scan alerts once for each hunted mob in a list", function()
+            local tracker = Hunt.NewTracker()
+            local units = { { token = "n1", name = "Bloodtalon Raptor", guid = "G1" },
+                { token = "n2", name = "Savannah Lion", guid = "G2" }, { token = "n3", name = "Wolf", guid = "G3" } }
+            assertEqual(#Hunt.Scan(tracker, { "raptor", "lion" }, units), 2)
+            assertEqual(#Hunt.Scan(tracker, { "raptor", "lion" }, units), 0)
+        end)
+    end)
+
     describe("MobHunter Hunt.ParseCommand", function()
         it("reads hunt, stop, status and help", function()
-            assertEqual(Hunt.ParseCommand("Defias Pillager"), { action = "hunt", name = "defias pillager" })
+            assertEqual(Hunt.ParseCommand("Defias Pillager"), { action = "hunt", names = { "defias pillager" } })
+            assertEqual(Hunt.ParseCommand("Raptor, lion"), { action = "hunt", names = { "raptor", "lion" } })
+            assertEqual(Hunt.ParseCommand(" , "), { action = "status" })
             assertEqual(Hunt.ParseCommand("  stop "), { action = "stop" })
             assertEqual(Hunt.ParseCommand("OFF"), { action = "stop" })
             assertEqual(Hunt.ParseCommand(""), { action = "status" })
@@ -233,6 +260,12 @@ return function()
             assertEqual(#centres, 3)
             assert(radius >= 10 and radius <= 12, "radius " .. tostring(radius))
             Probe.fitRadius, Probe.fitScans = nil, nil
+        end)
+
+        it("CountMatches counts dots of any hunted name", function()
+            local data = { lines = { { leftText = "Savannah Lion\nBloodtalon Raptor\nWolf" } } }
+            assertEqual(Probe.CountMatches({ "raptor", "lion" }, data), 2)
+            assertEqual(Probe.CountMatches({ "raptor" }, data), 1)
         end)
 
         it("Diagnose reports the fit for the hunted name", function()
@@ -618,6 +651,41 @@ return function()
             SlashCmdList["MOBHUNT"]("stalker")
             assertEqual(#sounds, 1)
             MobHunterDB, Settings = nil, nil
+        end)
+
+        test("/mobhunt raptor, lion hunts both: each alerts, and the window shows a box for each", function()
+            local mh = install({ plates = { { unitToken = "nameplate1" }, { unitToken = "nameplate2" },
+                { unitToken = "nameplate3" } },
+                names = { nameplate1 = "Bloodtalon Raptor", nameplate2 = "Savannah Lion", nameplate3 = "Wolf" } })
+            SlashCmdList["MOBHUNT"]("raptor, lion")
+            assertEqual(#sounds, 2)
+            assertEqual(mh.MobHunter.GetWindow().count, 2)
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("raptor, lion", 1, true), printed[#printed])
+            SlashCmdList["MOBHUNT"]("stop")
+        end)
+
+        test("the Hunt window: Add hunt adds a box, x removes it, Start sends every box's text", function()
+            local mh = install({ plates = { { unitToken = "nameplate1" } }, names = { nameplate1 = "Savannah Lion" } })
+            local window = mh.MobHunter.GetWindow()
+            if not window then
+                MobHunterDB = {}
+                local frame = MobHunterEventFrame
+                frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
+                window = mh.MobHunter.GetWindow()
+            end
+            assertEqual(window.count, 1)
+            window.addButton.scripts.OnClick(window.addButton)
+            assertEqual(window.count, 2)
+            window.rows[2].remove.scripts.OnClick(window.rows[2].remove)
+            assertEqual(window.count, 1)
+            window.addButton.scripts.OnClick(window.addButton)
+            rawset(window.rows[1].edit, "GetText", function() return "raptor" end)
+            rawset(window.rows[2].edit, "GetText", function() return " Lion " end)
+            window.startButton.scripts.OnClick(window.startButton)
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("raptor, lion", 1, true), printed[#printed])
+            MobHunterDB = nil
         end)
 
         test("stays quiet when nothing matches", function()

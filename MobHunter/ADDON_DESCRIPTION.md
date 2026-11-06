@@ -48,7 +48,7 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 
 ## Commands
 
-- `/mobhunt <name>`: start hunting
+- `/mobhunt <name>`: start hunting. Hunt several at once with commas: `/mobhunt raptor, lion`
 - `/mobhunt stop`: stop hunting
 - `/mobhunt`: show what you're hunting
 - `/mobhunt sound on` / `off`: turn the alert sound on or off (remembered between sessions)
@@ -61,6 +61,7 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 
 ## Setting up the Target button
 
+- **Hunting several mobs:** in the Hunt window press **Add hunt** for another box (the **x** next to it removes it), or put a comma-separated list in any box (**raptor, lion**). Press **Start** and MobHunter watches for all of them. A match on any one alerts, gets a marker, and gets the Target button; the button targets the one you were last alerted about.
 - The Hunt window also has a **Play a sound when found** checkbox, the same setting as in the options.
 - The **Target** button appears only while a matching mob is in targeting range (a minimap-only sighting doesn't show it), and hides again when the mob leaves. It lives in the **Hunt window**, so if that window is hidden you won't see it (the key binding and macro still work). Drag the window with the **left mouse button** to move it.
 - To use a key instead, open **Options > Keybindings > AddOns > MobHunter** and bind **Target the hunted mob**.

@@ -382,7 +382,7 @@ end
 function Probe.Diagnose(minimap, step, hunted)
     local report = {}
     local function add(text) report[#report + 1] = text end
-    add("MobHunter probe revision " .. Probe.REVISION .. ", hunting: " .. tostring(hunted or "nothing"))
+    add("MobHunter probe revision " .. Probe.REVISION .. ", hunting: " .. (hunted and ns.Hunt.Describe(hunted) or "nothing"))
     add("Minimap: " .. (minimap and "found" or "MISSING")
         .. ", UpdateMouseoverAtPoint: " .. tostring(minimap and type(minimap.UpdateMouseoverAtPoint) or "n/a")
         .. ", SetUsingSoftCursor: " .. tostring(minimap and type(minimap.SetUsingSoftCursor) or "n/a")
@@ -416,7 +416,7 @@ function Probe.Diagnose(minimap, step, hunted)
         Probe.last = nil
         local found = Probe.Find(minimap, hunted, step) or {}
         local last = Probe.last
-        add("Hunting '" .. hunted .. "': " .. #found .. " dots" .. (last and (", fitted with hit radius " .. tostring(last.radius)
+        add("Hunting '" .. ns.Hunt.Describe(hunted) .. "': " .. #found .. " dots" .. (last and (", fitted with hit radius " .. tostring(last.radius)
             .. " from " .. last.hits .. " coarse hits and " .. last.points .. " probes") or ", no probe hit it"))
         for i, c in ipairs(found) do
             if i > 12 then add("  ...") break end
