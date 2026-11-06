@@ -2,7 +2,7 @@
 ## Title: MobHunter
 ## Notes: Type /mobhunt <mob name> to be alerted when that mob comes into range.
 ## Author: Le0n1d45
-## Version: 0.2.0
+## Version: 0.3.0
 ## X-License: MIT
 ## SavedVariables: MobHunterDB
 ## IconTexture: Interface\AddOns\MobHunter\icon
