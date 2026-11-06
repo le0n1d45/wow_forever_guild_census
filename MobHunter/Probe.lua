@@ -131,12 +131,11 @@ end
 -- A tracking dot answers the probe within about this many minimap units of its centre.
 -- NodeSight starts at 15 and adapts it between 11 and 24; /mobhunt debug output (about 8 content
 -- points per dot at 8-unit spacing) fits that. Estimated, not measured.
-Probe.HIT_RADIUS = 15
 
 -- Finds the dots behind probe results. points = { { x, y, n } }: n is how many hunted dots
 -- cover the point. Greedy fit: repeatedly place a dot where a HIT_RADIUS disc explains the most
 -- still-unexplained counts (and contradicts the fewest), subtract it, and stop when a disc
--- would explain too little. Because n counts overlapping dots, dots closer than the hit radius
+-- would explain too little. Also returns the misfit: how many counts are left over or overshot. Because n counts overlapping dots, dots closer than the hit radius
 -- still come out separately. Returns { { x, y }, ... }.
 function Probe.Fit(points, radius, maxDots)
     local reach = radius * radius
@@ -193,7 +192,37 @@ function Probe.Fit(points, radius, maxDots)
             if (p[1] - c[1]) ^ 2 + (p[2] - c[2]) ^ 2 <= 4 * reach then gains[i] = gainOf(i) end
         end
     end
-    return centres
+    local misfit = 0
+    for _, r in ipairs(residual) do misfit = misfit + math.abs(r) end
+    return centres, misfit
+end
+
+-- Radii tried when the real hit radius is unknown, and what one extra dot costs in misfit
+-- (so a smaller radius can't win just by using many small discs).
+local RADII = { 7, 8, 9, 10, 11, 12, 13, 15, 17, 20, 24 }
+local DOT_COST = 6
+
+-- Fits with every radius in RADII and keeps the one with the lowest misfit + DOT_COST per dot.
+-- Returns the centres and that radius. The radius that won last time is tried first and, while it
+-- still fits well, kept, so most scans cost one fit instead of eleven.
+function Probe.FitBest(points)
+    local function cost(r)
+        local centres, misfit = Probe.Fit(points, r)
+        return centres, misfit + DOT_COST * #centres
+    end
+    if Probe.fitRadius and (Probe.fitScans or 0) % 10 ~= 0 then
+        Probe.fitScans = Probe.fitScans + 1
+        local centres = Probe.Fit(points, Probe.fitRadius)
+        if #centres > 0 then return centres, Probe.fitRadius end
+    end
+    Probe.fitScans = (Probe.fitScans or 0) + 1
+    local bestCentres, bestCost, bestRadius = {}, math.huge, nil
+    for _, r in ipairs(RADII) do
+        local centres, c = cost(r)
+        if #centres > 0 and c < bestCost then bestCentres, bestCost, bestRadius = centres, c, r end
+    end
+    Probe.fitRadius = bestRadius or Probe.fitRadius
+    return bestCentres, bestRadius
 end
 
 -- Scans the minimap for tooltips naming the hunted mob. Returns the dots' positions as offsets
@@ -229,11 +258,9 @@ function Probe.Find(minimap, hunted, step)
                 end
             end
         end
-        -- If the usual radius explains nothing (the real one is smaller), try smaller ones.
-        for _, r in ipairs({ Probe.HIT_RADIUS, 11, 8, 5, 3 }) do
-            centres = Probe.Fit(points, r)
-            if #centres > 0 then break end
-        end
+        local radiusUsed
+        centres, radiusUsed = Probe.FitBest(points)
+        Probe.last = { points = #points, hits = #coarse, radius = radiusUsed, centres = centres }
     end)
     pcall(function()
         if minimap.SetUsingSoftCursor then minimap:SetUsingSoftCursor(false) end
@@ -243,7 +270,7 @@ end
 
 -- For /mobhunt debug: runs one scan and records what the client returned, so a probe that
 -- finds nothing can be told apart from one that can't run. Returns a list of report lines.
-function Probe.Diagnose(minimap, step)
+function Probe.Diagnose(minimap, step, hunted)
     local report = {}
     local function add(text) report[#report + 1] = text end
     add("Minimap: " .. (minimap and "found" or "MISSING")
@@ -273,6 +300,17 @@ function Probe.Diagnose(minimap, step)
         for _, sample in ipairs(samples) do add("  line 1: " .. sample) end
         if filled == 0 then
             add("Nothing under any point. Is something tracked, with a dot on the minimap right now?")
+        end
+    end
+    if hunted and ok and hits then
+        Probe.last = nil
+        local found = Probe.Find(minimap, hunted, step) or {}
+        local last = Probe.last
+        add("Hunting '" .. hunted .. "': " .. #found .. " dots" .. (last and (", fitted with hit radius " .. tostring(last.radius)
+            .. " from " .. last.hits .. " coarse hits and " .. last.points .. " probes") or ", no probe hit it"))
+        for i, c in ipairs(found) do
+            if i > 12 then add("  ...") break end
+            add(string.format("  dot %d at %.0f,%.0f", i, c[1], c[2]))
         end
     end
     return report

@@ -48,6 +48,8 @@ return function()
             assertEqual(Hunt.ParseCommand("macro"), { action = "macro" })
             assertEqual(Hunt.ParseCommand("Options"), { action = "options" })
             assertEqual(Hunt.ParseCommand("window"), { action = "window" })
+            assertEqual(Hunt.ParseCommand("Sound OFF"), { action = "sound", on = false })
+            assertEqual(Hunt.ParseCommand("sound"), { action = "sound" })
             assertEqual(Hunt.ParseCommand("Button OFF"), { action = "button", on = false })
             assertEqual(Hunt.ParseCommand("button on"), { action = "button", on = true })
             assertEqual(Hunt.ParseCommand("button"), { action = "button" })
@@ -114,6 +116,7 @@ return function()
 
         -- A fake minimap whose soft cursor "hovers" a tracking dot named `dotName` at (dotX, dotY).
         local function fakeMinimap(dotName, dotX, dotY, radius)
+            Probe.fitRadius, Probe.fitScans = nil, nil
             local m = { cursor = nil, soft = false, softCalls = {} }
             function m:GetLeft() return 0 end
             function m:GetBottom() return 0 end
@@ -123,7 +126,7 @@ return function()
             function m:UpdateMouseoverAtPoint(x, y) self.cursor = { x, y } end
             C_TooltipInfo = { GetMinimapMouseover = function()
                 local x, y = m.cursor[1], m.cursor[2]
-                if (x - dotX) ^ 2 + (y - dotY) ^ 2 <= 16 then
+                if (x - dotX) ^ 2 + (y - dotY) ^ 2 <= 100 then
                     return { lines = { { leftText = dotName } } }
                 end
             end }
@@ -134,8 +137,8 @@ return function()
             local m = fakeMinimap("Defias Pillager", 70, 80, 70) -- 0 px right of centre, 10 up
             local centres = Probe.Find(m, "pillager", 2)
             assertEqual(#centres, 1)
-            assert(math.abs(centres[1][1] - 0) < 1.5, "dx " .. centres[1][1])
-            assert(math.abs(centres[1][2] - 10) < 1.5, "dy " .. centres[1][2])
+            assert(math.abs(centres[1][1] - 0) < 3, "dx " .. centres[1][1])
+            assert(math.abs(centres[1][2] - 10) < 3, "dy " .. centres[1][2])
             assertEqual(m.soft, false) -- the soft cursor is always switched back off
         end)
 
@@ -210,12 +213,42 @@ return function()
             for _, d in ipairs(dots) do assert(near(centres, d[1], d[2]), "missing " .. d[1] .. "," .. d[2]) end
         end)
 
+        it("FitBest works out the hit radius from the data", function()
+            Probe.fitRadius, Probe.fitScans = nil, nil
+            local function counts11(dots)
+                local points = {}
+                for x = 0, 120, 3 do
+                    for y = 0, 120, 3 do
+                        local n = 0
+                        for _, d in ipairs(dots) do
+                            if (x - d[1]) ^ 2 + (y - d[2]) ^ 2 <= 121 then n = n + 1 end
+                        end
+                        points[#points + 1] = { x, y, n }
+                    end
+                end
+                return points
+            end
+            local dots = { { 40, 40 }, { 52, 40 }, { 90, 90 } } -- 11-unit blobs, the first two 12 apart
+            local centres, radius = Probe.FitBest(counts11(dots))
+            assertEqual(#centres, 3)
+            assert(radius >= 10 and radius <= 12, "radius " .. tostring(radius))
+            Probe.fitRadius, Probe.fitScans = nil, nil
+        end)
+
+        it("Diagnose reports the fit for the hunted name", function()
+            local m = fakeMinimap("Defias Pillager", 70, 80, 70)
+            local report = table.concat(Probe.Diagnose(m, 6, "pillager"), "\n")
+            assert(report:find("Hunting 'pillager': 1 dots", 1, true), report)
+            assert(report:find("hit radius", 1, true), report)
+        end)
+
         it("Fit of nothing is nothing", function()
             assertEqual(Probe.Fit(counts({}), 15), {})
         end)
 
         it("Find reports dots that sit close together separately", function()
             local m = fakeMinimap("Greater Plainstrider", 60, 70, 70)
+            Probe.fitRadius, Probe.fitScans = nil, nil
             local dots = { { 55, 70 }, { 68, 70 }, { 105, 100 } }
             C_TooltipInfo = { GetMinimapMouseover = function()
                 local x, y = m.cursor[1], m.cursor[2]
@@ -366,7 +399,7 @@ return function()
             rawset(Minimap, "SetUsingSoftCursor", function() end)
             rawset(Minimap, "UpdateMouseoverAtPoint", function(_, x, y) cursor = { x, y } end)
             C_TooltipInfo = { GetMinimapMouseover = function()
-                if dotUp and (cursor[1] - 80) ^ 2 + (cursor[2] - 90) ^ 2 <= 16 then
+                if dotUp and (cursor[1] - 80) ^ 2 + (cursor[2] - 90) ^ 2 <= 100 then
                     return { lines = { { leftText = "Defias Pillager" } } }
                 end
             end }
@@ -513,6 +546,27 @@ return function()
             SlashCmdList["MOBHUNT"]("stalker")
             assertEqual(#sounds, 1) -- only nameplate2, the one not targeted
             UnitIsUnit = nil
+        end)
+
+        test("the sound checkbox (and /mobhunt sound) turns the alert sound off and on", function()
+            Settings = { RegisterCanvasLayoutCategory = function() return { GetID = function() return 1 end } end,
+                RegisterAddOnCategory = function() end }
+            local mh = install({ plates = { { unitToken = "nameplate1" } }, names = { nameplate1 = "Prairie Stalker" } })
+            MobHunterDB = { showButton = true }
+            local frame = MobHunterEventFrame
+            frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
+            assertEqual(MobHunterDB.playSound, true) -- on by default
+            local box = mh.Options.panel.controls.playSound
+            rawset(box, "GetChecked", function() return false end)
+            box.scripts.OnClick(box)
+            assertEqual(MobHunterDB.playSound, false)
+            SlashCmdList["MOBHUNT"]("stalker")
+            assertEqual(#sounds, 0) -- found, but silent
+            SlashCmdList["MOBHUNT"]("stop")
+            SlashCmdList["MOBHUNT"]("sound on")
+            SlashCmdList["MOBHUNT"]("stalker")
+            assertEqual(#sounds, 1)
+            MobHunterDB, Settings = nil, nil
         end)
 
         test("stays quiet when nothing matches", function()

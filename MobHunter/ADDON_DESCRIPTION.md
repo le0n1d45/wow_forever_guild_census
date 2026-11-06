@@ -51,9 +51,10 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 - `/mobhunt <name>`: start hunting
 - `/mobhunt stop`: stop hunting
 - `/mobhunt`: show what you're hunting
+- `/mobhunt sound on` / `off`: turn the alert sound on or off (remembered between sessions)
 - `/mobhunt button on` / `off`: show or hide the Target button (remembered between sessions)
 - `/mobhunt window`: show or hide the Hunt window
-- `/mobhunt options`: open the options page (also under **Options > AddOns > MobHunter**) with checkboxes for the Hunt window and its Target button, a button that creates the macro, and a debug button
+- `/mobhunt options`: open the options page (also under **Options > AddOns > MobHunter**) with checkboxes for the Hunt window, its Target button and the alert sound, a button that creates the macro, and a debug button
 - `/mobhunt macro`: creates a "MobHunter" macro for your action bar that targets the mob you're hunting
 - `/mobhunt target`: explains why a slash command can't target, and points to the macro
 - `/mobhunt debug`: opens a window with technical details about the minimap check, already selected so you can copy it (useful when reporting a problem)

@@ -9,6 +9,7 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt` | Show what you're hunting. |
 | `/mobhunt options` | Opens the options page (also under Options > AddOns > MobHunter): checkboxes for the Hunt window and for the Target button in it, plus create-macro and debug buttons. |
 | `/mobhunt window` | Show or hide the Hunt window (a box, Start/Stop, status and the Target button; saved in `MobHunterDB`, hidden by default). |
+| `/mobhunt sound on\|off` | Turn the alert sound on or off (also a checkbox in the options; saved in `MobHunterDB`; default on). |
 | `/mobhunt button on\|off` | Show or hide the Target button in the Hunt window (saved in `MobHunterDB`; default on). |
 | `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |
 | `/mobhunt debug` | Opens a copyable window with what the minimap probe can and can't do on this client (also saved as `lastDebug` in the SavedVariables file after `/reload`). |
@@ -76,7 +77,7 @@ EULA before publishing.
 - `Minimap:UpdateMouseoverAtPoint` and `C_TooltipInfo.GetMinimapMouseover`: the second is on the Warcraft
   Wiki for Forever 1.60.1; the first came from NodeSight's source and has no wiki page I could read. The
   coordinates follow NodeSight's call (screen coordinates: `(left + x) * scale`); that fixed an earlier guess that returned empty tooltips.
-- `Probe.HIT_RADIUS` (15 minimap units): how far from a dot's centre the minimap tooltip still names it. NodeSight starts at 15 and adapts it between 11 and 24; `/mobhunt debug` output fits that, but it is not measured. `Probe.Fit` uses it to turn overlapping hits into one dot each, trying smaller radii if 15 explains nothing.
+- The hit radius of a tracking dot (how far from its centre the tooltip still names it): `Probe.FitBest` tries 7 to 24 units and keeps the one that explains the probe results best, then reuses it for ten scans. NodeSight's source puts it at 11-24; a debug dump from the Forever client suggests about 10-11. `/mobhunt debug` while hunting prints the radius chosen.
 - That tracked creatures list their name on a tooltip line, and that probing works in combat.
 - That nameplate unit names are readable (they may be "secret values" in some situations; MobHunter treats
   an unreadable name as "no match").

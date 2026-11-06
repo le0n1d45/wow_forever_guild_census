@@ -48,6 +48,15 @@ local function syncMacro(create)
     return true
 end
 
+local function soundOn()
+    return not (MobHunterDB and MobHunterDB.playSound == false)
+end
+
+local function setPlaySound(on)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.playSound = on and true or false
+end
+
 local applyMacro
 
 local function setShowButton(on)
@@ -188,7 +197,7 @@ end
 
 local function alert(name)
     local sound = (SOUNDKIT and SOUNDKIT.RAID_WARNING) or ALERT_SOUND
-    pcall(PlaySound, sound)
+    if soundOn() then pcall(PlaySound, sound) end
     say("found |cffffff00" .. tostring(name) .. "|r. Press the Target button or your MobHunter keybind to target it.")
     if UIErrorsFrame and UIErrorsFrame.AddMessage then
         UIErrorsFrame:AddMessage("MobHunter: " .. tostring(name), 1, 0.2, 0.2)
@@ -276,6 +285,7 @@ function handlers.ADDON_LOADED(loadedName)
     if loadedName ~= addonName then return end
     MobHunterDB = MobHunterDB or {}
     if MobHunterDB.showButton == nil then MobHunterDB.showButton = true end
+    if MobHunterDB.playSound == nil then MobHunterDB.playSound = true end
     createButton()
     if ns.Options then ns.Options.Register() end
     frame:UnregisterEvent("ADDON_LOADED")
@@ -310,7 +320,7 @@ _G["BINDING_HEADER_MOBHUNTER"] = "MobHunter"
 _G["BINDING_NAME_CLICK MobHunterTargetButton:LeftButton"] = "Target the hunted mob"
 
 local function showDebug()
-    local report = ns.Probe.Diagnose(Minimap, PROBE_STEP)
+    local report = ns.Probe.Diagnose(Minimap, PROBE_STEP, hunted)
     MobHunterDB = MobHunterDB or {}
     MobHunterDB.lastDebug = report -- also lands in the SavedVariables file on /reload or logout
     showReport("MobHunter debug", table.concat(report, "\n"))
@@ -340,6 +350,9 @@ SlashCmdList["MOBHUNT"] = function(msg)
     elseif command.action == "button" then
         if command.on ~= nil then setShowButton(command.on) end
         say("the Target button is " .. (showButton() and "on" or "off") .. ". /mobhunt button on|off to change it.")
+    elseif command.action == "sound" then
+        if command.on ~= nil then setPlaySound(command.on) end
+        say("the alert sound is " .. (soundOn() and "on" or "off") .. ". /mobhunt sound on|off to change it.")
     elseif command.action == "window" then
         setShowWindow(not getShowWindow())
         say("the Hunt window is " .. (getShowWindow() and "shown" or "hidden") .. ".")
@@ -361,4 +374,4 @@ SlashCmdList["MOBHUNT"] = function(msg)
 end
 
 ns.MobHunter = { Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
-    GetShowButton = showButton, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }
+    GetShowButton = showButton, SetPlaySound = setPlaySound, GetPlaySound = soundOn, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }

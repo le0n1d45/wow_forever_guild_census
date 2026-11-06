@@ -37,6 +37,8 @@ local function build()
     local buttonBox = addCheckbox("showButton", "Show the Target button in the Hunt window", -88,
         "Turned off, the key binding and the action bar macro still work.",
         function(on) ns.MobHunter.SetShowButton(on) end)
+    local soundBox = addCheckbox("playSound", "Play a sound when a hunted mob is found", -132, nil,
+        function(on) ns.MobHunter.SetPlaySound(on) end)
 
     local function addButton(key, text, x, y, width, onClick)
         local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -48,16 +50,18 @@ local function build()
         return button
     end
 
-    addButton("macro", "Create the MobHunter macro", 16, -140, 220, function() ns.MobHunter.CreateMacro() end)
-    addButton("debug", "Minimap debug info", 244, -140, 160, function() ns.MobHunter.ShowDebug() end)
+    addButton("macro", "Create the MobHunter macro", 16, -176, 220, function() ns.MobHunter.CreateMacro() end)
+    addButton("debug", "Minimap debug info", 244, -176, 160, function() ns.MobHunter.ShowDebug() end)
 
     local function populate()
         windowBox:SetChecked(ns.MobHunter.GetShowWindow())
         buttonBox:SetChecked(ns.MobHunter.GetShowButton())
+        soundBox:SetChecked(ns.MobHunter.GetPlaySound())
     end
     panel.OnDefault = function()
         ns.MobHunter.SetShowWindow(false)
         ns.MobHunter.SetShowButton(true)
+        ns.MobHunter.SetPlaySound(true)
         populate()
     end
     panel:SetScript("OnShow", populate)
