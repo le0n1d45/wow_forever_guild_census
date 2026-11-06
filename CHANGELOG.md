@@ -17,6 +17,7 @@ user-visible change, and move it under a version heading when that version is re
 - MobHunter: README and `docs/MobHunter_minimap_icon.png` and `docs/MobHunter_hunt_window.png` and `docs/MobHunter_options.png` show the icon over a hunted mob's dot, the Hunt window, the nameplate marker, the Target button and the options page in the real client.
 - MobHunter: the minimap probe now passes `UpdateMouseoverAtPoint` screen coordinates, `((left + x) * scale, (bottom + y) * scale)`, the way the NodeSight addon does (the earlier minimap-local values returned empty tooltips everywhere), probes every 8 units, and skips the scan in combat. `/mobhunt debug` reports the minimap's position and scale and how many points returned content.
 - MobHunter: the minimap probe now reads tooltip text from `args` when `leftText` is missing, and `/mobhunt debug` also dumps the shape of the tooltips it gets back.
+- MobHunter: `/mobhunt debug` starts with the probe revision and what you are hunting, so a report shows which files the game loaded.
 - MobHunter: `/mobhunt debug`, while you are hunting, also reports how many dots it fitted, the hit radius it chose and where the dots are.
 - MobHunter: `/mobhunt debug` opens a window with what the minimap probe sees (which calls exist, how many points returned a tooltip, sample tooltip lines), selected so Ctrl+C copies it, and saves it to `MobHunterDB.lastDebug`.
 - MobHunter: hunted mobs found among your minimap tracking dots now get MobHunter's icon drawn over the dot (up to 8), replacing the red ring.

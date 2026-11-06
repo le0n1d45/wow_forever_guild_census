@@ -11,6 +11,9 @@ local _, ns = ...
 local Probe = {}
 ns.Probe = Probe
 
+-- Bumped when the probe's behaviour changes, so /mobhunt debug shows which files the game loaded.
+Probe.REVISION = 4
+
 -- Points on a square grid inside a circle, as offsets from its centre.
 function Probe.Grid(radius, step)
     local points = {}
@@ -273,6 +276,7 @@ end
 function Probe.Diagnose(minimap, step, hunted)
     local report = {}
     local function add(text) report[#report + 1] = text end
+    add("MobHunter probe revision " .. Probe.REVISION .. ", hunting: " .. tostring(hunted or "nothing"))
     add("Minimap: " .. (minimap and "found" or "MISSING")
         .. ", UpdateMouseoverAtPoint: " .. tostring(minimap and type(minimap.UpdateMouseoverAtPoint) or "n/a")
         .. ", SetUsingSoftCursor: " .. tostring(minimap and type(minimap.SetUsingSoftCursor) or "n/a")
