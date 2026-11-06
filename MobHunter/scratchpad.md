@@ -1,8 +1,11 @@
-Feature set -- I want to be able to type in /mobhunt &lt;mob name&gt; and mobhunter will:  
-  
-1) look at in-range mobs that can be targeted and if any of them match the name of the mob I am hunting, it alerts me with a sound, auto-targets it, and highlights it on my minimap.
+Okay, new feature:  
 
-2) if the player is tracking anything, also look on minimap at tracked mobs to see if any tracked mobs match the name of the hunted mob.  if found, same rules as #1.  
+I want MobHunter to be able to interface with the player's quest log and automatically suggest hunt targets based on a quest if that quest includes a target for specific mob kills or drops from specific mobs.    
   
+I wonder if we could figure out what mobs, specifically, drop the quest items that a quest needs.  for example, the Guns of Northwatch quest needs Theramore Medals from the Marines and Priests that are there -- it would be cool if this addon suggested both of those as hunt targets.  
   
-lets also double check that this is okay with the WoW terms of service. it probably is, but I want to be sure.
+Similarly, the quest for Raptor Horns in the Barrens -- the horns only drop from the Sunscale Scytheclaw raptors.  It would be cool for the addon to know that and suggest them as the hunt target.    
+  
+We might need to do some research into how other addons handle this (addons like [Questie - World of Warcraft Addons - CurseForge](https://www.curseforge.com/wow/addons/questie), [Questie/Questie: Questie: The WoW Classic quest helper](https://github.com/Questie/Questie), for example)  
+  
+Lets file some beads. the first bead should be a research bead to look into what we will need to do to get this feature working as expected.
