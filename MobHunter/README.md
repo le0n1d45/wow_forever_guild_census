@@ -28,9 +28,9 @@ button** appears on screen only while a matching mob is in targeting range (insi
 
 *Real client, Forever: Options > AddOns > MobHunter.*
 
-![MobHunter's icon (the red crosshair) drawn over a hunted mob's tracking dot on the minimap](../docs/MobHunter_minimap_icon.png)
+![MobHunter's icon (the red crosshair) drawn over each hunted mob's tracking dot on the minimap](../docs/MobHunter_minimap_icon.png)
 
-*Real client, Forever: a hunted mob among the tracking dots, with the MobHunter icon over its dot.*
+*Real client, Forever, hunting "razormane": the MobHunter icon sits on each matching hostile dot, including ones close together.*
 
 ## What it looks at
 
