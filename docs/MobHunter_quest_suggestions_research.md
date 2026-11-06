@@ -4,6 +4,9 @@ Goal: read the player's quest log and suggest hunt targets: mobs named in kill o
 mobs that drop items named in item objectives (Guns of Northwatch: Theramore Medals from the
 Marines and Priests; Barrens Raptor Horns: only Sunscale Scytheclaw).
 
+Update: the QuestieDB 1.0.11 Forever zip was later supplied and decoded offline (section 7), which
+settles the API shape and the two example quests. Nothing was run in the real client.
+
 Sources: a read-only clone of github.com/Questie/Questie (Forever TOC `Questie_Forever.toc`, v12.6.2),
 its `docs/`, `Database/QuestieDB.lua`, `Database/DropTables/dropDB.lua` and the Forever API
 annotations under `.types/`. Nothing here was run in the real client.
@@ -82,3 +85,49 @@ abandoned; do not auto-remove mobs the user typed.
 - Whether Guns of Northwatch and the Raptor Horns quest resolve to the mobs expected, with and
   without Questie's quest-only filtering.
 - Locale format-string patterns.
+
+## 7. Verified against QuestieDB 1.0.11 (Forever) data
+
+The addon ships its data as CBOR in TOC metadata (`X-Quest-<id>-10`, `X-Item-<id>-2`, ...), plus
+Lua drop tables under `support/Forever/DropTables/`. Decoding them offline gives:
+
+API (from `Types/*.t.lua`, a documented public surface, contract 4; `LibQuestieDB.RequireContract(4)`
+checks support):
+
+- `LibQuestieDB.Quest.objectives(questID)` -> `{ [1]=kill {npcId,text,..}[], [2]=objects, [3]=items {itemId,text,..}[], [5]=killCredit, ... }`
+- `LibQuestieDB.Item.npcDrops(itemId)` -> npc ids; `LibQuestieDB.Item.name(itemId)`
+- `LibQuestieDB.Npc.name(npcId)` (also `minLevel`, `maxLevel`, `rank`, `zoneID`)
+- Reads are cached and composed with corrections; the dependency is declared `RequireContract`
+  rather than a hard `## Dependencies` (the provider says independent release cycles make skew likely),
+  so our bridge should check `LibQuestieDB` and `RequireContract` at runtime and `pcall` the reads.
+- Licence is the same "all rights reserved when in doubt" notice as Questie: read it at runtime,
+  do not copy it.
+
+Example quests (decoded):
+
+| Quest (id) | Objective | Mobs from the database |
+| --- | --- | --- |
+| The Guns of Northwatch (891) | kill Captain Fairmount, Cannoneer Whessan, Cannoneer Smythe; item: Theramore Medal | Medal drops (Wowhead rate): Theramore Marine 46%, Theramore Preserver 32%, Captain Fairmount 29%, Cannoneer Smythe 29%, Cannoneer Whessan 16%; plus Theramore Guard (npc 261485), which is in the Forever data but has no rate |
+| Raptor Horns (865) | item: Intact Raptor Horn | Sunscale Scytheclaw 26%, Takk the Leaper 6.9%, Ishamuhale 1.4% |
+
+Takeaways:
+
+- Guns of Northwatch is **both**: the three named bosses come from the kill rows (phase 1, no
+  database); the Marines and Preservers (your "Marines and Priests") come only from the item
+  objective, so they need the QuestieDB bridge or learned drops.
+- Raptor Horns returns **three** mobs, not only the Scytheclaws: Takk and Ishamuhale are rare
+  raptors that also drop it. The cmangos quest-only correction table lists all three at 80%, so
+  the data cannot narrow it further. Rank them by the Wowhead drop rate
+  (`LibQuestieDB.Support.Get("QuestieClassicItemDrops")` holds the rate tables, or Questie's
+  `GetItemDroprate`) and show the best first, or suggest only mobs above a rate cutoff
+  (for example 10%) with the rest behind a "show rare drops" choice. Learned drops (phase 3) confirm
+  which mobs the player actually saw drop it.
+- Quest objective rows in the quest log carry no IDs, so match item objectives by name:
+  `Item.name(itemId)` against the parsed row text. Quest.objectives order is not guaranteed to
+  equal the log row order (Questie has an "Objective Order" for that), so do not match by index.
+- The entity tables store sparse objectives as lists with holes, but the public `objectives()` API
+  returns the documented positional tuple; always go through the API, never decode the TOC.
+- Nothing is lost if QuestieDB is missing: phases 1 and 3 still work.
+
+Still to verify in game: the quest-log row `type` and text for these two quests, and that
+`LibQuestieDB.Support.Get(...)` exposes the rate tables to a third-party addon.
