@@ -39,7 +39,7 @@ button** appears on screen only while a matching mob is in targeting range (insi
    no call that lists minimap blips, so MobHunter does what the NodeSight addon does: it moves the
    minimap's soft cursor over a grid of points and reads the tooltip the game would show there. A dot
    whose tooltip names the hunted mob gets the icon. The dot itself can't be hidden by an addon, so the icon (a child frame of the minimap,
-   about the size of a dot) is drawn on top of it.
+   a pixel larger than a dot) is drawn on top of it.
 
 ## Why it doesn't target the mob by itself
 

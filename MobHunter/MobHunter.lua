@@ -119,9 +119,9 @@ end
 
 -- MobHunter's icon on the minimap, one per hunted mob found among the tracking dots. The
 -- client draws the dots itself and gives addons no way to hide them, so the icon is a child
--- frame above the minimap, about the size of a dot, drawn on top of it.
+-- frame above the minimap, a pixel larger than a dot, drawn on top of it.
 local ICON_PATH = "Interface\\AddOns\\MobHunter\\icon"
-local ICON_SIZE, MAX_ICONS = 10, 8
+local ICON_SIZE, MAX_ICONS = 11, 8
 local function iconFor(i)
     local icon = icons[i]
     if not icon then
