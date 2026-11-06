@@ -312,6 +312,7 @@ return function()
                 if k == "SetAttribute" then return function(self, a, v) self.attrs[a] = v end end
                 if k == "Show" then return function(self) self.shown = true end end
                 if k == "Hide" then return function(self) self.shown = false end end
+                if k == "SetChecked" then return function(self, on) self.checked = on and true or false end end
                 if k == "SetShown" then return function(self, on) self.shown = on and true or false end end
                 if k == "GetWidth" then return function() return 140 end end
                 return function() return t end -- any other method: no-op returning itself
@@ -557,10 +558,15 @@ return function()
             local frame = MobHunterEventFrame
             frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
             assertEqual(MobHunterDB.playSound, true) -- on by default
+            assertEqual(mh.MobHunter.GetWindow().sound.checked, true) -- the Hunt window's box shows it from the start
             local box = mh.Options.panel.controls.playSound
             rawset(box, "GetChecked", function() return false end)
             box.scripts.OnClick(box)
             assertEqual(MobHunterDB.playSound, false)
+            SlashCmdList["MOBHUNT"]("sound on")
+            assertEqual(mh.MobHunter.GetWindow().sound.checked, true) -- /mobhunt sound updates the window too
+            SlashCmdList["MOBHUNT"]("sound off")
+            assertEqual(mh.MobHunter.GetWindow().sound.checked, false)
             SlashCmdList["MOBHUNT"]("stalker")
             assertEqual(#sounds, 0) -- found, but silent
             SlashCmdList["MOBHUNT"]("stop")

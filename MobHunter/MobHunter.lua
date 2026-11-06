@@ -91,6 +91,7 @@ local function createButton()
         isSound = function() return ns.MobHunter.GetPlaySound() end,
     })
     button = huntWindow.targetButton
+    huntWindow.SetSound(soundOn()) -- OnShow doesn't fire for a frame that starts out shown
     huntWindow.frame:SetShown(ns.HuntWindow.ShouldShow())
 end
 
