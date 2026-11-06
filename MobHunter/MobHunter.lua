@@ -7,7 +7,8 @@ local addonName, ns = ...
 
 local SCAN_SECONDS = 1
 local PROBE_STEP = 8 -- minimap units between probe points; a dot answers within about 10, so 8 leaves no gaps
-local PROBES_PER_FRAME = 40 -- minimap probes done per frame, so a scan never stalls the game
+local PROBES_PER_FRAME = 30 -- minimap probes done per frame, so a scan never stalls the game
+local PROBE_MS = 1 -- ...and at most about this many milliseconds of them per frame
 local ALERT_SOUND = 8959 -- raid warning; used only if SOUNDKIT doesn't name it
 
 local hunted -- normalized name being hunted, or nil
@@ -268,7 +269,7 @@ end
 local function advanceJob()
     if not job then return end
     if not hunted or InCombatLockdown() then return stopJob() end
-    local done, centres = ns.Probe.Advance(job, PROBES_PER_FRAME)
+    local done, centres = ns.Probe.Advance(job, PROBES_PER_FRAME, PROBE_MS)
     if done then
         stopJob()
         finishMinimapScan(centres)

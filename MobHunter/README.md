@@ -82,7 +82,7 @@ EULA before publishing.
 - That nameplate unit names are readable (they may be "secret values" in some situations; MobHunter treats
   an unreadable name as "no match").
 - Anchoring a marker to a nameplate, the sound ID, and the key binding file (`Bindings.xml`).
-- Performance of the minimap probe. A scan is about 500 tooltip lookups (8-unit grid) plus a finer pass around hits, done 40 per frame and then waiting 1-4 s (longer when it finds nothing), so it never lands on one frame; CPU use with the real client is not measured.
+- Performance of the minimap probe. A scan is about 500 tooltip lookups (8-unit grid) plus a finer pass around hits, done 30 per frame (at most about 1 ms of them) and then waiting 1-4 s (longer when it finds nothing), so it never lands on one frame; CPU use with the real client is not measured.
 
 ## Development
 

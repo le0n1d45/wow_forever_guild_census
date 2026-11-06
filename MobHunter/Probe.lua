@@ -15,7 +15,11 @@ ns.Probe = Probe
 Probe.REVISION = 4
 
 -- Points on a square grid inside a circle, as offsets from its centre.
+local gridCache = {} -- the same grid is wanted every scan; building it each time is garbage
+
 function Probe.Grid(radius, step)
+    local key = radius .. "/" .. step
+    if gridCache[key] then return gridCache[key] end
     local points = {}
     for dx = -radius, radius, step do
         for dy = -radius, radius, step do
@@ -24,6 +28,7 @@ function Probe.Grid(radius, step)
             end
         end
     end
+    gridCache[key] = points
     return points
 end
 
@@ -234,7 +239,7 @@ end
 -- hit, so the edges of the hit blobs are measured), "fit" (Fit, one radius per call while the
 -- radius is being worked out), "done". `step` is the coarse grid spacing in minimap units.
 local FINE = 4
-local FULL_SEARCH_EVERY = 10
+local FULL_SEARCH_EVERY = 30
 
 function Probe.StartScan(minimap, hunted, step)
     if not Probe.Available(minimap) then return nil end
@@ -244,7 +249,7 @@ function Probe.StartScan(minimap, hunted, step)
     return {
         minimap = minimap, hunted = hunted, step = step, left = left, bottom = bottom, scale = scale,
         radius = radius, phase = "coarse", queue = Probe.Grid(radius, step), index = 1,
-        points = {}, coarse = {}, centres = {},
+        points = {}, coarse = {}, centres = {}, zeroX = {}, zeroY = {},
     }
 end
 
@@ -273,25 +278,55 @@ local function fitStep(job)
     if job.radiusIndex > #job.radii then finishFit(job, job.bestCentres or {}, job.bestRadius) end
 end
 
-local function probeQueue(job, budget)
+-- Probes queued points until `budget` probes are done or `maxMs` milliseconds have passed
+-- (always at least one). A coarse probe that finds nothing is kept as two numbers rather than a
+-- table, since most of them are thrown away: only those near a hit matter to the fit.
+local function probeQueue(job, budget, maxMs)
     local count = 0
-    while job.index <= #job.queue and count < budget do
-        local p = job.queue[job.index]
+    local started = maxMs and debugprofilestop and debugprofilestop()
+    local queue = job.queue
+    while job.index <= #queue and count < budget do
+        local p = queue[job.index]
         job.index = job.index + 1
         count = count + 1
         local data = probeAt(job.minimap, job.left, job.bottom, job.scale, job.radius, p[1], p[2])
         local n = Probe.CountMatches(job.hunted, data)
-        local point = { p[1], p[2], n }
-        job.points[#job.points + 1] = point
-        if job.phase == "coarse" and n > 0 then job.coarse[#job.coarse + 1] = point end
+        if n > 0 then
+            local point = { p[1], p[2], n }
+            job.points[#job.points + 1] = point
+            if job.phase == "coarse" then job.coarse[#job.coarse + 1] = point end
+        elseif job.phase == "coarse" then
+            local z = #job.zeroX + 1
+            job.zeroX[z], job.zeroY[z] = p[1], p[2]
+        else
+            job.points[#job.points + 1] = { p[1], p[2], 0 }
+        end
+        if started and debugprofilestop() - started >= maxMs then break end
     end
-    return job.index > #job.queue
+    return job.index > #queue
 end
 
-local function advance(job, budget)
+-- After the coarse pass: keep (as points with count 0) only the empty probes close enough to a
+-- hit to matter, which are the ones that show where a dot's edge is.
+local NEAR = 32
+local function keepNearbyZeros(job)
+    local reach = NEAR * NEAR
+    for z = 1, #job.zeroX do
+        local x, y = job.zeroX[z], job.zeroY[z]
+        for _, c in ipairs(job.coarse) do
+            if (c[1] - x) ^ 2 + (c[2] - y) ^ 2 <= reach then
+                job.points[#job.points + 1] = { x, y, 0 }
+                break
+            end
+        end
+    end
+    job.zeroX, job.zeroY = nil, nil
+end
+
+local function advance(job, budget, maxMs)
     if job.phase == "coarse" or job.phase == "fine" then
         if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(true) end
-        local finished = probeQueue(job, budget)
+        local finished = probeQueue(job, budget, maxMs)
         if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(false) end
         if finished and job.phase == "coarse" then
             if #job.coarse == 0 then
@@ -299,6 +334,7 @@ local function advance(job, budget)
                 Probe.last = { points = #job.points, hits = 0, centres = {} }
                 return
             end
+            keepNearbyZeros(job)
             local queue, seen = {}, {}
             for _, c in ipairs(job.coarse) do
                 for fx = -job.step, job.step, FINE do
@@ -321,10 +357,10 @@ local function advance(job, budget)
     end
 end
 
--- Returns done, centres. centres are the dots' offsets from the minimap's centre in minimap
+-- `maxMs` caps the time spent on probing in this call. Returns done, centres. centres are the dots' offsets from the minimap's centre in minimap
 -- units ({ { dx, dy }, ... }). Never raises: an error ends the job with no dots.
-function Probe.Advance(job, budget)
-    local ok = pcall(advance, job, budget or 50)
+function Probe.Advance(job, budget, maxMs)
+    local ok = pcall(advance, job, budget or 50, maxMs)
     if not ok then
         pcall(function() if job.minimap.SetUsingSoftCursor then job.minimap:SetUsingSoftCursor(false) end end)
         job.phase, job.centres = "done", {}
