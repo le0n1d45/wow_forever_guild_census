@@ -178,6 +178,39 @@ return function()
             assertEqual(Probe.LineText(nil), nil)
         end)
 
+        it("Split gives one centre for one dot and two for two dots that overlap", function()
+            local function disc(cx, cy, r)
+                local pts = {}
+                for x = cx - r, cx + r, 2 do
+                    for y = cy - r, cy + r, 2 do
+                        if (x - cx) ^ 2 + (y - cy) ^ 2 <= r * r then pts[#pts + 1] = { x, y } end
+                    end
+                end
+                return pts
+            end
+            local one = Probe.Split(disc(50, 50, 5), 5)
+            assertEqual(#one, 1)
+            assert(math.abs(one[1][1] - 50) < 2 and math.abs(one[1][2] - 50) < 2)
+            local both = disc(50, 50, 5)
+            for _, p in ipairs(disc(58, 50, 5)) do both[#both + 1] = p end
+            assertEqual(#Probe.Split(both, 5), 2)
+        end)
+
+        it("Find reports dots that sit close together separately", function()
+            local m = fakeMinimap("Greater Plainstrider", 60, 70, 70)
+            local dots = { { 60, 70 }, { 68, 70 }, { 100, 100 } }
+            local HIT = 5
+            C_TooltipInfo = { GetMinimapMouseover = function()
+                local x, y = m.cursor[1], m.cursor[2]
+                for _, d in ipairs(dots) do
+                    if (x - d[1]) ^ 2 + (y - d[2]) ^ 2 <= HIT * HIT then
+                        return { lines = { { leftText = "Greater Plainstrider" } } }
+                    end
+                end
+            end }
+            assertEqual(#Probe.Find(m, "plainstrider", 6), 3)
+        end)
+
         it("Find passes screen coordinates: (left + x) * scale, (bottom + y) * scale, as NodeSight does", function()
             local calls = {}
             local m = {}

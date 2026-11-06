@@ -6,7 +6,7 @@ local addonName, ns = ...
 -- "/target <name>" when pressed.
 
 local SCAN_SECONDS = 1
-local PROBE_STEP = 8 -- minimap units between probe points (NodeSight uses 8)
+local PROBE_STEP = 6 -- minimap units between probe points; a dot answers within about 5, so 6 leaves no gaps
 local ALERT_SOUND = 8959 -- raid warning; used only if SOUNDKIT doesn't name it
 
 local hunted -- normalized name being hunted, or nil
@@ -121,7 +121,7 @@ end
 -- client draws the dots itself and gives addons no way to hide them, so the icon is a child
 -- frame above the minimap, a pixel larger than a dot, drawn on top of it.
 local ICON_PATH = "Interface\\AddOns\\MobHunter\\icon"
-local ICON_SIZE, MAX_ICONS = 11, 8
+local ICON_SIZE, MAX_ICONS = 11, 24
 local function iconFor(i)
     local icon = icons[i]
     if not icon then
