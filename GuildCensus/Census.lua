@@ -5,9 +5,7 @@ ns.Census = Census
 
 Census.LEVEL_BUCKET_SIZE = 10
 Census.MAX_PROFESSIONS = 2
-Census.MAX_COMBO_SLICES = 9 -- race/class combos past this many share one "Other" slice
 Census.UNKNOWN_RACE = "Unknown"
-Census.OTHER_COMBOS = "Other"
 
 -- Classes with no tank or healer spec are counted as DPS without needing a note.
 local PURE_DPS_CLASSES = { WARLOCK = true, HUNTER = true, MAGE = true, ROGUE = true }
@@ -53,22 +51,6 @@ local function toSlices(counts, sortKey)
         return a.label < b.label
     end)
     return slices
-end
-
--- Keeps the `keep` biggest slices (the list is already sorted) and folds the rest
--- into one "Other" slice, so a legend with dozens of entries stays readable.
-local function foldTail(slices, keep, label)
-    if #slices <= keep then return slices end
-    local folded, other = {}, 0
-    for i, slice in ipairs(slices) do
-        if i <= keep then
-            folded[i] = slice
-        else
-            other = other + slice.count
-        end
-    end
-    folded[#folded + 1] = { label = label, count = other }
-    return folded
 end
 
 -- "Mining ('miner'), Tailor ('tailor')"
@@ -272,8 +254,8 @@ function Census.Build(members, settings)
         slice.label = classNames[slice.label] or slice.label
     end
 
-    -- Not class-coloured: several combos share a class, and neighbours need distinct colours.
-    local comboSlices = foldTail(toSlices(combos), Census.MAX_COMBO_SLICES, Census.OTHER_COMBOS)
+    -- Every combo gets a slice. Not class-coloured: several combos share a class, and
+    -- neighbours need distinct colours.
 
     table.sort(conflicts, function(a, b)
         local an, bn = string.lower(a.name), string.lower(b.name)
@@ -288,7 +270,7 @@ function Census.Build(members, settings)
         professions = toSlices(professions),
         classes = classSlices,
         races = toSlices(races),
-        raceClasses = comboSlices,
+        raceClasses = toSlices(combos),
         levels = toSlices(levels, function(slice) return levelOrder[slice.label] end),
         conflicts = conflicts,
     }

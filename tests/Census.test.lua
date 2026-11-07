@@ -81,20 +81,17 @@ return function(ns)
             })
         end)
 
-        it("folds the smallest combos into Other past MAX_COMBO_SLICES", function()
+        it("lists every combo, however many there are, biggest first", function()
             local members, classes = {}, { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
-            for i = 1, 20 do
-                -- combo i has 21 - i members, so the order is known and "Other" is the tail
-                for _ = 1, 21 - i do
+            for i = 1, 30 do
+                for _ = 1, 31 - i do -- combo i has 31 - i members
                     members[#members + 1] = member("Race" .. i, classes[i % #classes + 1], "C")
                 end
             end
             local combos = Census.Build(members).raceClasses
-            assertEqual(#combos, Census.MAX_COMBO_SLICES + 1)
-            assertEqual(combos[1].label, "Race1 C")
-            local tail = 0
-            for i = Census.MAX_COMBO_SLICES + 1, 20 do tail = tail + (21 - i) end
-            assertEqual(combos[#combos], { label = "Other", count = tail })
+            assertEqual(#combos, 30)
+            assertEqual(combos[1], { label = "Race1 C", count = 30 })
+            assertEqual(combos[30], { label = "Race30 C", count = 1 })
         end)
 
         it("keeps every combo when there are few, and has no slices for an empty roster", function()

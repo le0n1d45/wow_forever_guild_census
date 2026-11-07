@@ -4,7 +4,7 @@ local PieChart = {}
 ns.PieChart = PieChart
 
 local SEGMENTS = 360
-local MAX_LEGEND = 14
+local MAX_LEGEND = 14 -- legend lines per column
 
 local PALETTE = {
     { 0.20, 0.60, 0.86 }, { 0.90, 0.30, 0.24 }, { 0.18, 0.80, 0.44 },
@@ -19,8 +19,19 @@ local function sliceColor(slice, index)
         local c = RAID_CLASS_COLORS[slice.classFile]
         return c.r, c.g, c.b
     end
-    local c = PALETTE[(index - 1) % #PALETTE + 1]
-    return c[1], c[2], c[3]
+    if index <= #PALETTE then
+        local c = PALETTE[index]
+        return c[1], c[2], c[3]
+    end
+    -- Past the palette (a chart with dozens of slices): spread hues by the golden ratio and
+    -- alternate brightness, so neighbours stay apart.
+    local hue = (index * 0.618034) % 1
+    local value = index % 2 == 0 and 0.95 or 0.70
+    local sector, f = math.floor(hue * 6), hue * 6 - math.floor(hue * 6)
+    local p, q, t = value * 0.4, value * (1 - 0.6 * f), value * (1 - 0.6 * (1 - f))
+    local rgb = ({ { value, t, p }, { q, value, p }, { p, value, t }, { p, q, value },
+                   { t, p, value }, { value, p, q } })[sector % 6 + 1]
+    return rgb[1], rgb[2], rgb[3]
 end
 
 -- WoW has no native pie widget, so the disc is drawn as SEGMENTS thin lines
@@ -31,9 +42,13 @@ local function setWedge(line, canvas, degree, radius)
     line:SetEndPoint("CENTER", canvas, radius * math.sin(angle), radius * math.cos(angle))
 end
 
-function PieChart.Create(parent, title, radius)
+-- opts (optional): legendColumns (default 1) and columnWidth (default 190); a chart with
+-- many slices fills each column of MAX_LEGEND lines in turn.
+function PieChart.Create(parent, title, radius, opts)
+    opts = opts or {}
+    local columns, columnWidth = opts.legendColumns or 1, opts.columnWidth or 190
     local chart = CreateFrame("Frame", nil, parent)
-    chart:SetSize(radius * 2 + 190, radius * 2 + 24)
+    chart:SetSize(radius * 2 + 10 + columns * columnWidth, radius * 2 + 24)
 
     chart.title = chart:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     chart.title:SetPoint("TOPLEFT", 0, 0)
@@ -58,9 +73,10 @@ function PieChart.Create(parent, title, radius)
     chart.empty:SetText("No data")
 
     local legend = {}
-    for i = 1, MAX_LEGEND do
+    for i = 1, MAX_LEGEND * columns do
         local text = chart:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        text:SetPoint("TOPLEFT", canvas, "TOPRIGHT", 10, -(i - 1) * 14)
+        local column, line = math.floor((i - 1) / MAX_LEGEND), (i - 1) % MAX_LEGEND
+        text:SetPoint("TOPLEFT", canvas, "TOPRIGHT", 10 + column * columnWidth, -line * 14)
         text:SetJustifyH("LEFT")
         text:Hide()
         legend[i] = text

@@ -260,6 +260,19 @@ return function()
             end
         end)
 
+        it("the race and class legend lists every combo, in columns", function()
+            local ns = loadAddon()
+            SlashCmdList["GUILDCENSUS"]("demo")
+            local combos = ns.Census.Build(ns.Demo.Generate(), ns.settings).raceClasses
+            assert(#combos > 14, "demo should have more combos than one legend column holds")
+            local legend = GuildCensusWindow.charts.raceClasses.legend
+            for i, slice in ipairs(combos) do
+                assert(legend[i] and legend[i].shown, "no legend line for " .. slice.label)
+                assert(legend[i].text:find(slice.label, 1, true), "legend line " .. i .. " is not " .. slice.label)
+            end
+            assertEqual(legend[#combos + 1] == nil or legend[#combos + 1].shown, false)
+        end)
+
         it("demo mode toggles off on a second /gcensus demo", function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
