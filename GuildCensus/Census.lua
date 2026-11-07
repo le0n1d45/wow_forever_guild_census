@@ -5,7 +5,7 @@ ns.Census = Census
 
 Census.LEVEL_BUCKET_SIZE = 10
 Census.MAX_PROFESSIONS = 2
-Census.MAX_COMBO_SLICES = 13 -- race/class combos past this many share one "Other" slice
+Census.MAX_COMBO_SLICES = 9 -- race/class combos past this many share one "Other" slice
 Census.UNKNOWN_RACE = "Unknown"
 Census.OTHER_COMBOS = "Other"
 

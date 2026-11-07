@@ -49,7 +49,7 @@ end
 
 local function build()
     local f = CreateFrame("Frame", addonName .. "Window", UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(1050, 470)
+    f:SetSize(1160, 470)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -82,7 +82,7 @@ local function build()
     for i, def in ipairs(CHARTS) do
         local chart = ns.PieChart.Create(f.censusPane, def.title, RADIUS)
         local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
-        chart:SetPoint("TOPLEFT", 16 + col * 340, -30 - row * 188)
+        chart:SetPoint("TOPLEFT", 16 + col * 375, -30 - row * 188)
         f.charts[def.key] = chart
     end
 
