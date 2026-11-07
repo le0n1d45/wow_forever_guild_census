@@ -104,6 +104,7 @@ function InstallWowStub(options)
     dropdownMode = options.dropdown or "modern"
 
     C_Club = nil -- set below only when options.club is given
+    C_CreatureInfo, GetPlayerInfoByGUID = nil, nil -- set below only when options.raceNames / options.playerRaces is given
 
     -- Legacy dropdown API, present only when the fake client is in "legacy" mode.
     LegacyMenuItems = {}
@@ -158,6 +159,21 @@ function InstallWowStub(options)
             GetClubMembers = call(function() return ids end),
             GetMemberInfo = call(function(_, id) return club.members[id] end),
         }
+    end
+
+    -- Race lookups. options.raceNames = { [raceId] = "Name" } (C_CreatureInfo.GetRaceInfo);
+    -- options.playerRaces = { [guid] = "Name" } (GetPlayerInfoByGUID's third return, the client's cache).
+    if options.raceNames then
+        C_CreatureInfo = { GetRaceInfo = function(id)
+            return options.raceNames[id] and { raceName = options.raceNames[id] } or nil
+        end }
+    end
+    if options.playerRaces then
+        GetPlayerInfoByGUID = function(guid)
+            local race = options.playerRaces[guid]
+            if not race then return nil end
+            return "Mage", "MAGE", race, string.upper(race)
+        end
     end
 
     -- Retail Settings API (canvas categories); records what the addon registers/opens.

@@ -5,6 +5,9 @@ ns.Census = Census
 
 Census.LEVEL_BUCKET_SIZE = 10
 Census.MAX_PROFESSIONS = 2
+Census.MAX_COMBO_SLICES = 13 -- race/class combos past this many share one "Other" slice
+Census.UNKNOWN_RACE = "Unknown"
+Census.OTHER_COMBOS = "Other"
 
 -- Classes with no tank or healer spec are counted as DPS without needing a note.
 local PURE_DPS_CLASSES = { WARLOCK = true, HUNTER = true, MAGE = true, ROGUE = true }
@@ -50,6 +53,22 @@ local function toSlices(counts, sortKey)
         return a.label < b.label
     end)
     return slices
+end
+
+-- Keeps the `keep` biggest slices (the list is already sorted) and folds the rest
+-- into one "Other" slice, so a legend with dozens of entries stays readable.
+local function foldTail(slices, keep, label)
+    if #slices <= keep then return slices end
+    local folded, other = {}, 0
+    for i, slice in ipairs(slices) do
+        if i <= keep then
+            folded[i] = slice
+        else
+            other = other + slice.count
+        end
+    end
+    folded[#folded + 1] = { label = label, count = other }
+    return folded
 end
 
 -- "Mining ('miner'), Tailor ('tailor')"
@@ -197,15 +216,17 @@ function Census.Analyze(member, rules)
     }
 end
 
--- members: list of { name, level, classFile, className, note }
+-- members: list of { name, level, classFile, className, note, race? }; a member with no
+-- race counts under "Unknown" in the race charts
 -- settings: Config settings table (defaults when omitted)
--- Returns { total, roles, professions, classes, levels, conflicts }. The chart
+-- Returns { total, roles, professions, classes, races, raceClasses, levels, conflicts }. The chart
 -- fields are slice lists; conflicts are computed over ALL members regardless of
 -- the alt/main filters, since their purpose is tuning detection.
 function Census.Build(members, settings)
     local rules = Census.Rules(settings)
 
     local roles, professions, classes, levels = {}, {}, {}, {}
+    local races, combos = {}, {}
     local levelOrder, classNames = {}, {}
     local conflicts, total = {}, 0
 
@@ -227,6 +248,16 @@ function Census.Build(members, settings)
                 increment(classes, member.classFile)
                 if member.className then classNames[member.classFile] = member.className end
             end
+
+            local race = member.race or Census.UNKNOWN_RACE
+            increment(races, race)
+            if member.race and member.classFile then
+                local combo = race .. " " .. (member.className or member.classFile)
+                increment(combos, combo)
+            else
+                increment(combos, Census.UNKNOWN_RACE)
+            end
+
             if member.level and member.level >= 1 then
                 local label, low = bucketLabel(member.level)
                 increment(levels, label)
@@ -241,6 +272,9 @@ function Census.Build(members, settings)
         slice.label = classNames[slice.label] or slice.label
     end
 
+    -- Not class-coloured: several combos share a class, and neighbours need distinct colours.
+    local comboSlices = foldTail(toSlices(combos), Census.MAX_COMBO_SLICES, Census.OTHER_COMBOS)
+
     table.sort(conflicts, function(a, b)
         local an, bn = string.lower(a.name), string.lower(b.name)
         if an ~= bn then return an < bn end
@@ -253,6 +287,8 @@ function Census.Build(members, settings)
         roles = toSlices(roles),
         professions = toSlices(professions),
         classes = classSlices,
+        races = toSlices(races),
+        raceClasses = comboSlices,
         levels = toSlices(levels, function(slice) return levelOrder[slice.label] end),
         conflicts = conflicts,
     }

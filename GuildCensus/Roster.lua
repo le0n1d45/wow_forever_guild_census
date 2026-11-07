@@ -53,16 +53,34 @@ function Roster.ProfessionsFromInfo(info)
     return list
 end
 
+-- The game's name for a race id (C_Club reports race as an id), or nil when unknown.
+function Roster.RaceName(raceId)
+    if type(raceId) ~= "number" or not (C_CreatureInfo and C_CreatureInfo.GetRaceInfo) then return nil end
+    local ok, info = pcall(C_CreatureInfo.GetRaceInfo, raceId)
+    if ok and type(info) == "table" and type(info.raceName) == "string" and info.raceName ~= "" then
+        return info.raceName
+    end
+end
+
+-- Fallback when the club has no race: the client's own cache for that guid. It only
+-- knows players it has seen, so offline members may come back empty.
+local function raceFromGuid(guid)
+    if type(guid) ~= "string" or not GetPlayerInfoByGUID then return nil end
+    local ok, _, _, race = pcall(GetPlayerInfoByGUID, guid)
+    if ok and type(race) == "string" and race ~= "" then return race end
+end
+
 local function stripRealm(name)
     return type(name) == "string" and string.match(name, "^[^%-]+") or nil
 end
 
 -- Supplemental data: the professions the game itself reports for each guild member
--- (C_Club), as { byGuid = { [guid] = list }, byName = { [name] = list } }. Notes stay
--- the fallback, so every failure here (API missing, clubs not ready, no guild club, a
--- member without data) just yields less data and never an error.
+-- (C_Club), as { byGuid = { [guid] = list }, byName = { [name] = list } }, plus the
+-- same two maps of race names under raceByGuid / raceByName. Notes stay the fallback,
+-- so every failure here (API missing, clubs not ready, no guild club, a member
+-- without data) just yields less data and never an error.
 function Roster.ReadClubProfessions()
-    local result = { byGuid = {}, byName = {} }
+    local result = { byGuid = {}, byName = {}, raceByGuid = {}, raceByName = {} }
     if not (C_Club and C_Club.GetGuildClubId and C_Club.GetClubMembers and C_Club.GetMemberInfo) then
         return result
     end
@@ -73,10 +91,15 @@ function Roster.ReadClubProfessions()
             local ok, info = pcall(C_Club.GetMemberInfo, clubId, memberId)
             if ok and type(info) == "table" then
                 local list = Roster.ProfessionsFromInfo(info)
+                local race = Roster.RaceName(info.race)
+                local name = stripRealm(info.name)
                 if #list > 0 then
                     if type(info.guid) == "string" then result.byGuid[info.guid] = list end
-                    local name = stripRealm(info.name)
                     if name then result.byName[name] = list end
+                end
+                if race then
+                    if type(info.guid) == "string" then result.raceByGuid[info.guid] = race end
+                    if name then result.raceByName[name] = race end
                 end
             end
         end
@@ -84,7 +107,8 @@ function Roster.ReadClubProfessions()
     return result
 end
 
--- Reads the cached guild roster into the member shape Census.Build expects.
+-- Reads the cached guild roster into the member shape Census.Build expects
+-- ({ name, level, className, classFile, note, online, professions?, race? }).
 function Roster.Read()
     if ns.demoMode then return ns.Demo.Generate() end
 
@@ -104,6 +128,7 @@ function Roster.Read()
             note = Roster.CombineNotes(note, officerNote),
             online = isOnline and true or false,
             professions = (guid and club.byGuid[guid]) or club.byName[name], -- nil when the game has none
+            race = (guid and club.raceByGuid[guid]) or club.raceByName[name] or raceFromGuid(guid), -- nil when unknown
         }
     end
     return members

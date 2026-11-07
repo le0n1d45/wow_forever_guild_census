@@ -8,6 +8,8 @@ local CHARTS = {
     { key = "roles",       title = "Roles (from notes)" },
     { key = "professions", title = "Professions (from notes)" },
     { key = "classes",     title = "Classes" },
+    { key = "races",       title = "Races" },
+    { key = "raceClasses", title = "Race and class" },
     { key = "levels",      title = "Levels" },
 }
 
@@ -47,7 +49,7 @@ end
 
 local function build()
     local f = CreateFrame("Frame", addonName .. "Window", UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(880, 470)
+    f:SetSize(1050, 470)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -79,8 +81,8 @@ local function build()
     f.charts = {}
     for i, def in ipairs(CHARTS) do
         local chart = ns.PieChart.Create(f.censusPane, def.title, RADIUS)
-        local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-        chart:SetPoint("TOPLEFT", 16 + col * 430, -30 - row * 188)
+        local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
+        chart:SetPoint("TOPLEFT", 16 + col * 340, -30 - row * 188)
         f.charts[def.key] = chart
     end
 

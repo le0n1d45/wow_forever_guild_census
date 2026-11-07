@@ -207,6 +207,48 @@ return function()
             end)
         end)
 
+        describe("member race", function()
+            local function raceOf(ns)
+                local out = {}
+                for _, m in ipairs(ns.Roster.Read()) do out[m.name] = m.race end
+                return out
+            end
+            local guild = {
+                { name = "Ann", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-1" },
+                { name = "Bob", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-2" },
+                { name = "Cy", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-3" },
+                { name = "Di", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-4" },
+            }
+
+            it("takes the race from the guild club by guid or name, then from the client's player cache", function()
+                local ns = loadAddon({ guild = guild,
+                    raceNames = { [5] = "Undead", [7] = "Gnome" },
+                    club = { guildId = "1", members = {
+                        [1] = { guid = "G-1", name = "Ann-Realm", race = 5 },
+                        [2] = { name = "Bob-Realm", race = 7 },
+                    } },
+                    playerRaces = { ["G-3"] = "Orc" } })
+                assertEqual(raceOf(ns), { Ann = "Undead", Bob = "Gnome", Cy = "Orc" })
+            end)
+
+            it("leaves race unset when no API can supply it, or they fail", function()
+                assertEqual(raceOf(loadAddon({ guild = guild })), {})
+                assertEqual(raceOf(loadAddon({ guild = guild, raceNames = {},
+                    club = { guildId = "1", members = { [1] = { guid = "G-1", race = 99 } } } })), {})
+                assertEqual(raceOf(loadAddon({ guild = guild, club = { guildId = "1", errors = true,
+                    members = { [1] = { guid = "G-1", race = 5 } } } })), {})
+            end)
+
+            it("the Census tab charts races, with Unknown for members without one", function()
+                loadAddon({ guild = guild, raceNames = { [5] = "Undead" },
+                    club = { guildId = "1", members = { [1] = { guid = "G-1", name = "Ann", race = 5 } } } })
+                SlashCmdList["GUILDCENSUS"]("")
+                local legend = GuildCensusWindow.charts.races.legend
+                assertEqual(legend[1].text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "■ Unknown: 3 (75%)")
+                assertEqual(legend[2].text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "■ Undead: 1 (25%)")
+            end)
+        end)
+
         it("demo mode fills every chart with legends", function()
             loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
@@ -229,7 +271,7 @@ return function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
             local census = ns.Census.Build(ns.Demo.Generate(), ns.settings)
-            for _, key in ipairs({ "roles", "professions", "classes", "levels" }) do
+            for _, key in ipairs({ "roles", "professions", "classes", "races", "raceClasses", "levels" }) do
                 local chartRuns = runs(GuildCensusWindow.charts[key])
                 local slices = census[key]
                 assertEqual(#chartRuns, #slices)

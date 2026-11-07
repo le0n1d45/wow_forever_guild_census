@@ -15,7 +15,7 @@ How to use it:
 
 ## Summary
 
-Pie charts of your guild's roles, professions, classes and levels, read from guild notes, plus finders for "who can tank this dungeon?" and "who has 260 leatherworking?"
+Pie charts of your guild's roles, professions, classes, races, race and class combinations, and levels, read from guild notes, plus finders for "who can tank this dungeon?" and "who has 260 leatherworking?"
 
 ## Description
 
@@ -26,14 +26,14 @@ Pie charts of your guild's roles, professions, classes and levels, read from gui
 **See what your guild is made of, and find the right person for the job.**
 
 Guild Census reads your guild members' **public notes** (and officer notes, if you can see them) and turns them into pie charts of **roles**
-(tank, healer, DPS), **professions**, **classes** and **levels**. Two finders then help you pick people:
+(tank, healer, DPS), **professions**, **classes**, **races** (and race + class combos) and **levels**. Two finders then help you pick people:
 a **Role Finder** for filling a group and a **Profession Finder** for finding a crafter.
 
 Type **/gcensus** to open it.
 
 ## What you get
 
-- **Census charts:** four pie charts with counts and percentages, in class colours.
+- **Census charts:** six pie charts with counts and percentages (classes in class colours). Races and race/class combinations (like "Undead Warlock") come from the game's guild data; anyone it can't tell shows as "Unknown".
 - **Role Finder:** search by role (Tank, Healer, DPS) and level range, or pick a **dungeon** and it fills in the
   level range for you. "Who can tank Wailing Caverns?" is two clicks.
 - **Profession Finder:** search by profession, and by **skill level** if your guild writes it in their notes

@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Guild Census
-## Notes: Pie charts of guild roles, professions, classes and levels, built from guild notes.
+## Notes: Pie charts of guild roles, professions, classes, races and levels, built from guild notes.
 ## Author: Le0n1d45
 ## Version: 0.6.0
 ## X-License: MIT

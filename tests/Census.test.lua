@@ -61,6 +61,57 @@ return function(ns)
         end)
     end)
 
+    describe("Census.Build races", function()
+        local function member(race, classFile, className)
+            return { level = 60, race = race, classFile = classFile, className = className, note = "" }
+        end
+
+        it("counts races, and race/class combos, with unknown races together", function()
+            local census = Census.Build({
+                member("Orc", "WARRIOR", "Warrior"), member("Orc", "WARRIOR", "Warrior"),
+                member("Orc", "SHAMAN", "Shaman"), member("Human", "MAGE", "Mage"),
+                member(nil, "MAGE", "Mage"),
+            })
+            assertEqual(census.races, {
+                { label = "Orc", count = 3 }, { label = "Human", count = 1 }, { label = "Unknown", count = 1 },
+            })
+            assertEqual(census.raceClasses, {
+                { label = "Orc Warrior", count = 2 }, { label = "Human Mage", count = 1 },
+                { label = "Orc Shaman", count = 1 }, { label = "Unknown", count = 1 },
+            })
+        end)
+
+        it("folds the smallest combos into Other past MAX_COMBO_SLICES", function()
+            local members, classes = {}, { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+            for i = 1, 20 do
+                -- combo i has 21 - i members, so the order is known and "Other" is the tail
+                for _ = 1, 21 - i do
+                    members[#members + 1] = member("Race" .. i, classes[i % #classes + 1], "C")
+                end
+            end
+            local combos = Census.Build(members).raceClasses
+            assertEqual(#combos, Census.MAX_COMBO_SLICES + 1)
+            assertEqual(combos[1].label, "Race1 C")
+            local tail = 0
+            for i = Census.MAX_COMBO_SLICES + 1, 20 do tail = tail + (21 - i) end
+            assertEqual(combos[#combos], { label = "Other", count = tail })
+        end)
+
+        it("keeps every combo when there are few, and has no slices for an empty roster", function()
+            assertEqual(#Census.Build({ member("Orc", "WARRIOR", "Warrior") }).raceClasses, 1)
+            assertEqual(Census.Build({}).races, {})
+            assertEqual(Census.Build({}).raceClasses, {})
+        end)
+
+        it("respects the alts filter like the other charts", function()
+            local census = Census.Build({
+                { level = 60, race = "Orc", classFile = "WARRIOR", className = "Warrior", note = "alt of Bob" },
+                member("Human", "MAGE", "Mage"),
+            }, { includeAlts = false })
+            assertEqual(census.races, { { label = "Human", count = 1 } })
+        end)
+    end)
+
     describe("Census.Build pure-DPS classes", function()
         it("counts warlock, hunter, mage and rogue as DPS with empty notes", function()
             local census = Census.Build({

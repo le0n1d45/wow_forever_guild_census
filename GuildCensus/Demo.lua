@@ -12,6 +12,20 @@ local CLASS_NAMES = {
     PRIEST = "Priest", SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", DRUID = "Druid",
 }
 
+-- Races each class can be. Both factions are mixed
+-- (a real guild is one faction) so the race charts have plenty of slices to show.
+local CLASS_RACES = {
+    WARRIOR = { "Human", "Orc", "Dwarf", "Undead", "Night Elf", "Tauren", "Troll", "Gnome" },
+    PALADIN = { "Human", "Dwarf" },
+    HUNTER = { "Orc", "Night Elf", "Tauren", "Dwarf", "Troll" },
+    ROGUE = { "Human", "Undead", "Orc", "Night Elf", "Gnome", "Dwarf", "Troll" },
+    PRIEST = { "Human", "Undead", "Night Elf", "Dwarf", "Troll" },
+    SHAMAN = { "Orc", "Tauren", "Troll" },
+    MAGE = { "Undead", "Human", "Gnome", "Troll" },
+    WARLOCK = { "Undead", "Orc", "Human", "Gnome" },
+    DRUID = { "Night Elf", "Tauren" },
+}
+
 -- The roster is built from one stream per role, each spread evenly across levels
 -- 5-60, so every dungeon level range has tanks, healers and DPS to find. The note
 -- words match the default keyword lists, and each stream cycles through profession
@@ -204,6 +218,12 @@ function Demo.Generate(count, seed)
             end
         elseif i % 40 == 11 and ALL_ROLES_NOTES[member.classFile] then
             member.note = ALL_ROLES_NOTES[member.classFile]
+        end
+        -- After the conflict cases above, which can change a member's class. One member in
+        -- 50 has no race, as when the client can't supply it.
+        if i % 50 ~= 13 then
+            local races = CLASS_RACES[member.classFile]
+            member.race = races[(i + math.floor(i / 7)) % #races + 1]
         end
     end
     return members

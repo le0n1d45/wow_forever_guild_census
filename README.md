@@ -58,7 +58,7 @@ repository's TOC uses the Forever interface number.
 | `/gcensus config` | Open the settings panel |
 | `/gcensus demo` | Toggle a 500-member fake roster |
 
-The window has four tabs: **Census** (the four pie charts), **Role Finder**, **Profession Finder** and
+The window has four tabs: **Census** (the six pie charts: roles, professions, classes, races, race and class, levels), **Role Finder**, **Profession Finder** and
 **Logs**. The Logs tab
 shows how many conflicts were found, for example `Logs (27)`.
 
