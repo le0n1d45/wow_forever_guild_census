@@ -12,6 +12,7 @@ Type `/mobhunt <mob name>` and MobHunter tells you when that mob comes into rang
 | `/mobhunt sound on\|off` | Turn the alert sound on or off (also a checkbox in the options; saved in `MobHunterDB`; default on). |
 | `/mobhunt button on\|off` | Show or hide the Target button in the Hunt window (saved in `MobHunterDB`; default on). |
 | `/mobhunt macro` | Creates a "MobHunter" character macro (`/target <matched name>`, kept up to date) to drag onto an action bar. `/click MobHunterTargetButton` was tried first and did nothing in the client. |
+| `/mobhunt quests` | Lists the hunt targets suggested by your quest log (see Quest targets below). |
 | `/mobhunt debug` | Opens a copyable window with what the minimap probe can and can't do on this client (also saved as `lastDebug` in the SavedVariables file after `/reload`). |
 | `/mobhunt target` | Explains that a slash command can't target (protected) and points to `/mobhunt macro`. |
 
@@ -31,6 +32,28 @@ button** appears on screen only while a matching mob is in targeting range (insi
 ![MobHunter's icon (the red crosshair) drawn over each hunted mob's tracking dot on the minimap](../docs/MobHunter_minimap_icon.png)
 
 *Real client, Forever, hunting "razormane": the MobHunter icon sits on each matching hostile dot, including ones close together.*
+
+## Quest targets
+
+MobHunter reads your quest log (`C_QuestLog.GetQuestObjectives`) and suggests mobs to hunt. Suggestions are listed
+under **Quest targets** in the Hunt window; click one to add it to the hunt (the other hunts keep running), or
+tick **Hunt the suggested quest targets automatically** in the options (default off) to have them added for you
+and removed again when the objective is done. Stopping by hand keeps an automatic add from restarting the same
+target. **Suggest hunt targets from my quests** (default on) turns the list off. Research notes and the checks
+made against the real client are in `docs/MobHunter_quest_suggestions_research.md`.
+
+- **Kill objectives** ("Captain Fairmount slain") give the mob's name directly.
+- **Item objectives** ("Theramore Medal") name the item, not who drops it. Two sources supply the mobs:
+  1. The **QuestieDB** addon, if installed (`LibQuestieDB`, contract 4). MobHunter resolves the quest to its items,
+     the items to the mobs that drop them, and ranks them by Wowhead's drop rate, hiding sources under 10% unless
+     they are the best one (Raptor Horns lists three raptors; only the Sunscale Scytheclaws at 26% show). QuestieDB's
+     data is read at run time and never copied into MobHunter (its licence is unclear).
+  2. **Learned drops**: when you loot an item a quest still needs from a mob you have targeted (or moused over),
+     MobHunter remembers that mob (`MobHunterDB.learnedDrops`). This works without QuestieDB.
+- Items that come from objects (eggs, banners) have no mob, so nothing is suggested for them.
+- The client's row text puts the count first (`QUEST_MONSTERS_KILLED = "%2$d/%3$d %1$s slain"`) and an item's name
+  can be blank until it loads (`"0/15  "`); `Quests.CompileFormat` reads the argument order from the format
+  strings and the quest list is read again when item info arrives.
 
 ## What it looks at
 
@@ -74,6 +97,7 @@ EULA before publishing.
 
 ## Not verified on a real client
 
+- Quest targets: the quest log rows, the format strings and the QuestieDB calls were dumped in the Forever client, but the Hunt window's quest list, automatic adding and learned drops have only run against the test stub.
 - `Minimap:UpdateMouseoverAtPoint` and `C_TooltipInfo.GetMinimapMouseover`: the second is on the Warcraft
   Wiki for Forever 1.60.1; the first came from NodeSight's source and has no wiki page I could read. The
   coordinates follow NodeSight's call (screen coordinates: `(left + x) * scale`); that fixed an earlier guess that returned empty tooltips.

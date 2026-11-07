@@ -52,8 +52,22 @@ end
 
 local huntWindow -- the Hunt window (created on ADDON_LOADED)
 
+-- Quest targets: mobs suggested by the quest log (see Quests.lua), listed in the Hunt window.
+local suggestions, wantedItems = {}, {} -- the current list; item names quests still need
+local needsItemInfo = false -- a needed item has no name yet
+local autoAdded, dismissed = {}, {} -- names the addon added itself; names the player stopped hunting
+local refreshSuggestions, applyAuto
+
 local function soundOn()
     return not (MobHunterDB and MobHunterDB.playSound == false)
+end
+
+local function suggestionsOn()
+    return not (MobHunterDB and MobHunterDB.showSuggestions == false)
+end
+
+local function autoAddOn()
+    return MobHunterDB ~= nil and MobHunterDB.autoAddSuggestions == true
 end
 
 local function setPlaySound(on)
@@ -88,9 +102,10 @@ end
 local function createButton()
     huntWindow = ns.HuntWindow.Create({
         onStart = function(text) ns.MobHunter.Start(text) end,
-        onStop = function() ns.MobHunter.Stop() end,
+        onStop = function() ns.MobHunter.UserStop() end,
         onSound = function(on) ns.MobHunter.SetPlaySound(on) end,
         isSound = function() return ns.MobHunter.GetPlaySound() end,
+        onSuggest = function(name) ns.MobHunter.AddHunt(name) end,
     })
     button = huntWindow.targetButton
     huntWindow.SetSound(soundOn()) -- OnShow doesn't fire for a frame that starts out shown
@@ -299,7 +314,7 @@ local function scan()
 end
 
 local function stop()
-    hunted, seenToken, seenName = nil, nil, nil
+    hunted, seenToken, seenName, autoAdded = nil, nil, nil, {}
     stopJob()
     nextScan, emptyScans = 0, 0
     if huntWindow then huntWindow.SetHunting(nil) end
@@ -310,11 +325,8 @@ local function stop()
     applyMacro()
 end
 
--- names: a list of normalized names, or text like "raptor, lion".
-local function start(names)
-    if type(names) ~= "table" then names = ns.Hunt.ParseNames(names) end
-    if #names == 0 then return end
-    stop()
+-- Begins hunting a list of normalized names (assumes nothing is being hunted).
+local function begin(names)
     hunted = names
     if not button then createButton() end
     huntWindow.SetHunting(names)
@@ -328,14 +340,144 @@ local function start(names)
     scan()
 end
 
+-- names: a list of normalized names, or text like "raptor, lion".
+local function start(names)
+    if type(names) ~= "table" then names = ns.Hunt.ParseNames(names) end
+    if #names == 0 then return end
+    stop()
+    begin(names)
+    applyAuto()
+end
+
+-- Adds one mob to the hunt without disturbing the others (a quest target was clicked).
+local function addHunt(name)
+    local key = ns.Hunt.Normalize(name)
+    if key == "" then return end
+    if not hunted then
+        begin({ key })
+        return
+    end
+    for _, existing in ipairs(hunted) do
+        if existing == key then return end
+    end
+    hunted[#hunted + 1] = key
+    huntWindow.SetHunting(hunted)
+    applyMacro()
+    say("also hunting |cffffff00" .. key .. "|r.")
+end
+
+-- What the player asked for: Stop (button or /mobhunt stop). Remembers the current quest targets
+-- so automatic adding doesn't start them again straight away.
+local function userStop()
+    for _, suggestion in ipairs(suggestions) do dismissed[ns.Hunt.Normalize(suggestion.name)] = true end
+    stop()
+end
+
+-- With "add quest targets automatically" on, hunts every suggestion (except ones the player
+-- stopped), and drops the ones it added when their objective is done.
+function applyAuto()
+    if not autoAddOn() then return end
+    local current = {}
+    for _, suggestion in ipairs(suggestions) do
+        local key = ns.Hunt.Normalize(suggestion.name)
+        current[key] = true
+        if not dismissed[key] then
+            local already = false
+            for _, existing in ipairs(hunted or {}) do
+                if existing == key then already = true end
+            end
+            if not already then
+                autoAdded[key] = true
+                addHunt(key)
+            end
+        end
+    end
+    for key in pairs(dismissed) do
+        if not current[key] then dismissed[key] = nil end
+    end
+    if not hunted then return end
+    local changed = false
+    for i = #hunted, 1, -1 do
+        if autoAdded[hunted[i]] and not current[hunted[i]] then
+            autoAdded[hunted[i]] = nil
+            table.remove(hunted, i)
+            changed = true
+        end
+    end
+    if changed then
+        if #hunted == 0 then
+            stop()
+        else
+            huntWindow.SetHunting(hunted)
+            applyMacro()
+        end
+    end
+end
+
+-- Re-reads the quest log (a moment after the last change: the log fires many updates at once).
+local refreshPending = false
+local function doRefresh()
+    refreshPending = false
+    if not suggestionsOn() then
+        suggestions, wantedItems, needsItemInfo = {}, {}, false
+    else
+        suggestions, wantedItems, needsItemInfo = ns.Quests.Collect(ns.Drops.ForRow)
+    end
+    if huntWindow then huntWindow.SetSuggestions(suggestions) end
+    applyAuto()
+end
+
+function refreshSuggestions(now)
+    if now or not (C_Timer and C_Timer.After) then
+        doRefresh()
+    elseif not refreshPending then
+        refreshPending = true
+        C_Timer.After(1, doRefresh)
+    end
+end
+
 function handlers.ADDON_LOADED(loadedName)
     if loadedName ~= addonName then return end
     MobHunterDB = MobHunterDB or {}
     if MobHunterDB.showButton == nil then MobHunterDB.showButton = true end
     if MobHunterDB.playSound == nil then MobHunterDB.playSound = true end
+    if MobHunterDB.showSuggestions == nil then MobHunterDB.showSuggestions = true end
+    if MobHunterDB.autoAddSuggestions == nil then MobHunterDB.autoAddSuggestions = false end
     createButton()
     if ns.Options then ns.Options.Register() end
     frame:UnregisterEvent("ADDON_LOADED")
+end
+
+function handlers.QUEST_LOG_UPDATE()
+    refreshSuggestions()
+end
+
+-- Item names arrive a moment after the log shows them blank ("0/15  ").
+function handlers.GET_ITEM_INFO_RECEIVED()
+    if needsItemInfo then refreshSuggestions() end
+end
+
+-- Looting an item a quest still needs from a mob you have targeted teaches us that mob drops it.
+function handlers.LOOT_OPENED()
+    if next(wantedItems) == nil then return end
+    if not (GetNumLootItems and GetLootSlotLink and GetLootSourceInfo and UnitGUID and UnitName) then return end
+    for slot = 1, GetNumLootItems() do
+        local link = GetLootSlotLink(slot)
+        local itemName = type(link) == "string" and link:match("%[(.-)%]")
+        if itemName and wantedItems[ns.Hunt.Normalize(itemName)] then
+            local sources = { GetLootSourceInfo(slot) }
+            for i = 1, #sources, 2 do
+                for _, unit in ipairs({ "target", "mouseover" }) do
+                    local ok, same = pcall(function() return UnitGUID(unit) == sources[i] end)
+                    if ok and same and not (UnitIsPlayer and UnitIsPlayer(unit)) then
+                        ns.Drops.Learn(itemName, UnitName(unit))
+                        break
+                    end
+                end
+            end
+        end
+    end
+    refreshSuggestions()
 end
 
 function handlers.NAME_PLATE_UNIT_ADDED()
@@ -392,7 +534,7 @@ SlashCmdList["MOBHUNT"] = function(msg)
     if command.action == "hunt" then
         start(command.names)
     elseif command.action == "stop" then
-        stop()
+        userStop()
         say("stopped.")
     elseif command.action == "button" then
         if command.on ~= nil then setShowButton(command.on) end
@@ -403,6 +545,15 @@ SlashCmdList["MOBHUNT"] = function(msg)
     elseif command.action == "window" then
         setShowWindow(not getShowWindow())
         say("the Hunt window is " .. (getShowWindow() and "shown" or "hidden") .. ".")
+    elseif command.action == "quests" then
+        refreshSuggestions(true)
+        if #suggestions == 0 then
+            say("no quest targets right now. They come from kill and item objectives in your quest log; click one in the Hunt window to hunt it.")
+        else
+            for _, suggestion in ipairs(suggestions) do
+                say("|cffffff00" .. suggestion.name .. "|r  (" .. table.concat(suggestion.quests, ", ") .. ")")
+            end
+        end
     elseif command.action == "options" then
         if ns.Options and ns.Options.Open then ns.Options.Open() end
     elseif command.action == "debug" then
@@ -420,5 +571,20 @@ SlashCmdList["MOBHUNT"] = function(msg)
     end
 end
 
-ns.MobHunter = { Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
+local function setShowSuggestions(on)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.showSuggestions = on and true or false
+    refreshSuggestions(true)
+end
+
+local function setAutoAdd(on)
+    MobHunterDB = MobHunterDB or {}
+    MobHunterDB.autoAddSuggestions = on and true or false
+    applyAuto()
+end
+
+ns.MobHunter = { AddHunt = addHunt, UserStop = userStop, RefreshSuggestions = refreshSuggestions,
+    GetSuggestions = function() return suggestions end, SetShowSuggestions = setShowSuggestions,
+    GetShowSuggestions = suggestionsOn, SetAutoAdd = setAutoAdd, GetAutoAdd = autoAddOn,
+    Start = start, Stop = stop, Scan = scan, SetShowButton = setShowButton,
     GetShowButton = showButton, GetWindow = function() return huntWindow end, SetPlaySound = setPlaySound, GetPlaySound = soundOn, SetShowWindow = setShowWindow, GetShowWindow = getShowWindow, CreateMacro = createMacro, ShowDebug = showDebug }

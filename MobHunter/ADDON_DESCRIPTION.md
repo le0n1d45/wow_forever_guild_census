@@ -39,6 +39,15 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 3. Press the **Target** button that appears in the Hunt window, or a key you've bound to it, to target the mob.
 4. Type **/mobhunt stop** (or press **Stop** in the Hunt window) when you're done.
 
+## Quest targets
+
+MobHunter can suggest what to hunt from your **quest log**. Mobs from "kill" objectives, and the mobs that drop an
+item a quest still needs, are listed under **Quest targets** in the Hunt window. Click one to hunt it, or tick
+**Hunt the suggested quest targets automatically** in the options to add them for you (and drop them when the
+objective is done). Which mobs drop an item comes from the **QuestieDB** addon if you have it installed (the best
+sources first, rare extras left out), and from mobs you've looted that item from yourself. Turn the list off with
+**Suggest hunt targets from my quests**.
+
 ## What it watches
 
 - **Mobs in range:** the enemy nameplates your game is already showing. Turn enemy nameplates on
@@ -54,7 +63,8 @@ tracking dots**, MobHunter draws **its own icon over that dot** on the minimap (
 - `/mobhunt sound on` / `off`: turn the alert sound on or off (remembered between sessions)
 - `/mobhunt button on` / `off`: show or hide the Target button (remembered between sessions)
 - `/mobhunt window`: show or hide the Hunt window
-- `/mobhunt options`: open the options page (also under **Options > AddOns > MobHunter**) with checkboxes for the Hunt window, its Target button and the alert sound, a button that creates the macro, and a debug button
+- `/mobhunt quests`: list the hunt targets suggested by your quest log
+- `/mobhunt options`: open the options page (also under **Options > AddOns > MobHunter**) with checkboxes for the Hunt window, its Target button, the alert sound, and the quest targets, a button that creates the macro, and a debug button
 - `/mobhunt macro`: creates a "MobHunter" macro for your action bar that targets the mob you're hunting
 - `/mobhunt target`: explains why a slash command can't target, and points to the macro
 - `/mobhunt debug`: opens a window with technical details about the minimap check, already selected so you can copy it (useful when reporting a problem)

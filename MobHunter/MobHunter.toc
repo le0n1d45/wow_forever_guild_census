@@ -8,6 +8,8 @@
 ## IconTexture: Interface\AddOns\MobHunter\icon
 
 Hunt.lua
+Quests.lua
+Drops.lua
 Probe.lua
 HuntWindow.lua
 Options.lua

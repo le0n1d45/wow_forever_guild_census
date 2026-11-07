@@ -7,8 +7,8 @@ return function()
         for _, file in ipairs(files) do loadAddonFile(ns, file, "MobHunter") end
         return ns
     end
-    local ns = load({ "Hunt.lua", "Probe.lua" })
-    local Hunt, Probe = ns.Hunt, ns.Probe
+    local ns = load({ "Hunt.lua", "Quests.lua", "Drops.lua", "Probe.lua" })
+    local Hunt, Probe, Quests, Drops = ns.Hunt, ns.Probe, ns.Quests, ns.Drops
 
     describe("MobHunter Hunt.Normalize / Matches", function()
         it("lowercases, trims and collapses whitespace", function()
@@ -74,6 +74,7 @@ return function()
             assertEqual(Hunt.ParseCommand("target"), { action = "target" })
             assertEqual(Hunt.ParseCommand("macro"), { action = "macro" })
             assertEqual(Hunt.ParseCommand("Options"), { action = "options" })
+            assertEqual(Hunt.ParseCommand("Quests"), { action = "quests" })
             assertEqual(Hunt.ParseCommand("window"), { action = "window" })
             assertEqual(Hunt.ParseCommand("Sound OFF"), { action = "sound", on = false })
             assertEqual(Hunt.ParseCommand("sound"), { action = "sound" })
@@ -126,6 +127,185 @@ return function()
             local u = { token = "nameplate1", name = "Wolf" }
             assertEqual(#Hunt.Scan(tracker, "wolf", { u }), 1)
             assertEqual(#Hunt.Scan(tracker, "wolf", { u }), 0)
+        end)
+    end)
+
+    describe("MobHunter Quests", function()
+        it("compiles the client's positional row formats (count first)", function()
+            local parse = Quests.CompileFormat("%2$d/%3$d %1$s slain")
+            assertEqual(parse("0/10 Sunscale Scytheclaw slain"), { "Sunscale Scytheclaw", "0", "10" })
+            local items = Quests.CompileFormat("%2$d/%3$d %1$s")
+            assertEqual(items("3/6 Intact Raptor Horn"), { "Intact Raptor Horn", "3", "6" })
+            assertEqual(items("0/15  "), { " ", "0", "15" }) -- blank name: kept raw here, trimmed by ParseRow
+        end)
+
+        it("also reads plain sequential formats and other word orders", function()
+            local plain = Quests.CompileFormat("%s: %d/%d")
+            assertEqual(plain("Raptor Horn: 3/6"), { "Raptor Horn", "3", "6" })
+            assertEqual(plain("no numbers here"), nil)
+            local swapped = Quests.CompileFormat("%3$d of %2$d: %1$s (100%%)")
+            assertEqual(swapped("2 of 5: Wolf (100%)"), { "Wolf", "5", "2" })
+        end)
+
+        it("ParseRow takes counts from the row and the name from its text, nil when blank", function()
+            local row = Quests.ParseRow({ type = "item", text = "0/1 Piece of Krom'zar's Banner", numFulfilled = 0, numRequired = 1, finished = false })
+            assertEqual(row, { type = "item", name = "Piece of Krom'zar's Banner", have = 0, need = 1, finished = false })
+            local blank = Quests.ParseRow({ type = "item", text = "0/15  ", numFulfilled = 0, numRequired = 15 })
+            assertEqual(blank.name, nil)
+            assertEqual(blank.need, 15)
+            local kill = Quests.ParseRow({ type = "monster", text = "2/10 Marine slain", numFulfilled = 2, numRequired = 10 })
+            assertEqual(kill.name, "Marine")
+            local other = Quests.ParseRow({ type = "object", text = "0/1 Thing", numFulfilled = 0, numRequired = 1 })
+            assertEqual(other.name, nil)
+        end)
+
+        it("Read lists visible quests with parsed rows and skips headers and hidden ones", function()
+            local infos = { { isHeader = true, title = "Barrens" },
+                { questID = 891, title = "The Guns of Northwatch" },
+                { questID = 5, title = "Hidden", isHidden = true } }
+            local rows = { [891] = { { type = "monster", text = "0/1 Captain Fairmount slain", numFulfilled = 0, numRequired = 1 },
+                { type = "item", text = "0/5 Theramore Medal", numFulfilled = 0, numRequired = 5 } } }
+            C_QuestLog = { GetNumQuestLogEntries = function() return #infos end, GetInfo = function(i) return infos[i] end,
+                GetQuestObjectives = function(id) return rows[id] end }
+            local quests = Quests.Read()
+            C_QuestLog = nil
+            assertEqual(#quests, 1)
+            assertEqual(quests[1].title, "The Guns of Northwatch")
+            assertEqual(quests[1].objectives[2].name, "Theramore Medal")
+            assertEqual(quests[1].objectives[2].index, 2)
+            assertEqual(Quests.Read(), {}) -- no quest API: empty, no error
+        end)
+
+        it("TopMobs ranks by rate, drops rare extras but keeps the best", function()
+            local top = Quests.TopMobs({ { name = "Ishamuhale", rate = 1.4 }, { name = "Scytheclaw", rate = 26 },
+                { name = "Takk", rate = 6.9 }, { name = "Guard" } })
+            assertEqual(#top, 1)
+            assertEqual(top[1].name, "Scytheclaw")
+            local medals = Quests.TopMobs({ { name = "Marine", rate = 45.8 }, { name = "Whessan", rate = 15.6 }, { name = "Rare", rate = 2 } })
+            assertEqual(#medals, 2)
+            local unrated = Quests.TopMobs({ { name = "B" }, { name = "A" } })
+            assertEqual(unrated[1].name, "B") -- no rates: all kept, order given
+            assertEqual(#unrated, 2)
+        end)
+
+        it("Suggest lists kill targets, resolved drop sources, and skips finished rows", function()
+            local quests = { { questID = 891, title = "The Guns of Northwatch", objectives = {
+                    { type = "monster", name = "Captain Fairmount", finished = false },
+                    { type = "monster", name = "Cannoneer Smythe", finished = true },
+                    { type = "item", name = "Theramore Medal", finished = false } } },
+                { questID = 9, title = "Another", objectives = { { type = "monster", name = "Captain Fairmount", finished = false },
+                    { type = "item", finished = false } } } }
+            local calls = {}
+            local function resolve(quest, row, position, total)
+                calls[#calls + 1] = { quest.questID, position, total }
+                if quest.questID == 891 then
+                    return { { name = "Theramore Marine", rate = 45.8 }, { name = "Theramore Preserver", rate = 32 } }, "Theramore Medal"
+                end
+                return nil, nil
+            end
+            local list, wanted, unnamed = Quests.Suggest(quests, resolve)
+            local names = {}
+            for _, s in ipairs(list) do names[#names + 1] = s.name end
+            assertEqual(names, { "Captain Fairmount", "Theramore Marine", "Theramore Preserver" })
+            assertEqual(list[1].quests, { "The Guns of Northwatch", "Another" }) -- one entry, both quests
+            assertEqual(list[1].quest, "The Guns of Northwatch")
+            assertEqual(wanted, { ["theramore medal"] = true })
+            assertEqual(unnamed, true) -- the second quest's item row has no name
+            assertEqual(calls, { { 891, 1, 1 }, { 9, 1, 1 } })
+        end)
+
+        it("Suggest works without a resolver (kill targets only) and Collect never raises", function()
+            local list = Quests.Suggest({ { title = "Q", objectives = { { type = "monster", name = "Wolf" }, { type = "item", name = "Pelt" } } } })
+            assertEqual(#list, 1)
+            local ok = pcall(Quests.Collect, function() error("boom") end)
+            assert(ok)
+        end)
+    end)
+
+    describe("MobHunter Drops", function()
+        local WOWHEAD = "return {\n    [5055] = { -- Intact Raptor Horn\n        [3256] = 25.9831,\n        [3257] = 1.3871,\n        [5842] = 6.8528,\n    },\n    [5078] = { -- Theramore Medal\n        [3385] = 45.796,\n        [3386] = 31.9952,\n    },\n}"
+        local function fakeLib(overrides)
+            local lib = {
+                RequireContract = function(n) return n == 4 end,
+                Quest = { objectives = function(id)
+                    if id == 865 then return { [3] = { { 5055, nil, 0 } } } end
+                    if id == 891 then return { [1] = { { 3393, nil, 0 } }, [3] = { { 5078, nil, 0 } } } end
+                end },
+                Item = { name = function(id) return ({ [5055] = "Intact Raptor Horn", [5078] = "Theramore Medal" })[id] end,
+                    npcDrops = function(id)
+                        if id == 5055 then return { 3256, 3257, 5842 } end
+                        if id == 5078 then return { 3385, 3386, 261485 } end
+                    end },
+                Npc = { name = function(id) return ({ [3256] = "Sunscale Scytheclaw", [3257] = "Ishamuhale", [5842] = "Takk the Leaper",
+                    [3385] = "Theramore Marine", [3386] = "Theramore Preserver", [261485] = "Theramore Guard" })[id] end },
+                Support = { Get = function() return { wowheadData = WOWHEAD } end },
+            }
+            for k, v in pairs(overrides or {}) do lib[k] = v end
+            return lib
+        end
+
+        it("Bridge needs LibQuestieDB with a supported contract", function()
+            LibQuestieDB = nil
+            assertEqual(Drops.Bridge(), nil)
+            LibQuestieDB = fakeLib({ RequireContract = function() return false end })
+            assertEqual(Drops.Bridge(), nil)
+            LibQuestieDB = fakeLib({ RequireContract = function() error("old") end })
+            assertEqual(Drops.Bridge(), nil)
+            LibQuestieDB = fakeLib()
+            assert(Drops.Bridge())
+            LibQuestieDB = nil
+        end)
+
+        it("MatchItem goes by name, then by position when the counts agree", function()
+            local names = { [1] = "Alpha", [2] = "Beta" }
+            local nameOf = function(id) return names[id] end
+            assertEqual(Drops.MatchItem({ 1, 2 }, "beta", 1, 2, nameOf), 2)
+            assertEqual(Drops.MatchItem({ 1, 2 }, nil, 2, 2, nameOf), 2)
+            assertEqual(Drops.MatchItem({ 1, 2 }, nil, 1, 3, nameOf), nil)
+            assertEqual(Drops.MatchItem({ 1 }, "Unknown", 1, 1, nameOf), 1)
+        end)
+
+        it("Rates cuts one item's block out of the Wowhead string", function()
+            local lib = fakeLib()
+            local rates = Drops.Rates(lib, 5055)
+            assertEqual(rates[3256], 25.9831)
+            assertEqual(rates[5842], 6.8528)
+            assertEqual(rates[3385], nil) -- another item's block
+            assertEqual(Drops.Rates(fakeLib({ Support = { Get = function() error("x") end } }), 9999), {})
+        end)
+
+        it("ForRow resolves a quest item row to the mobs that drop it, with rates", function()
+            LibQuestieDB = fakeLib()
+            local mobs, item = Drops.ForRow({ questID = 865 }, { name = nil }, 1, 1) -- blank row name
+            LibQuestieDB = nil
+            assertEqual(item, "Intact Raptor Horn")
+            assertEqual(mobs[1], { name = "Sunscale Scytheclaw", rate = 25.9831 })
+            assertEqual(#mobs, 3)
+        end)
+
+        it("through Suggest, Raptor Horns shows the Scytheclaws and the medal shows Marines and Preservers", function()
+            LibQuestieDB = fakeLib()
+            local list = Quests.Suggest({
+                { questID = 865, title = "Raptor Horns", objectives = { { type = "item", finished = false } } },
+                { questID = 891, title = "The Guns of Northwatch", objectives = { { type = "monster", name = "Captain Fairmount" },
+                    { type = "item", name = "Theramore Medal", finished = false } } } }, Drops.ForRow)
+            LibQuestieDB = nil
+            local names = {}
+            for _, s in ipairs(list) do names[#names + 1] = s.name end
+            assertEqual(names, { "Sunscale Scytheclaw", "Captain Fairmount", "Theramore Marine", "Theramore Preserver" })
+        end)
+
+        it("a database error or an item with no mobs falls back to learned drops", function()
+            MobHunterDB = {}
+            Drops.Learn("Pelt", "Wolf"); Drops.Learn("pelt", "Wolf"); Drops.Learn("Pelt", "Bear")
+            LibQuestieDB = fakeLib({ Quest = { objectives = function() error("bad") end } })
+            local mobs = Drops.ForRow({ questID = 1 }, { name = "Pelt" }, 1, 1)
+            assertEqual(mobs[1].name, "Wolf")
+            assertEqual(#mobs, 2)
+            LibQuestieDB = nil
+            assertEqual(Drops.ForRow({ questID = 1 }, { name = "Nothing" }, 1, 1), {})
+            assertEqual(Drops.ForRow({ questID = 1 }, {}, 1, 1), nil) -- no name at all: nothing known
+            MobHunterDB = nil
         end)
     end)
 
@@ -398,7 +578,7 @@ return function()
             UnitIsPlayer = function() return false end
             SlashCmdList = {}
             local mh = {}
-            for _, file in ipairs({ "Hunt.lua", "Probe.lua", "HuntWindow.lua", "Options.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
+            for _, file in ipairs({ "Hunt.lua", "Quests.lua", "Drops.lua", "Probe.lua", "HuntWindow.lua", "Options.lua", "MobHunter.lua" }) do loadAddonFile(mh, file, "MobHunter") end
             return mh
         end
 
@@ -686,6 +866,134 @@ return function()
             SlashCmdList["MOBHUNT"]("")
             assert(printed[#printed]:find("raptor, lion", 1, true), printed[#printed])
             MobHunterDB = nil
+        end)
+
+        -- quest targets: a fake quest log with one kill quest, and whatever the test sets in `rows`
+        local function questLog(rows)
+            local infos = { { questID = 891, title = "The Guns of Northwatch" } }
+            C_QuestLog = { GetNumQuestLogEntries = function() return #infos end, GetInfo = function(i) return infos[i] end,
+                GetQuestObjectives = function() return rows end }
+        end
+        local function loaded()
+            MobHunterDB = {}
+            local mh = install()
+            local frame = MobHunterEventFrame
+            frame.scripts.OnEvent(frame, "ADDON_LOADED", "MobHunter")
+            return mh, frame
+        end
+
+        test("quest targets from the log fill the Hunt window; clicking one hunts it without resetting the others", function()
+            questLog({ { type = "monster", text = "0/1 Captain Fairmount slain", numFulfilled = 0, numRequired = 1 },
+                { type = "monster", text = "0/1 Cannoneer Smythe slain", numFulfilled = 0, numRequired = 1 } })
+            local mh, frame = loaded()
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            local window = mh.MobHunter.GetWindow()
+            assertEqual(#window.suggestions, 2)
+            assertEqual(window.suggestButtons[1].suggestion.name, "Captain Fairmount")
+            SlashCmdList["MOBHUNT"]("wolf")
+            window.suggestButtons[2].scripts.OnClick(window.suggestButtons[2])
+            window.suggestButtons[1].scripts.OnClick(window.suggestButtons[1])
+            window.suggestButtons[1].scripts.OnClick(window.suggestButtons[1]) -- again: no repeat
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("wolf, cannoneer smythe, captain fairmount", 1, true), printed[#printed])
+            SlashCmdList["MOBHUNT"]("stop")
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("with nothing hunted, clicking a quest target starts a hunt", function()
+            questLog({ { type = "monster", text = "0/1 Captain Fairmount slain", numFulfilled = 0, numRequired = 1 } })
+            local mh, frame = loaded()
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            mh.MobHunter.AddHunt("Captain Fairmount")
+            assertEqual(MobHunterTargetButton.attrs.macrotext, "/target captain fairmount")
+            SlashCmdList["MOBHUNT"]("stop")
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("/mobhunt quests lists them; the setting off hides them", function()
+            questLog({ { type = "monster", text = "0/1 Captain Fairmount slain", numFulfilled = 0, numRequired = 1 } })
+            local mh, frame = loaded()
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            SlashCmdList["MOBHUNT"]("quests")
+            assert(printed[#printed]:find("Captain Fairmount", 1, true), printed[#printed])
+            mh.MobHunter.SetShowSuggestions(false)
+            assertEqual(#mh.MobHunter.GetSuggestions(), 0)
+            assertEqual(#mh.MobHunter.GetWindow().suggestions, 0)
+            SlashCmdList["MOBHUNT"]("quests")
+            assert(printed[#printed]:find("no quest targets", 1, true), printed[#printed])
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("automatic adding hunts suggestions, drops finished ones, and respects Stop", function()
+            local rows = { { type = "monster", text = "0/1 Captain Fairmount slain", numFulfilled = 0, numRequired = 1 } }
+            questLog(rows)
+            local mh, frame = loaded()
+            mh.MobHunter.SetAutoAdd(true)
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("captain fairmount", 1, true), printed[#printed])
+            -- objective done: the auto-added mob goes, and with nothing left the hunt stops
+            rows[1].finished = true
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("not hunting", 1, true), printed[#printed])
+            -- Stop by hand: the same target is not added again
+            rows[1].finished = false
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            mh.MobHunter.UserStop()
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("not hunting", 1, true), printed[#printed])
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("a typed hunt keeps its names when a suggestion finishes", function()
+            local rows = { { type = "monster", text = "0/1 Wolf slain", numFulfilled = 0, numRequired = 1 } }
+            questLog(rows)
+            local mh, frame = loaded()
+            mh.MobHunter.SetAutoAdd(true)
+            SlashCmdList["MOBHUNT"]("wolf") -- typed by hand, and also a quest target
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            rows[1].finished = true
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            SlashCmdList["MOBHUNT"]("")
+            assert(printed[#printed]:find("hunting", 1, true) and printed[#printed]:find("wolf", 1, true), printed[#printed])
+            SlashCmdList["MOBHUNT"]("stop")
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("looting a needed quest item from your target teaches that mob", function()
+            local rows = { { type = "item", text = "0/5 Theramore Medal", numFulfilled = 0, numRequired = 5 } }
+            questLog(rows)
+            local mh, frame = loaded()
+            frame.scripts.OnEvent(frame, "QUEST_LOG_UPDATE")
+            UnitGUID = function(unit) return unit == "target" and "Creature-0-1" or nil end
+            UnitName = function(unit) return unit == "target" and "Theramore Marine" or nil end
+            GetNumLootItems = function() return 1 end
+            GetLootSlotLink = function() return "|cffffffff|Hitem:5078|h[Theramore Medal]|h|r" end
+            GetLootSourceInfo = function() return "Creature-0-1", 1 end
+            frame.scripts.OnEvent(frame, "LOOT_OPENED")
+            assertEqual(MobHunterDB.learnedDrops["theramore medal"], { ["Theramore Marine"] = 1 })
+            assertEqual(mh.MobHunter.GetSuggestions()[1].name, "Theramore Marine") -- now suggested
+            GetNumLootItems, GetLootSlotLink, GetLootSourceInfo = nil, nil, nil
+            C_QuestLog, MobHunterDB = nil, nil
+        end)
+
+        test("the options page has the two quest-target checkboxes", function()
+            Settings = { RegisterCanvasLayoutCategory = function() return { GetID = function() return 1 end } end,
+                RegisterAddOnCategory = function() end }
+            local mh = loaded()
+            local c = mh.Options.panel.controls
+            rawset(c.showSuggestions, "GetChecked", function() return false end)
+            c.showSuggestions.scripts.OnClick(c.showSuggestions)
+            assertEqual(MobHunterDB.showSuggestions, false)
+            rawset(c.autoAdd, "GetChecked", function() return true end)
+            c.autoAdd.scripts.OnClick(c.autoAdd)
+            assertEqual(MobHunterDB.autoAddSuggestions, true)
+            mh.Options.panel.OnDefault()
+            assertEqual(MobHunterDB.showSuggestions, true)
+            assertEqual(MobHunterDB.autoAddSuggestions, false)
+            MobHunterDB, Settings = nil, nil
         end)
 
         test("stays quiet when nothing matches", function()

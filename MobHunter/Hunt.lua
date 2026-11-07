@@ -62,6 +62,7 @@ function Hunt.ParseCommand(msg)
     if text == "sound" then return { action = "sound" } end
     if text == "window" then return { action = "window" } end
     if text == "options" or text == "config" or text == "settings" then return { action = "options" } end
+    if text == "quests" then return { action = "quests" } end
     if text == "debug" then return { action = "debug" } end
     if text == "macro" then return { action = "macro" } end
     if text == "button on" or text == "button off" then

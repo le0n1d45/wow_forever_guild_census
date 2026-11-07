@@ -15,9 +15,11 @@ end
 local MAX_ROWS = 8
 local ROW_HEIGHT = 26
 local TOP = 36 -- where the first text box sits, below the title
+local MAX_SUGGESTIONS = 6 -- quest targets listed at most
+local SUGGEST_HEIGHT = 22
 
 -- callbacks: onStart(text) (the boxes' text joined with commas), onStop(), onSound(on),
--- isSound(). Returns { frame, edit (the first box), rows, status, targetButton, sound, ... }.
+-- isSound(), onSuggest(name) (a quest target was clicked). Returns { frame, edit (the first box), rows, status, targetButton, sound, ... }.
 function HuntWindow.Create(callbacks)
     local frame = CreateFrame("Frame", "MobHunterHuntFrame", UIParent, "BasicFrameTemplateWithInset")
     frame:SetSize(300, 194)
@@ -35,6 +37,8 @@ function HuntWindow.Create(callbacks)
 
     local window = { frame = frame, rows = {}, count = 1 }
     local startButton, stopButton, addButton, status, sound, soundLabel, targetButton
+    local suggestHeader
+    window.suggestions, window.suggestButtons = {}, {}
 
     local function texts()
         local list = {}
@@ -69,7 +73,23 @@ function HuntWindow.Create(callbacks)
         status:SetPoint("TOPLEFT", 22, -(below + 28))
         sound:ClearAllPoints()
         sound:SetPoint("TOPLEFT", 16, -(below + 48))
-        frame:SetHeight(below + 48 + 28 + 12 + 28 + 16)
+        -- Quest targets, when there are any, sit between the sound checkbox and the Target button.
+        local count = math.min(#window.suggestions, MAX_SUGGESTIONS)
+        local listTop = below + 48 + 28
+        suggestHeader:ClearAllPoints()
+        suggestHeader:SetPoint("TOPLEFT", 22, -listTop)
+        suggestHeader:SetShown(count > 0)
+        for i, button in ipairs(window.suggestButtons) do
+            if i <= count then
+                button:ClearAllPoints()
+                button:SetPoint("TOPLEFT", 20, -(listTop + 16 + (i - 1) * SUGGEST_HEIGHT))
+                button:Show()
+            else
+                button:Hide()
+            end
+        end
+        local suggestSpace = count > 0 and (16 + count * SUGGEST_HEIGHT + 8) or 0
+        frame:SetHeight(below + 48 + 28 + suggestSpace + 12 + 28 + 16)
     end
 
     local function newRow(i)
@@ -135,6 +155,10 @@ function HuntWindow.Create(callbacks)
     soundLabel:SetPoint("LEFT", sound, "RIGHT", 2, 1)
     soundLabel:SetText("Play a sound when found")
 
+    suggestHeader = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    suggestHeader:SetText("Quest targets (click to hunt):")
+    suggestHeader:Hide()
+
     targetButton = CreateFrame("Button", "MobHunterTargetButton", frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     targetButton:SetSize(260, 28)
     targetButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 16)
@@ -161,6 +185,24 @@ function HuntWindow.Create(callbacks)
         else
             status:SetText("Not hunting.")
         end
+    end
+
+    -- list: { { name, quest } } from Quests.Suggest; nil or empty hides the section.
+    function window.SetSuggestions(list)
+        window.suggestions = list or {}
+        for i = 1, math.min(#window.suggestions, MAX_SUGGESTIONS) do
+            local button = window.suggestButtons[i]
+            if not button then
+                button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+                button:SetSize(260, 20)
+                window.suggestButtons[i] = button
+            end
+            local entry = window.suggestions[i]
+            button.suggestion = entry
+            button:SetText(entry.name .. (entry.quest and ("  (" .. entry.quest .. ")") or ""))
+            button:SetScript("OnClick", function() callbacks.onSuggest(entry.name) end)
+        end
+        layout()
     end
 
     layout()
