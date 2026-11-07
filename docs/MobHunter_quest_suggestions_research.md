@@ -131,3 +131,30 @@ Takeaways:
 
 Still to verify in game: the quest-log row `type` and text for these two quests, and that
 `LibQuestieDB.Support.Get(...)` exposes the rate tables to a third-party addon.
+
+## 8. Verified in the real Forever client (bead px4)
+
+Dumped in game on a character with quests 1069 (Deepmoss Spider Eggs) and 4021 (Counterattack!) open.
+
+- `C_QuestLog.GetQuestObjectives(questID)` rows: `{ type = "item", numRequired, numFulfilled, finished,
+  text, objectiveType = 1 }`. `type` is set. A quest with no objectives (742, an intro quest) returns
+  an empty list.
+- **Row text is count first**, not "Name slain: 3/10": `QUEST_MONSTERS_KILLED = "%2$d/%3$d %1$s slain"`,
+  `QUEST_ITEMS_NEEDED = "%2$d/%3$d %1$s"`. The format strings use positional arguments, so the
+  parser must read the argument order out of them, not assume name first. Real rows:
+  `"0/1 Piece of Krom'zar's Banner"`.
+- **The name can be blank**: quest 1069's row text was `"0/15  "` (item not cached yet). So the
+  name cannot be the only way to match a row; use `numRequired`/`numFulfilled`/`finished` from the
+  row and take the name from the database (`Item.name`), and re-scan on `GET_ITEM_INFO_RECEIVED`
+  or the next `QUEST_LOG_UPDATE`.
+- `LibQuestieDB` is present and `RequireContract(4)` returns `true, true`.
+- `Quest.objectives(891)` and `(1069)` have the documented shape (`[1]` kills, `[3]` items, each
+  `{id, nil, 0}`). `Item.npcDrops(5078)` = 3385, 3386, 3393, 3454, 3455, 261485 and
+  `Item.npcDrops(5055)` = 3256, 3257, 5842, matching the offline decode.
+- `LibQuestieDB.Support.Get("QuestieClassicItemDrops")` returns a table whose `wowheadData` is a
+  **string** (a `return {...}` Lua chunk of about 570 KB for all items, rates keyed by item then
+  NPC). Do not `loadstring` it on every scan: pull the one item's block out lazily with
+  `string.find`/`match`, or load it once on demand and cache the result.
+- **Item objectives do not always have mobs.** Offline, 1069 (Deepmoss Egg, item 5570) and 4021
+  (Piece of Krom'zar's Banner, item 11227) have an empty `npcDrops`; they come from world objects.
+  Suggest nothing for those, rather than an empty entry.
