@@ -65,6 +65,8 @@ made against the real client are in `docs/MobHunter_quest_suggestions_research.m
    whose tooltip names the hunted mob gets the icon. The dot itself can't be hidden by an addon, so the icon (a child frame of the minimap,
    a pixel larger than a dot) is drawn on top of it.
 
+> **Broken since the 2026-11-07 game update.** `UpdateMouseoverAtPoint` now returns no tooltip content at any point (`/mobhunt debug`: "0 points returned tooltip content") although dots are visible. NodeSight's author reports Blizzard patched out the same technique on every version. Only nameplate detection works for now.
+
 ## Why it doesn't target the mob by itself
 
 `TargetUnit` is a protected function: addon code isn't allowed to call it, and Blizzard's design (the

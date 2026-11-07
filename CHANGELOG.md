@@ -7,6 +7,9 @@ user-visible change, and move it under a version heading when that version is re
 
 ## [Unreleased]
 
+### Fixed
+- MobHunter: the minimap icons over tracking dots stopped working after today's game update. Blizzard changed what the minimap tooltip probe returns (NodeSight reports the same: its minimap symbols were "patched out in today's update, on every version"). Nameplate alerts, the marker and the Target button are unaffected. `/mobhunt debug` now also tries other coordinate styles and lists the active tracking, so a future workaround can be checked.
+
 ### Changed
 - MobHunter: quest targets. The Hunt window lists mobs suggested by your quest log (kill objectives, and the mobs that drop an item a quest still needs) under "Quest targets"; click one to hunt it. Item drops come from the QuestieDB addon when it is installed (ranked by drop rate, rare extras hidden) and from mobs you have looted the item from. Options: "Suggest hunt targets from my quests" (default on) and "Hunt the suggested quest targets automatically" (default off). `/mobhunt quests` lists them. Findings from the real client are in `docs/MobHunter_quest_suggestions_research.md`.
 - MobHunter: a Hunt window (box, Start/Stop, status and the Target button; hidden by default, drag to move) and an options page (Options > AddOns > MobHunter, or `/mobhunt options`) with checkboxes for showing the Hunt window and for the Target button inside it, a button that creates the MobHunter macro, and a button for the minimap debug window. `/mobhunt window` toggles the window. The Target button now lives in the Hunt window instead of floating on its own.

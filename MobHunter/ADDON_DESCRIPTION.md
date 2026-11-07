@@ -52,7 +52,7 @@ sources first, rare extras left out), and from mobs you've looted that item from
 
 - **Mobs in range:** the enemy nameplates your game is already showing. Turn enemy nameplates on
   (the **V** key, or Options > Interface > Names), or MobHunter can't see anything in range. It will remind you.
-- **Minimap tracking:** if you're tracking something (such as Find Herbs or Track Beasts), MobHunter also checks
+- **Minimap tracking (not working since the 7 Nov 2026 game update, Blizzard disabled the method it relies on; nameplate alerts still work):** if you're tracking something (such as Find Herbs or Track Beasts), MobHunter also checks
   the tracked dots for the name you're hunting.
 
 ## Commands

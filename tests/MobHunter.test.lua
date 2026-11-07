@@ -448,6 +448,14 @@ return function()
             assertEqual(Probe.CountMatches({ "raptor" }, data), 1)
         end)
 
+        it("Diagnose tries other coordinate styles when nothing answers", function()
+            local m = fakeMinimap("Defias Pillager", 100000, 100000, 20) -- dot far off the grid
+            m.GetCenter = function() return 20, 20 end
+            local report = table.concat(Probe.Diagnose(m, 8, "pillager"), "\n")
+            assert(report:find("coordinates no scale: 0 points", 1, true), report)
+            assert(report:find("coordinates centre of minimap: 0 points", 1, true), report)
+        end)
+
         it("Diagnose reports the fit for the hunted name", function()
             local m = fakeMinimap("Defias Pillager", 70, 80, 70)
             local report = table.concat(Probe.Diagnose(m, 6, "pillager"), "\n")

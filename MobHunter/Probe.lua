@@ -12,7 +12,7 @@ local Probe = {}
 ns.Probe = Probe
 
 -- Bumped when the probe's behaviour changes, so /mobhunt debug shows which files the game loaded.
-Probe.REVISION = 4
+Probe.REVISION = 5
 
 -- Points on a square grid inside a circle, as offsets from its centre.
 local gridCache = {} -- the same grid is wanted every scan; building it each time is garbage
@@ -377,6 +377,68 @@ function Probe.Find(minimap, hunted, step)
     return job.centres
 end
 
+-- Which tracking types are switched on, as a list of names (for /mobhunt debug).
+function Probe.ActiveTracking()
+    local C = C_Minimap
+    local names = {}
+    if not (C and C.GetNumTrackingTypes and C.GetTrackingInfo) then return names end
+    pcall(function()
+        for i = 1, C.GetNumTrackingTypes() do
+            local info, _, active = C.GetTrackingInfo(i)
+            local name = info
+            if type(info) == "table" then name, active = info.name, info.active end
+            if active then names[#names + 1] = tostring(name) end
+        end
+    end)
+    return names
+end
+
+-- Other ways of turning a point into UpdateMouseoverAtPoint's arguments. When the normal scan
+-- finds nothing, running each of these over the same grid shows whether the client wants a
+-- different coordinate space than the one assumed (for example on a minimap that another
+-- addon has scaled or moved). Returns report lines.
+function Probe.TryCoordinates(minimap, step)
+    local lines = {}
+    local left, bottom, scale = origin(minimap)
+    if not left then return lines end
+    local radius = minimap:GetWidth() / 2
+    local okUi, ui = pcall(function() return UIParent:GetEffectiveScale() end)
+    local okOwn, own = pcall(function() return minimap:GetScale() end)
+    if not (okUi and type(ui) == "number") then ui = 1 end
+    if not (okOwn and type(own) == "number") then own = 1 end
+    local variants = {
+        { "no scale", function(x, y) return left + x, bottom + y end },
+        { "minimap's own scale", function(x, y) return (left + x) * own, (bottom + y) * own end },
+        { "divided by UIParent scale", function(x, y) return (left + x) * scale / ui, (bottom + y) * scale / ui end },
+        { "centre of minimap", function(x, y)
+            local cx, cy = minimap:GetCenter()
+            return (cx + x - radius) * scale, (cy + y - radius) * scale
+        end },
+    }
+    local function add(text) lines[#lines + 1] = text end
+    add("Tracking on: " .. (#Probe.ActiveTracking() > 0 and table.concat(Probe.ActiveTracking(), ", ") or "none reported")
+        .. "; UIParent scale " .. tostring(ui) .. ", minimap own scale " .. tostring(own))
+    for _, variant in ipairs(variants) do
+        local ok, filled, sample = pcall(function()
+            minimap:SetUsingSoftCursor(true)
+            local count, first = 0, nil
+            for _, p in ipairs(Probe.Grid(radius, step)) do
+                local cx, cy = variant[2](p[1] + radius, p[2] + radius)
+                minimap:UpdateMouseoverAtPoint(cx, cy)
+                local data = C_TooltipInfo.GetMinimapMouseover()
+                if hasLines(data) then
+                    count = count + 1
+                    first = first or tostring(Probe.LineText(data.lines[1]))
+                end
+            end
+            return count, first
+        end)
+        pcall(function() minimap:SetUsingSoftCursor(false) end)
+        add("  coordinates " .. variant[1] .. ": " .. (ok and (filled .. " points" .. (sample and (", first line " .. sample) or "")) or ("error " .. tostring(filled))))
+    end
+    return lines
+end
+
 -- For /mobhunt debug: runs one scan and records what the client returned, so a probe that
 -- finds nothing can be told apart from one that can't run. Returns a list of report lines.
 function Probe.Diagnose(minimap, step, hunted)
@@ -410,6 +472,7 @@ function Probe.Diagnose(minimap, step, hunted)
         for _, sample in ipairs(samples) do add("  line 1: " .. sample) end
         if filled == 0 then
             add("Nothing under any point. Is something tracked, with a dot on the minimap right now?")
+            for _, line in ipairs(Probe.TryCoordinates(minimap, step)) do add(line) end
         end
     end
     if hunted and ok and hits then
