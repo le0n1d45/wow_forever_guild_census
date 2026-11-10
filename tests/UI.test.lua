@@ -447,54 +447,53 @@ return function()
                 return table.concat(ns.Debug.Report(), "\n")
             end
 
-            it("reports what C_Club returns, including rank values and full member dumps", function()
+            it("reports the raw C_Club ranks and where each level in the Finder came from", function()
+                UnitName = function() return "Ann" end
+                UnitGUID = function() return "G-1" end
+                GetProfessions = function() return 9 end
+                GetProfessionInfo = function() return "Skinning", 0, 180, 225, 2, 85, 393 end
                 local ns = loadAddon({ club = { guildId = "1", members = {
                     [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 393, profession1Rank = 1,
                             profession1Name = "Skinning" },
-                    [2] = { guid = "G-2", name = "Bob-Realm" },
+                    [2] = { guid = "G-2", name = "Bob-Realm", profession1ID = 165, profession1Rank = 1,
+                            profession2ID = 185, profession2Name = "Cooking", profession2Rank = 1 },
+                    [3] = { guid = "G-3", name = "Cy-Realm" },
                 } }, guild = {
                     { name = "Ann", level = 60, className = "Mage", classFile = "MAGE", note = "dps", guid = "G-1" },
+                    { name = "Bob", level = 60, className = "Mage", classFile = "MAGE", note = "LW 100", guid = "G-2" },
+                    { name = "Cy", level = 60, className = "Mage", classFile = "MAGE", note = "", guid = "G-3" },
                 } })
                 local text = report(ns)
-                assert(text:find("GetGuildClubId: \"1\"", 1, true), text)
-                assert(text:find("GetClubMembers: 2 members", 1, true), text)
-                assert(text:find("profession rank values seen: 1 x1", 1, true), text)
-                assert(text:find("profession1Name=\"Skinning\"", 1, true), text)
-                assert(text:find('{key="skinning", skill=1}', 1, true) or text:find("key=\"skinning\"", 1, true), text)
-                assert(text:find("C_Club.GetMemberInfoForSelf", 1, true) and text:find("NO", 1, true), text)
+                UnitName, UnitGUID, GetProfessions, GetProfessionInfo = nil, nil, nil, nil
+                assert(text:find("members read: 3 (failed: 0), with a profession: 2, profession slots: 3", 1, true), text)
+                assert(text:find("rank values reported: 1 x3  (a constant 1: a placeholder", 1, true), text)
+                assert(text:find("professions the addon does not track: 185 \"Cooking\"", 1, true), text)
+                assert(text:find("roster members: 3, with a note: 2, with a profession: 2", 1, true), text)
+                assert(text:find("skill level sources: note x1, own x1", 1, true), text)
+                assert(text:find("Skinning 180 (own)", 1, true), text)
+                assert(text:find("Leatherworking 100 (note)", 1, true), text)
+                assert(text:find("APIs the addon uses that are missing:", 1, true), text)
             end)
 
-            it("expands the guild trade skill headers, lists player skill levels and collapses them again", function()
+            it("includes the skill sharing status and what other players reported", function()
                 local ns = loadAddon()
-                local expanded = false
-                local rows = function()
-                    if not expanded then
-                        return { { 393, true, "icon", "Skinning", 1, 1, 1 } }
-                    end
-                    return { { 393, false, "icon", "Skinning", 1, 1, 1 },
-                        { 393, nil, nil, nil, nil, nil, nil, "Ann", "Ann-Realm", "Mage", true, "Zone", 180, "MAGE", false, 0 } }
-                end
-                GetNumGuildTradeSkill = function() return #rows() end
-                GetGuildTradeSkillInfo = function(i)
-                    local r = rows()[i]
-                    return r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15], r[16]
-                end
-                ExpandGuildTradeSkillHeader = function() expanded = true end
-                CollapseGuildTradeSkillHeader = function() expanded = false end
+                ns.db.reports = { Ann = { t = (time or os.time)() - 600, skills = { skinning = 157 } } }
                 local text = report(ns)
-                GetNumGuildTradeSkill, GetGuildTradeSkillInfo = nil, nil
-                ExpandGuildTradeSkillHeader, CollapseGuildTradeSkillHeader = nil, nil
-                assert(text:find('13=180', 1, true), text)
-                assert(text:find("skill min/max 180/180", 1, true), text)
-                assertEqual(expanded, false)
+                assert(text:find("== Skill sharing between Guild Census users ==", 1, true), text)
+                assert(text:find("sharing your skills: on", 1, true), text)
+                assert(text:find("players with reported skills: 1", 1, true), text)
+                assert(text:find("report ages: newest 10 min", 1, true), text)
+                assert(text:find("Ann {skinning=157}", 1, true), text)
             end)
 
             it("survives a client with none of the APIs, and a failing C_Club", function()
                 for _, club in ipairs({ false, { guildId = "1", members = { [1] = {} }, errors = true } }) do
                     local ns = loadAddon({ club = club or nil })
                     assert(report(ns):find("== Client ==", 1, true))
+                    assert(not report(ns):find("SECTION ERROR", 1, true), report(ns))
                 end
                 assert(report(loadAddon()):find("C_Club is missing", 1, true))
+                assert(not report(loadAddon()):find("SECTION ERROR", 1, true), report(loadAddon()))
             end)
 
             it("the slash command opens a copyable window and saves the report", function()

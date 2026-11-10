@@ -55,7 +55,7 @@ Type **/gcensus** to open it.
 - `/gcensus config`: open the settings
 - `/gcensus demo`: switch demo data on or off
 - `/gcensus comms`: send your skill levels to the guild now and show the skill sharing status
-- `/gcensus debug`: open a report of what the game returns for guild members and professions (copy it into a bug report)
+- `/gcensus debug`: open a diagnostic report (versions, what the game returns for guild members and professions, where skill levels came from, skill sharing status) to copy into a bug report
 
 ## Writing notes that work
 
