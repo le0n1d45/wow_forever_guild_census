@@ -240,7 +240,7 @@ local function selfSkillSection(lines)
 end
 
 -- Every guild/recipe/profession API the client has, to spot a request function we don't know yet.
-local DISCOVERY_PATTERNS = { "Guild", "Recipe", "Profession", "TradeSkill" }
+local DISCOVERY_PATTERNS = { "Recipe", "Profession", "TradeSkill" }
 
 local function discoverySection(lines)
     local function matches(name)
@@ -373,8 +373,36 @@ local function guildTradeSkillExperiment(lines, finish)
             end
         end,
         function() probe(lines, "3s after QueryGuildMemberRecipes") end,
+        function()
+            add(lines, "-- guild tradeskill switches and the Cataclysm-style recipe query")
+            local function show(label, fn, ...)
+                if type(fn) == "function" then add(lines, label .. ": " .. callAll(fn, ...)) else add(lines, label .. ": missing") end
+            end
+            show("C_TradeSkillUI.IsGuildTradeSkillsEnabled", C_TradeSkillUI and C_TradeSkillUI.IsGuildTradeSkillsEnabled)
+            show("CanViewGuildRecipes(393)", CanViewGuildRecipes, 393)
+            show("CanViewGuildRecipes(165)", CanViewGuildRecipes, 165)
+            show("GetGuildRosterSelection", GetGuildRosterSelection)
+            show("SetGuildTradeSkillItemNameFilter(nil)", SetGuildTradeSkillItemNameFilter, nil)
+            show("SetGuildTradeSkillCategoryFilter(0)", SetGuildTradeSkillCategoryFilter, 0)
+            show("QueryGuildRecipes", QueryGuildRecipes)
+        end,
+        function()
+            probe(lines, "2s after QueryGuildRecipes and filter reset")
+            local function show(label, fn, ...)
+                if type(fn) == "function" then add(lines, label .. ": " .. callAll(fn, ...)) end
+            end
+            show("GetGuildRecipeInfoPostQuery", GetGuildRecipeInfoPostQuery)
+            show("GetGuildRecipeMember(1)", GetGuildRecipeMember, 1)
+            show("GetGuildMemberRecipes(your name, 393)", GetGuildMemberRecipes, "Graze Runner", 393)
+            show("GetGuildMemberRecipes(your name)", GetGuildMemberRecipes, "Graze Runner")
+            show("GetGuildMemberRecipes(your guid, 393)", GetGuildMemberRecipes, UnitGUID and UnitGUID("player"), 393)
+            add(lines, "-- expand once more, now that the filters are reset")
+            if expand then forEachHeader(nil, expand) end
+            probe(lines, "after Expand (filters reset)")
+            if collapse then forEachHeader(nil, collapse) end -- leave the headers as they were
+        end,
     }
-    local delays = { 0, 0, 2, 0, 2, 0, 2, 0, 3 } -- seconds to wait before each step
+    local delays = { 0, 0, 2, 0, 2, 0, 2, 0, 3, 0, 2 } -- seconds to wait before each step
     local function run(index)
         if index > #steps then
             local names = {}
