@@ -33,7 +33,7 @@ local Frame = class("Frame", extend(Region, {
     "StartMoving", "StopMovingOrSizing", "RegisterEvent", "UnregisterEvent",
     "SetAutoFocus", "SetMaxLetters", "SetCursorPosition", "ClearFocus",
     "SetHeight", "SetWidth", "SetScrollChild", "SetNumeric",
-    "SetMultiLine", "SetFontObject", "SetFocus", "HighlightText",
+    "SetMultiLine", "SetFontObject", "SetFocus", "HighlightText", "UnregisterAllEvents",
 }))
 local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth", "SetWordWrap" }))
 local Line = class("Line", extend(Region, { "SetThickness" }))

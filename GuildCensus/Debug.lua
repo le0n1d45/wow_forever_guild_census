@@ -239,10 +239,46 @@ local function selfSkillSection(lines)
     if GetTradeSkillLine then add(lines, "GetTradeSkillLine: " .. callAll(GetTradeSkillLine)) end
 end
 
--- The old guild professions window API: crafters per profession, with a skill level.
--- It returns collapsed header rows until they are expanded, so this expands every header,
--- reads the player rows, and collapses the headers it opened again.
-local TRADESKILL_SAMPLE_PER_HEADER = 12
+-- Every guild/recipe/profession API the client has, to spot a request function we don't know yet.
+local DISCOVERY_PATTERNS = { "Guild", "Recipe", "Profession", "TradeSkill" }
+
+local function discoverySection(lines)
+    local function matches(name)
+        for _, pattern in ipairs(DISCOVERY_PATTERNS) do
+            if string.find(name, pattern, 1, true) then return true end
+        end
+    end
+    local globals = {}
+    for name, value in pairs(_G) do
+        if type(name) == "string" and type(value) == "function" and matches(name) then globals[#globals + 1] = name end
+    end
+    table.sort(globals)
+    add(lines, "global functions: " .. table.concat(globals, ", "))
+    for _, tableName in ipairs({ "C_GuildInfo", "C_Club", "C_TradeSkillUI", "C_Professions" }) do
+        local names = {}
+        for name, value in pairs(type(_G[tableName]) == "table" and _G[tableName] or {}) do
+            if type(value) == "function" and (tableName ~= "C_Club" or matches(name) or string.find(name, "Member", 1, true)) then
+                names[#names + 1] = tostring(name)
+            end
+        end
+        table.sort(names)
+        add(lines, tableName .. ": " .. (#names > 0 and table.concat(names, ", ") or "(missing or empty)"))
+    end
+    local frames = {}
+    for _, name in ipairs({ "GuildFrame", "GuildRosterFrame", "GuildFrameTab", "CommunitiesFrame", "FriendsFrame",
+        "GuildInfoFrame", "GuildRosterContainer", "GuildTradeSkillFrame" }) do
+        if _G[name] then frames[#frames + 1] = name end
+    end
+    add(lines, "frames present: " .. table.concat(frames, ", "))
+end
+
+-- The old guild professions window API: crafters per profession, with a skill level. Its
+-- rows came back as collapsed headers only, so this tries the things that might fill it
+-- (a roster refresh, expanding, collapsing, a recipe query), reading it after each step
+-- and after a delay, and logs the events that fire meanwhile.
+local function after(seconds, fn)
+    if C_Timer and C_Timer.After then C_Timer.After(seconds, fn) else fn() end
+end
 
 local function isHeaderRow(row) return row[8] == nil and row[4] ~= nil end
 
@@ -252,73 +288,113 @@ local function readRow(index)
     return packed
 end
 
-local function guildTradeSkillSection(lines)
-    if not GetNumGuildTradeSkill then add(lines, "GetNumGuildTradeSkill is missing") return end
-    add(lines, "GetNumGuildTradeSkill (collapsed): " .. callAll(GetNumGuildTradeSkill))
-    for _, name in ipairs({ "ExpandGuildTradeSkillHeader", "CollapseGuildTradeSkillHeader", "QueryGuildTradeSkill",
-        "GetGuildTradeSkillView", "SetGuildTradeSkillView", "GetGuildTradeSkillSelection" }) do
-        add(lines, name .. ": " .. (type(_G[name]) == "function" and "yes" or "NO"))
-    end
-    if not GetGuildTradeSkillInfo then return end
+local function rowCount()
+    local ok, count = pcall(GetNumGuildTradeSkill)
+    return ok and type(count) == "number" and count or 0
+end
 
-    local expand = ExpandGuildTradeSkillHeader or (C_GuildInfo and C_GuildInfo.ExpandGuildTradeSkillHeader)
-    local collapse = CollapseGuildTradeSkillHeader or (C_GuildInfo and C_GuildInfo.CollapseGuildTradeSkillHeader)
-    local okCount, count = pcall(GetNumGuildTradeSkill)
-    if not (okCount and type(count) == "number") then return end
-
-    local opened = {}
-    if expand then
-        for i = count, 1, -1 do -- last first, so earlier indexes stay valid
-            local row = readRow(i)
-            if row and isHeaderRow(row) and row[2] then
-                local ok, err = pcall(expand, i)
-                add(lines, "  expand header " .. i .. " (" .. fmt(row[4]) .. "): " .. (ok and "ok" or "ERROR " .. fmt(err)))
-                if ok then opened[#opened + 1] = row[1] end
-            end
-        end
-    end
-    local _, expandedCount = pcall(GetNumGuildTradeSkill)
-    add(lines, "GetNumGuildTradeSkill (after expanding): " .. fmt(expandedCount))
-
-    -- Rows are headers followed by their players. Show every header and a sample of each one's players.
-    local header, seen, minSkill, maxSkill, shown = nil, 0, nil, nil, 0
-    local function closeHeader()
-        if header then
-            add(lines, "    player rows under " .. header .. ": " .. seen .. ", skill min/max " .. fmt(minSkill) .. "/" .. fmt(maxSkill))
-        end
-    end
-    for i = 1, (type(expandedCount) == "number" and expandedCount or 0) do
+local function probe(lines, label)
+    local headers, players, flags, samples = 0, 0, {}, {}
+    local minSkill, maxSkill
+    for i = 1, rowCount() do
         local row = readRow(i)
         if row then
             if isHeaderRow(row) then
-                closeHeader()
-                header, seen, minSkill, maxSkill, shown = fmt(row[4]), 0, nil, nil, 0
-                add(lines, "  [" .. i .. "] HEADER " .. formatReturns(row, 7))
+                headers = headers + 1
+                flags[#flags + 1] = tostring(row[4]) .. "=" .. tostring(row[2]) .. "/" .. tostring(row[7])
             else
-                seen = seen + 1
+                players = players + 1
                 local skill = row[13]
                 if type(skill) == "number" then
                     minSkill = minSkill and math.min(minSkill, skill) or skill
                     maxSkill = maxSkill and math.max(maxSkill, skill) or skill
                 end
-                if shown < TRADESKILL_SAMPLE_PER_HEADER then
-                    shown = shown + 1
-                    add(lines, "  [" .. i .. "] " .. formatReturns(row, 16))
-                end
+                if #samples < 6 then samples[#samples + 1] = "    " .. formatReturns(row, 16) end
             end
         end
     end
-    closeHeader()
+    add(lines, label .. ": count=" .. rowCount() .. " headers=" .. headers .. " player rows=" .. players ..
+        " skill min/max " .. fmt(minSkill) .. "/" .. fmt(maxSkill))
+    add(lines, "    headers (name=collapsedFlag/numPlayers): " .. table.concat(flags, ", "))
+    for _, sample in ipairs(samples) do add(lines, sample) end
+end
 
-    if collapse then -- put the guild window back the way it was
-        for _, skillId in ipairs(opened) do
-            for i = (type(expandedCount) == "number" and expandedCount or 0), 1, -1 do
-                local row = readRow(i)
-                if row and isHeaderRow(row) and row[1] == skillId and not row[2] then pcall(collapse, i) break end
-            end
-        end
-        add(lines, "GetNumGuildTradeSkill (after collapsing again): " .. callAll(GetNumGuildTradeSkill))
+local function forEachHeader(fn, apply)
+    for i = rowCount(), 1, -1 do -- last first, so earlier indexes stay valid
+        local row = readRow(i)
+        if row and isHeaderRow(row) then pcall(apply, i) end
     end
+end
+
+local function guildTradeSkillExperiment(lines, finish)
+    section(lines, "Guild trade skill window API (experiments)")
+    if not (GetNumGuildTradeSkill and GetGuildTradeSkillInfo) then
+        add(lines, "GetNumGuildTradeSkill / GetGuildTradeSkillInfo missing")
+        return finish()
+    end
+    local events, eventFrame = {}, CreateFrame("Frame")
+    for _, event in ipairs({ "GUILD_TRADESKILL_UPDATE", "GUILD_RECIPE_KNOWN_BY_MEMBERS", "TRADE_SKILL_SHOW",
+        "GUILD_ROSTER_UPDATE", "GUILD_RANKS_UPDATE", "TRADE_SKILL_LIST_UPDATE" }) do
+        pcall(eventFrame.RegisterEvent, eventFrame, event)
+    end
+    eventFrame:SetScript("OnEvent", function(_, event, ...)
+        local entry = events[event] or { count = 0 }
+        events[event] = entry
+        entry.count = entry.count + 1
+        if entry.count == 1 then entry.args = formatReturns({ ... }, select("#", ...)) end
+    end)
+
+    local expand = ExpandGuildTradeSkillHeader
+    local collapse = CollapseGuildTradeSkillHeader
+    local steps = {
+        function() probe(lines, "baseline") end,
+        function()
+            add(lines, "-- C_GuildInfo.GuildRoster()")
+            if C_GuildInfo and C_GuildInfo.GuildRoster then pcall(C_GuildInfo.GuildRoster) end
+        end,
+        function() probe(lines, "2s after GuildRoster") end,
+        function()
+            add(lines, "-- ExpandGuildTradeSkillHeader on every header")
+            if expand then forEachHeader(nil, expand) end
+            probe(lines, "right after Expand")
+        end,
+        function() probe(lines, "2s after Expand") end,
+        function()
+            add(lines, "-- CollapseGuildTradeSkillHeader on every header")
+            if collapse then forEachHeader(nil, collapse) end
+            probe(lines, "right after Collapse")
+        end,
+        function() probe(lines, "2s after Collapse") end,
+        function()
+            local guid = UnitGUID and UnitGUID("player")
+            add(lines, "-- C_GuildInfo.QueryGuildMemberRecipes(your guid, 393 Skinning)")
+            if C_GuildInfo and C_GuildInfo.QueryGuildMemberRecipes then
+                add(lines, "returned: " .. callAll(C_GuildInfo.QueryGuildMemberRecipes, guid, 393))
+            end
+        end,
+        function() probe(lines, "3s after QueryGuildMemberRecipes") end,
+    }
+    local delays = { 0, 0, 2, 0, 2, 0, 2, 0, 3 } -- seconds to wait before each step
+    local function run(index)
+        if index > #steps then
+            local names = {}
+            for name in pairs(events) do names[#names + 1] = name end
+            table.sort(names)
+            add(lines, "events seen during the experiment:")
+            for _, name in ipairs(names) do
+                add(lines, "  " .. name .. " x" .. events[name].count .. ", first args: " .. events[name].args)
+            end
+            if #names == 0 then add(lines, "  none") end
+            eventFrame:UnregisterAllEvents()
+            return finish()
+        end
+        after(delays[index], function()
+            local ok, err = pcall(steps[index])
+            if not ok then add(lines, "STEP ERROR: " .. fmt(err)) end
+            run(index + 1)
+        end)
+    end
+    run(1)
 end
 
 local function pipelineSection(lines)
@@ -336,16 +412,23 @@ local function pipelineSection(lines)
     add(lines, "Roster.Read: " .. #members .. " members, " .. withSkill .. " professions with a skill level")
 end
 
--- Builds the report as a list of lines.
-function Debug.Report()
+-- Builds the report as a list of lines. The guild trade skill experiments wait for the
+-- client between steps, so `done(lines)` is called when the whole report is ready (at once
+-- on a client without C_Timer); the lines are also returned.
+function Debug.Report(done)
     local lines = {}
     guarded(lines, "Client", function() clientSection(lines) end)
     guarded(lines, "API availability", function() apiSection(lines) end)
+    guarded(lines, "API discovery", function() discoverySection(lines) end)
     guarded(lines, "Guild roster", function() guildSection(lines) end)
     guarded(lines, "C_Club guild club (what GuildCensus reads)", function() clubSection(lines) end)
     guarded(lines, "Your own professions (skill level sources)", function() selfSkillSection(lines) end)
-    guarded(lines, "Guild trade skill window API", function() guildTradeSkillSection(lines) end)
     guarded(lines, "GuildCensus pipeline", function() pipelineSection(lines) end)
+    local ok, err = pcall(guildTradeSkillExperiment, lines, function() if done then done(lines) end end)
+    if not ok then
+        add(lines, "EXPERIMENT ERROR: " .. fmt(err))
+        if done then done(lines) end
+    end
     return lines
 end
 
@@ -384,8 +467,10 @@ end
 
 -- Builds the report, keeps it in the SavedVariables and shows it in a copyable window.
 function Debug.Show()
-    local lines = Debug.Report()
-    if ns.db then ns.db.lastDebug = lines end -- also lands in GuildCensus.lua in WTF after /reload or logout
-    showReport("Guild Census debug", table.concat(lines, "\n"))
-    print("|cff33ff99GuildCensus:|r debug report is in the window (already selected: press Ctrl+C to copy). It is also saved to GuildCensus.lua in your WTF\\Account\\<account>\\SavedVariables folder after /reload.")
+    print("|cff33ff99GuildCensus:|r collecting the debug report (about 12 seconds)...")
+    Debug.Report(function(lines)
+        if ns.db then ns.db.lastDebug = lines end -- also lands in GuildCensus.lua in WTF after /reload or logout
+        showReport("Guild Census debug", table.concat(lines, "\n"))
+        print("|cff33ff99GuildCensus:|r debug report is in the window (already selected: press Ctrl+C to copy). It is also saved to GuildCensus.lua in your WTF\\Account\\<account>\\SavedVariables folder after /reload.")
+    end)
 end
