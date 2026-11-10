@@ -207,6 +207,48 @@ return function()
             end)
         end)
 
+        describe("/gcensus debug", function()
+            local function report(ns)
+                return table.concat(ns.Debug.Report(), "\n")
+            end
+
+            it("reports what C_Club returns, including rank values and full member dumps", function()
+                local ns = loadAddon({ club = { guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 393, profession1Rank = 1,
+                            profession1Name = "Skinning" },
+                    [2] = { guid = "G-2", name = "Bob-Realm" },
+                } }, guild = {
+                    { name = "Ann", level = 60, className = "Mage", classFile = "MAGE", note = "dps", guid = "G-1" },
+                } })
+                local text = report(ns)
+                assert(text:find("GetGuildClubId: \"1\"", 1, true), text)
+                assert(text:find("GetClubMembers: 2 members", 1, true), text)
+                assert(text:find("profession rank values seen: 1 x1", 1, true), text)
+                assert(text:find("profession1Name=\"Skinning\"", 1, true), text)
+                assert(text:find('{key="skinning", skill=1}', 1, true) or text:find("key=\"skinning\"", 1, true), text)
+                assert(text:find("C_Club.GetMemberInfoForSelf", 1, true) and text:find("NO", 1, true), text)
+            end)
+
+            it("survives a client with none of the APIs, and a failing C_Club", function()
+                for _, club in ipairs({ false, { guildId = "1", members = { [1] = {} }, errors = true } }) do
+                    local ns = loadAddon({ club = club or nil })
+                    assert(report(ns):find("== Client ==", 1, true))
+                end
+                assert(report(loadAddon()):find("C_Club is missing", 1, true))
+            end)
+
+            it("the slash command opens a copyable window and saves the report", function()
+                local ns = loadAddon()
+                local printed = print
+                print = function() end
+                SlashCmdList["GUILDCENSUS"]("debug")
+                print = printed
+                assertEqual(GuildCensusReportFrame.shown, true)
+                assert(GuildCensusReportFrame.box.text:find("== Client ==", 1, true))
+                assert(#ns.db.lastDebug > 0)
+            end)
+        end)
+
         describe("member race", function()
             local function raceOf(ns)
                 local out = {}

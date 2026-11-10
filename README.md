@@ -57,6 +57,7 @@ repository's TOC uses the Forever interface number.
 | `/gcensus logs` | Open the window on the Logs tab |
 | `/gcensus config` | Open the settings panel |
 | `/gcensus demo` | Toggle a 500-member fake roster |
+| `/gcensus debug` | Open a copyable report of what the client's guild, `C_Club` and profession APIs return (for bug reports; also saved to the SavedVariables file) |
 
 The window has four tabs: **Census** (the six pie charts: roles, professions, classes, races, race and class, levels), **Role Finder**, **Profession Finder** and
 **Logs**. The Logs tab

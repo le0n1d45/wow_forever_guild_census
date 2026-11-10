@@ -54,6 +54,7 @@ Type **/gcensus** to open it.
 - `/gcensus logs`: open the Logs tab
 - `/gcensus config`: open the settings
 - `/gcensus demo`: switch demo data on or off
+- `/gcensus debug`: open a report of what the game returns for guild members and professions (copy it into a bug report)
 
 ## Writing notes that work
 

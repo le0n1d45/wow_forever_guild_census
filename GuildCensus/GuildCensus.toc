@@ -12,6 +12,7 @@ Parser.lua
 Census.lua
 Demo.lua
 Roster.lua
+Debug.lua
 PieChart.lua
 Logs.lua
 Dungeons.lua
