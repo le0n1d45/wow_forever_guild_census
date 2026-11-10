@@ -229,6 +229,31 @@ return function()
                 assert(text:find("C_Club.GetMemberInfoForSelf", 1, true) and text:find("NO", 1, true), text)
             end)
 
+            it("expands the guild trade skill headers, lists player skill levels and collapses them again", function()
+                local ns = loadAddon()
+                local expanded = false
+                local rows = function()
+                    if not expanded then
+                        return { { 393, true, "icon", "Skinning", 1, 1, 1 } }
+                    end
+                    return { { 393, false, "icon", "Skinning", 1, 1, 1 },
+                        { 393, nil, nil, nil, nil, nil, nil, "Ann", "Ann-Realm", "Mage", true, "Zone", 180, "MAGE", false, 0 } }
+                end
+                GetNumGuildTradeSkill = function() return #rows() end
+                GetGuildTradeSkillInfo = function(i)
+                    local r = rows()[i]
+                    return r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15], r[16]
+                end
+                ExpandGuildTradeSkillHeader = function() expanded = true end
+                CollapseGuildTradeSkillHeader = function() expanded = false end
+                local text = report(ns)
+                GetNumGuildTradeSkill, GetGuildTradeSkillInfo = nil, nil
+                ExpandGuildTradeSkillHeader, CollapseGuildTradeSkillHeader = nil, nil
+                assert(text:find('13=180', 1, true), text)
+                assert(text:find("skill min/max 180/180", 1, true), text)
+                assertEqual(expanded, false)
+            end)
+
             it("survives a client with none of the APIs, and a failing C_Club", function()
                 for _, club in ipairs({ false, { guildId = "1", members = { [1] = {} }, errors = true } }) do
                     local ns = loadAddon({ club = club or nil })

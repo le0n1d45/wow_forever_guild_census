@@ -240,18 +240,84 @@ local function selfSkillSection(lines)
 end
 
 -- The old guild professions window API: crafters per profession, with a skill level.
+-- It returns collapsed header rows until they are expanded, so this expands every header,
+-- reads the player rows, and collapses the headers it opened again.
+local TRADESKILL_SAMPLE_PER_HEADER = 12
+
+local function isHeaderRow(row) return row[8] == nil and row[4] ~= nil end
+
+local function readRow(index)
+    local packed = { pcall(GetGuildTradeSkillInfo, index) }
+    if not table.remove(packed, 1) then return nil end
+    return packed
+end
+
 local function guildTradeSkillSection(lines)
     if not GetNumGuildTradeSkill then add(lines, "GetNumGuildTradeSkill is missing") return end
-    add(lines, "GetNumGuildTradeSkill: " .. callAll(GetNumGuildTradeSkill))
-    if GetGuildTradeSkillView then add(lines, "GetGuildTradeSkillView: " .. callAll(GetGuildTradeSkillView)) end
-    if GetGuildTradeSkillInfo then
-        add(lines, "(GetGuildTradeSkillInfo rows, every return)")
-        local ok, count = pcall(GetNumGuildTradeSkill)
-        if ok and type(count) == "number" then
-            for i = 1, math.min(count, TRADESKILL_ROWS) do
-                add(lines, "  [" .. i .. "] " .. callAll(GetGuildTradeSkillInfo, i))
+    add(lines, "GetNumGuildTradeSkill (collapsed): " .. callAll(GetNumGuildTradeSkill))
+    for _, name in ipairs({ "ExpandGuildTradeSkillHeader", "CollapseGuildTradeSkillHeader", "QueryGuildTradeSkill",
+        "GetGuildTradeSkillView", "SetGuildTradeSkillView", "GetGuildTradeSkillSelection" }) do
+        add(lines, name .. ": " .. (type(_G[name]) == "function" and "yes" or "NO"))
+    end
+    if not GetGuildTradeSkillInfo then return end
+
+    local expand = ExpandGuildTradeSkillHeader or (C_GuildInfo and C_GuildInfo.ExpandGuildTradeSkillHeader)
+    local collapse = CollapseGuildTradeSkillHeader or (C_GuildInfo and C_GuildInfo.CollapseGuildTradeSkillHeader)
+    local okCount, count = pcall(GetNumGuildTradeSkill)
+    if not (okCount and type(count) == "number") then return end
+
+    local opened = {}
+    if expand then
+        for i = count, 1, -1 do -- last first, so earlier indexes stay valid
+            local row = readRow(i)
+            if row and isHeaderRow(row) and row[2] then
+                local ok, err = pcall(expand, i)
+                add(lines, "  expand header " .. i .. " (" .. fmt(row[4]) .. "): " .. (ok and "ok" or "ERROR " .. fmt(err)))
+                if ok then opened[#opened + 1] = row[1] end
             end
         end
+    end
+    local _, expandedCount = pcall(GetNumGuildTradeSkill)
+    add(lines, "GetNumGuildTradeSkill (after expanding): " .. fmt(expandedCount))
+
+    -- Rows are headers followed by their players. Show every header and a sample of each one's players.
+    local header, seen, minSkill, maxSkill, shown = nil, 0, nil, nil, 0
+    local function closeHeader()
+        if header then
+            add(lines, "    player rows under " .. header .. ": " .. seen .. ", skill min/max " .. fmt(minSkill) .. "/" .. fmt(maxSkill))
+        end
+    end
+    for i = 1, (type(expandedCount) == "number" and expandedCount or 0) do
+        local row = readRow(i)
+        if row then
+            if isHeaderRow(row) then
+                closeHeader()
+                header, seen, minSkill, maxSkill, shown = fmt(row[4]), 0, nil, nil, 0
+                add(lines, "  [" .. i .. "] HEADER " .. formatReturns(row, 7))
+            else
+                seen = seen + 1
+                local skill = row[13]
+                if type(skill) == "number" then
+                    minSkill = minSkill and math.min(minSkill, skill) or skill
+                    maxSkill = maxSkill and math.max(maxSkill, skill) or skill
+                end
+                if shown < TRADESKILL_SAMPLE_PER_HEADER then
+                    shown = shown + 1
+                    add(lines, "  [" .. i .. "] " .. formatReturns(row, 16))
+                end
+            end
+        end
+    end
+    closeHeader()
+
+    if collapse then -- put the guild window back the way it was
+        for _, skillId in ipairs(opened) do
+            for i = (type(expandedCount) == "number" and expandedCount or 0), 1, -1 do
+                local row = readRow(i)
+                if row and isHeaderRow(row) and row[1] == skillId and not row[2] then pcall(collapse, i) break end
+            end
+        end
+        add(lines, "GetNumGuildTradeSkill (after collapsing again): " .. callAll(GetNumGuildTradeSkill))
     end
 end
 
