@@ -170,6 +170,45 @@ return function()
                 })
             end)
 
+            it("drops the all-1 placeholder ranks the Forever client reports, but keeps real ones", function()
+                local ns = loadAddon(roster({ guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 186, profession1Rank = 1 },
+                    [2] = { name = "Bob-Realm", profession1ID = 165, profession1Rank = 1 },
+                } }))
+                assertEqual(professionsOf(ns), {
+                    Ann = { { key = "mining", skill = nil } },
+                    Bob = { { key = "leatherworking", skill = nil } },
+                })
+                ns = loadAddon(roster({ guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 186, profession1Rank = 1 },
+                    [2] = { name = "Bob-Realm", profession1ID = 165, profession1Rank = 40 },
+                } }))
+                assertEqual(professionsOf(ns), {
+                    Ann = { { key = "mining", skill = 1 } },
+                    Bob = { { key = "leatherworking", skill = 40 } },
+                })
+            end)
+
+            it("uses the player's real skill level for their own professions", function()
+                local ns = loadAddon(roster({ guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 393, profession1Rank = 1,
+                            profession2ID = 182, profession2Rank = 1 },
+                    [2] = { guid = "G-2", name = "Bob-Realm", profession1ID = 393, profession1Rank = 1 },
+                } }))
+                UnitGUID = function() return "G-1" end
+                GetProfessions = function() return 6, 9 end
+                GetProfessionInfo = function(index)
+                    if index == 6 then return "Herbalism", 0, 40, 75, 2, 77, 182 end
+                    return "Skinning", 0, 180, 225, 2, 85, 393
+                end
+                local result = professionsOf(ns)
+                UnitGUID, GetProfessions, GetProfessionInfo = nil, nil, nil
+                assertEqual(result, {
+                    Ann = { { key = "skinning", skill = 180 }, { key = "herbalism", skill = 40 } },
+                    Bob = { { key = "skinning", skill = nil } },
+                })
+            end)
+
             it("skips untracked professions and empty slots", function()
                 local ns = loadAddon()
                 assertEqual(ns.Roster.ProfessionsFromInfo({ profession1ID = 185, profession1Name = "Cooking",

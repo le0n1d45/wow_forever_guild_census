@@ -8,6 +8,7 @@ user-visible change, and move it under a version heading when that version is re
 ## [Unreleased]
 
 ### Fixed
+- Guild Census: the Profession Finder showed every profession as level 1 ("Skinning (1)"). WoW Forever's guild data reports a skill rank of 1 for every member (checked on 369 members, while the real levels were 180 and 40), and the guild trade skill API that would have the levels is switched off on the server. The placeholder ranks are now ignored, so a profession shows no level unless the player wrote one in their note ("LW 260"). Your own character's professions use your real skill levels. If the game ever reports ranks above 1, they are used again.
 - MobHunter: the minimap icons over tracking dots stopped working after today's game update. Blizzard changed what the minimap tooltip probe returns (NodeSight reports the same: its minimap symbols were "patched out in today's update, on every version"). Nameplate alerts, the marker and the Target button are unaffected. `/mobhunt debug` now also tries other coordinate styles and lists the active tracking, so a future workaround can be checked.
 
 ### Added

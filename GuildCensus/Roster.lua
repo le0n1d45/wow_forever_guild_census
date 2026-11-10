@@ -84,6 +84,7 @@ function Roster.ReadClubProfessions()
     if not (C_Club and C_Club.GetGuildClubId and C_Club.GetClubMembers and C_Club.GetMemberInfo) then
         return result
     end
+    local lists = {}
     pcall(function()
         local clubId = C_Club.GetGuildClubId()
         if not clubId then return end
@@ -94,6 +95,7 @@ function Roster.ReadClubProfessions()
                 local race = Roster.RaceName(info.race)
                 local name = stripRealm(info.name)
                 if #list > 0 then
+                    lists[#lists + 1] = list
                     if type(info.guid) == "string" then result.byGuid[info.guid] = list end
                     if name then result.byName[name] = list end
                 end
@@ -104,7 +106,49 @@ function Roster.ReadClubProfessions()
             end
         end
     end)
+    Roster.DropPlaceholderRanks(lists)
+    Roster.ApplyOwnSkills(result.byGuid[UnitGUID and UnitGUID("player") or false])
     return result
+end
+
+-- WoW Forever reports every member's profession rank as 1 (checked on 369 members, 711
+-- slots, while the player's real skills were 180 and 40), so the rank is not a skill level
+-- there. When no member in the whole list has a rank above 1 the ranks are a placeholder
+-- and are dropped; if the game ever fills them in, the first rank above 1 keeps them all.
+function Roster.DropPlaceholderRanks(lists)
+    for _, list in ipairs(lists) do
+        for _, entry in ipairs(list) do
+            if entry.skill and entry.skill > 1 then return end
+        end
+    end
+    for _, list in ipairs(lists) do
+        for _, entry in ipairs(list) do entry.skill = nil end
+    end
+end
+
+-- The player's own skill per skill line ID, from GetProfessions / GetProfessionInfo
+-- (their 3rd return is the current skill, the 7th the skill line). Empty when unavailable.
+function Roster.OwnSkills()
+    local skills = {}
+    if not (GetProfessions and GetProfessionInfo) then return skills end
+    pcall(function()
+        for _, index in pairs({ GetProfessions() }) do
+            local _, _, rank, _, _, _, skillLine = GetProfessionInfo(index)
+            if type(rank) == "number" and type(skillLine) == "number" then skills[skillLine] = rank end
+        end
+    end)
+    return skills
+end
+
+-- Puts the player's real skill levels onto their own profession list (the guild data has none).
+function Roster.ApplyOwnSkills(list)
+    if not list then return end
+    local skills = Roster.OwnSkills()
+    for _, entry in ipairs(list) do
+        for _, def in ipairs(ns.Config.PROFESSIONS) do
+            if def.key == entry.key and skills[def.skillLine] then entry.skill = skills[def.skillLine] end
+        end
+    end
 end
 
 -- Reads the cached guild roster into the member shape Census.Build expects

@@ -85,8 +85,9 @@ want (for example `heal, healer, healing`). The defaults already cover the commo
 
 ## Good to know
 
-- Professions (and skill levels) come from the game's own guild data when it provides them, and from notes
-  otherwise. Roles, mains and alts always come from notes.
+- Professions come from the game's own guild data when it provides them, and from notes otherwise. Skill
+  levels are only known where a player writes them in their note (the game doesn't report other players'
+  levels on WoW Forever), plus your own character's. Roles, mains and alts always come from notes.
 - Characters need their role written in their **public note** to be picked up, and their profession too
   whenever the game doesn't report it. If your
   guild rank can see **officer notes**, those are read too; if not, they're simply skipped.
