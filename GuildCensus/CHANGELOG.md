@@ -7,6 +7,8 @@ version is `## Version` in `GuildCensus/GuildCensus.toc`).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-10
+
 ### Added
 - Skill levels are shared between players who run the addon. The game reports no skill level for other players on WoW Forever, so each client now announces its own profession skill levels to the guild through a hidden addon message (prefix `GuildCensus`, about one small message per player every two minutes at most, on login, on a skill change and in answer to a new player's hello) and remembers what it hears, so the Profession Finder shows "Skinning (157)" for everyone running the addon (reports are kept 60 days; notes remain the fallback). A new setting, **Share my profession skill levels with other Guild Census users in my guild** (on by default), turns sending off; the addon still listens. `/gcensus comms` sends now and prints the status, and `/gcensus debug` has a section for it. Only profession names and levels are sent, not roles or notes.
 - `/gcensus debug` opens a copyable report for bug reports: the addon and client versions and settings, which of the game APIs it uses are missing, what the guild data (`C_Club`) reports (including the profession rank values), how many members have a skill level in the Profession Finder and where each came from (your own skills, another player's report, the game's rank or the note), your own professions, the skill sharing status with the reports received, and the census conflicts. It is also saved to the SavedVariables file.
