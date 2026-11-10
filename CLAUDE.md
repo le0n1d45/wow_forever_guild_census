@@ -4,7 +4,7 @@
 
 - When you finish a piece of work, commit and push it automatically without asking first.
 - Run `lua tests/run.lua` (Lua 5.1) before committing; don't commit with failing tests.
-- Add a `CHANGELOG.md` entry under Unreleased for every user-visible change.
+- Each addon has its own `CHANGELOG.md` in its folder (`GuildCensus/CHANGELOG.md`, `MobHunter/CHANGELOG.md`). Add an entry under Unreleased in the changed addon's file for every user-visible change; there is no repo-level changelog. The release workflows write that addon's Unreleased entries into the GitHub release notes and move them under the new version heading, so keep them readable (they are what players see).
 - Each addon has an `ADDON_DESCRIPTION.md` in its folder (`GuildCensus/`, `MobHunter/`): the player-facing
   CurseForge text (the README is for developers). When a feature, command or default changes, update that
   addon's file alongside the README so the user can paste the new text.

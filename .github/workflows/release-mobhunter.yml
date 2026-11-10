@@ -1,7 +1,8 @@
 name: MobHunter Release
 
 # Run by hand from the Actions tab. Finds the latest tag, bumps the version, writes it to
-# the TOC, tags the commit and publishes a GitHub release with the Forever and Retail zips.
+# the TOC and moves the changelog's Unreleased entries under the new version, tags the commit and
+# publishes a GitHub release with the Forever and Retail zips, with the changelog entries as its notes.
 # Tags are "mobhunter-X.Y.Z" so each addon in this repo versions independently of the others.
 on:
   workflow_dispatch:
@@ -81,6 +82,10 @@ jobs:
         run: |
           sed -i "s/^## Version:.*/## Version: $VERSION/" MobHunter/MobHunter.toc
           grep -x "## Version: $VERSION" MobHunter/MobHunter.toc
+          # The release notes are this version's changelog entries; the Unreleased ones move under
+          # the new version heading and are committed with the TOC bump below.
+          python3 tools/release_changelog.py MobHunter/CHANGELOG.md "$VERSION" "$RUNNER_TEMP/release-notes.md" \
+            || echo "No changelog entries for $VERSION, the release will use generated notes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git diff --quiet; then
@@ -113,6 +118,15 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           PREVIOUS_TAG: ${{ steps.version.outputs.previous_tag }}
         run: |
+          if [ -s "$RUNNER_TEMP/release-notes.md" ]; then
+            if [ -n "$PREVIOUS_TAG" ]; then
+              printf '\n**Full diff:** https://github.com/%s/compare/%s...%s%s\n' \
+                "$GITHUB_REPOSITORY" "$PREVIOUS_TAG" "$TAG_PREFIX" "$VERSION" >> "$RUNNER_TEMP/release-notes.md"
+            fi
+            notes=(--notes-file "$RUNNER_TEMP/release-notes.md")
+          else
+            notes=(--generate-notes ${PREVIOUS_TAG:+--notes-start-tag "$PREVIOUS_TAG"})
+          fi
           gh release create "$TAG_PREFIX$VERSION" release/*.zip \
             --title "MobHunter $VERSION" \
-            --generate-notes ${PREVIOUS_TAG:+--notes-start-tag "$PREVIOUS_TAG"}
+            "${notes[@]}"

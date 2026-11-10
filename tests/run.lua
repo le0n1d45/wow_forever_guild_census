@@ -63,5 +63,7 @@ dofile("tests/UI.test.lua")()
 
 dofile("tests/MobHunter.test.lua")()
 
+dofile("tests/ReleaseChangelog.test.lua")()
+
 print(string.format("\n%d passed, %d failed", passed, failures))
 os.exit(failures == 0 and 0 or 1)
