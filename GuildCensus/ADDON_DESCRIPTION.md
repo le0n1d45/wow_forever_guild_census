@@ -54,6 +54,7 @@ Type **/gcensus** to open it.
 - `/gcensus logs`: open the Logs tab
 - `/gcensus config`: open the settings
 - `/gcensus demo`: switch demo data on or off
+- `/gcensus comms`: send your skill levels to the guild now and show the skill sharing status
 - `/gcensus debug`: open a report of what the game returns for guild members and professions (copy it into a bug report)
 
 ## Writing notes that work
@@ -85,6 +86,11 @@ want (for example `heal, healer, healing`). The defaults already cover the commo
 
 ## Good to know
 
+- **Skill levels are shared between players who run Guild Census.** The game doesn't tell the addon other
+  players' skill levels on WoW Forever, so each copy of the addon quietly tells the guild its own player's
+  profession skill levels (names and levels only, through a hidden addon message, not in chat). You only
+  see levels for guild members who run the addon, or who wrote them in their note. It is on by default;
+  untick **Share my profession skill levels...** in the settings to stop sending yours.
 - Professions come from the game's own guild data when it provides them, and from notes otherwise. Skill
   levels are only known where a player writes them in their note (the game doesn't report other players'
   levels on WoW Forever), plus your own character's. Roles, mains and alts always come from notes.

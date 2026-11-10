@@ -246,6 +246,202 @@ return function()
             end)
         end)
 
+        describe("sharing skill levels between Guild Census users (Comms)", function()
+            local sent, queue
+            local function install(options)
+                options = options or {}
+                sent, queue = {}, {}
+                C_ChatInfo = {
+                    RegisterAddonMessagePrefix = function(prefix) sent.registered = prefix return true end,
+                    SendAddonMessage = function(prefix, text, channel)
+                        sent[#sent + 1] = { prefix = prefix, text = text, channel = channel }
+                        return 0
+                    end,
+                }
+                C_Timer = { After = function(seconds, fn) queue[#queue + 1] = { seconds = seconds, fn = fn } end }
+                UnitName = function() return "Graze" end
+                local clock = options.clock or 1000
+                time = function() return clock end
+                GetProfessions = function() return 6, 9 end
+                GetProfessionInfo = function(index)
+                    if index == 6 then return "Herbalism", 0, 40, 75, 2, 77, 182 end
+                    return "Skinning", 0, 180, 225, 2, 85, 393
+                end
+                local ns = loadAddon({ guild = {
+                    { name = "Ann", level = 60, className = "Mage", classFile = "MAGE", note = "dps", guid = "G-1" },
+                    { name = "Bob", level = 60, className = "Mage", classFile = "MAGE", note = "LW 100", guid = "G-2" },
+                }, club = options.club })
+                return ns, function(now) clock = now end
+            end
+            local function runTimers()
+                local pending = queue
+                queue = {}
+                for _, item in ipairs(pending) do item.fn() end
+            end
+            local function uninstall()
+                C_ChatInfo, C_Timer, UnitName, time, GetProfessions, GetProfessionInfo = nil, nil, nil, nil, nil, nil
+            end
+
+            it("encodes and decodes skills and hellos, and rejects anything malformed", function()
+                local ns = install()
+                assertEqual(ns.Comms.Encode({ { skillLine = 393, skill = 180 }, { skillLine = 182, skill = 40 } }),
+                    "P1|393:180,182:40")
+                assertEqual(ns.Comms.Encode({}), "P1|")
+                local kind, skills = ns.Comms.Decode("P1|393:180,182:40")
+                assertEqual(kind, "skills")
+                assertEqual(skills, { skinning = 180, herbalism = 40 })
+                assertEqual({ ns.Comms.Decode("P1|") }, { "skills", {} })
+                assertEqual({ ns.Comms.Decode("P1|999:50,393:7") }, { "skills", { skinning = 7 } }) -- untracked line skipped
+                assertEqual(ns.Comms.Decode("H1"), "hello")
+                for _, bad in ipairs({ "P2|393:180", "P1|393", "P1|393:0", "P1|393:1001", "P1|393:x", "P1|393:1,182:1,186:1",
+                    "hello", "", "P1|393:180,", "P1|-3:5" }) do
+                    assertEqual(ns.Comms.Decode(bad), nil, bad)
+                end
+                assertEqual(ns.Comms.Decode(nil), nil)
+                uninstall()
+            end)
+
+            it("registers the prefix and drops reports older than the limit", function()
+                GuildCensusDB = nil
+                local ns = install()
+                assertEqual(sent.registered, "GuildCensus")
+                ns.db.reports = { Old = { t = 1, skills = {} }, Odd = "x", Fresh = { t = 1000, skills = { mining = 5 } } }
+                ns.Comms.MAX_AGE = 500
+                ns.Comms.Init()
+                assertEqual(ns.db.reports, { Fresh = { t = 1000, skills = { mining = 5 } } })
+                uninstall()
+            end)
+
+            it("stores what other players report and uses it in the roster, over the game's data", function()
+                local ns = install({ club = { guildId = "1", members = {
+                    [1] = { guid = "G-1", name = "Ann-Realm", profession1ID = 393, profession1Rank = 1 },
+                } } })
+                ns.Comms.OnMessage("GuildCensus", "P1|393:157,182:40", "GUILD", "Ann-Realm")
+                ns.Comms.OnMessage("GuildCensus", "P1|165:100", "GUILD", "Bob-Realm")
+                local professions = {}
+                for _, m in ipairs(ns.Roster.Read()) do professions[m.name] = m.professions end
+                assertEqual(professions.Ann, { { key = "skinning", skill = 157 } }) -- the game lists only skinning
+                assertEqual(professions.Bob, { { key = "leatherworking", skill = 100 } }) -- no game data: the report is the list
+                uninstall()
+            end)
+
+            it("ignores your own echo, other prefixes and channels, and garbage", function()
+                local ns = install()
+                ns.Comms.OnMessage("GuildCensus", "P1|393:180", "GUILD", "Graze-Realm")
+                ns.Comms.OnMessage("Other", "P1|393:180", "GUILD", "Ann-Realm")
+                ns.Comms.OnMessage("GuildCensus", "P1|393:180", "PARTY", "Ann-Realm")
+                ns.Comms.OnMessage("GuildCensus", "P1|393:9999", "GUILD", "Ann-Realm")
+                assertEqual(ns.db.reports, {})
+                assertEqual(ns.Comms.stats.ignored, 1)
+                assertEqual(ns.Comms.stats.received, 0)
+                uninstall()
+            end)
+
+            it("expires a report after MAX_AGE", function()
+                local ns, setClock = install()
+                ns.Comms.OnMessage("GuildCensus", "P1|393:157", "GUILD", "Ann-Realm")
+                assertEqual(ns.Comms.SkillsFor("Ann"), { skinning = 157 })
+                setClock(1000 + ns.Comms.MAX_AGE + 1)
+                assertEqual(ns.Comms.SkillsFor("Ann"), nil)
+                uninstall()
+            end)
+
+            it("answers any number of hellos with one broadcast of your own skills", function()
+                local ns = install()
+                for _ = 1, 5 do ns.Comms.OnMessage("GuildCensus", "H1", "GUILD", "Ann-Realm") end
+                assertEqual(#queue, 1)
+                local delay = queue[1].seconds
+                assert(delay >= 2 and delay <= 20, delay)
+                runTimers()
+                assertEqual(sent[1], { prefix = "GuildCensus", text = "P1|393:180,182:40", channel = "GUILD" })
+                assertEqual(#sent, 1)
+                uninstall()
+            end)
+
+            it("waits out the minimum interval between broadcasts", function()
+                local ns, setClock = install()
+                ns.Comms.OnMessage("GuildCensus", "H1", "GUILD", "Ann-Realm")
+                runTimers()
+                setClock(1030)
+                ns.Comms.OnMessage("GuildCensus", "H1", "GUILD", "Bob-Realm")
+                assert(queue[1].seconds >= ns.Comms.MIN_INTERVAL - 30, queue[1].seconds)
+                uninstall()
+            end)
+
+            it("sends nothing with sharing switched off, but still listens", function()
+                local ns = install()
+                ns.settings.shareSkills = false
+                ns.Comms.OnMessage("GuildCensus", "H1", "GUILD", "Ann-Realm")
+                assertEqual(#queue, 0)
+                assertEqual(ns.Comms.Broadcast(), false)
+                ns.Comms.OnLogin()
+                runTimers()
+                assertEqual(#sent, 0)
+                ns.Comms.OnMessage("GuildCensus", "P1|393:157", "GUILD", "Ann-Realm")
+                assertEqual(ns.Comms.SkillsFor("Ann"), { skinning = 157 })
+                uninstall()
+            end)
+
+            it("says hello at login (once per interval) and announces", function()
+                local ns, setClock = install()
+                ns.Comms.OnLogin()
+                runTimers() -- the 10s wait, which schedules the announcement
+                runTimers()
+                assertEqual({ sent[1].text, sent[2].text }, { "H1", "P1|393:180,182:40" })
+                setClock(1010)
+                ns.Comms.OnLogin()
+                runTimers()
+                assertEqual(#sent, 2) -- no second hello
+                assert(queue[1].seconds >= ns.Comms.MIN_INTERVAL - 10, queue[1].seconds) -- announcement waits for the interval
+                uninstall()
+            end)
+
+            it("announces a skill change only when the skills differ from the last announcement", function()
+                local ns = install()
+                ns.Comms.Broadcast()
+                ns.Comms.OnSkillsChanged()
+                ns.Comms.OnSkillsChanged() -- debounced
+                assertEqual(#queue, 1)
+                runTimers()
+                assertEqual(#queue, 0) -- unchanged: nothing scheduled
+                GetProfessionInfo = function(index)
+                    if index == 6 then return "Herbalism", 0, 41, 75, 2, 77, 182 end
+                    return "Skinning", 0, 180, 225, 2, 85, 393
+                end
+                ns.Comms.OnSkillsChanged()
+                runTimers()
+                assertEqual(#queue, 1)
+                uninstall()
+            end)
+
+            it("copes with a client without addon messages", function()
+                local ns = install()
+                C_ChatInfo = nil
+                assertEqual(ns.Comms.Broadcast(), false)
+                ns.Comms.Init()
+                assert(ns.Comms.stats.register:find("missing", 1, true))
+                assert(#ns.Comms.Status() > 0)
+                uninstall()
+            end)
+
+            it("/gcensus comms broadcasts and reports status; the options checkbox flips sharing", function()
+                local ns = install()
+                local printed = print
+                local lines = {}
+                print = function(text) lines[#lines + 1] = text end
+                SlashCmdList["GUILDCENSUS"]("comms")
+                print = printed
+                assertEqual(#sent, 1)
+                assert(lines[1]:find("sharing your skills: on", 1, true), lines[1])
+                local box = ns.Options.panel.controls.shareSkills
+                assertEqual(box.checked, true)
+                box:SetChecked(false)
+                box.scripts.OnClick(box)
+                assertEqual(ns.settings.shareSkills, false)
+                uninstall()
+            end)
+        end)
+
         describe("/gcensus debug", function()
             local function report(ns)
                 return table.concat(ns.Debug.Report(), "\n")

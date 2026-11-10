@@ -57,6 +57,7 @@ repository's TOC uses the Forever interface number.
 | `/gcensus logs` | Open the window on the Logs tab |
 | `/gcensus config` | Open the settings panel |
 | `/gcensus demo` | Toggle a 500-member fake roster |
+| `/gcensus comms` | Send your skill levels to the guild now and print the skill sharing status |
 | `/gcensus debug` | Open a copyable report of what the client's guild, `C_Club` and profession APIs return (for bug reports; also saved to the SavedVariables file) |
 
 The window has four tabs: **Census** (the six pie charts: roles, professions, classes, races, race and class, levels), **Role Finder**, **Profession Finder** and
@@ -111,6 +112,8 @@ listed.
 
 ![The settings panel](docs/settings.png)
 
+- **Share my profession skill levels with other Guild Census users in my guild** (on by default). See
+  [Skill levels from other players](#skill-levels-from-other-players).
 - **Include alts** and **Include ONLY mains declared within guild notes** checkboxes. When both
   apply, a member must pass the alts checkbox and also declare a main.
 - **Alt/Main, Role and Profession detection:** comma-separated keyword lists. Changes apply
@@ -127,6 +130,19 @@ mentions is still counted, and a member the game has no data for is read from th
 trade skill API (`GetGuildTradeSkillInfo`) would have levels, but guild trade skills are switched off on
 Forever (`C_TradeSkillUI.IsGuildTradeSkillsEnabled()` is false), so its rows stay empty. If the API is
 missing or returns nothing, the addon behaves exactly as it did with notes only. Roles, mains and alts still come only from notes.
+
+#### Skill levels from other players
+
+The game reports no skill level for other players on WoW Forever, so Guild Census users share their own.
+Each client sends its own profession skill levels (the two primary professions, for example
+`P1|393:180,182:40`) as a hidden **addon message** on the guild channel: players never see it in chat,
+and it is the way addons such as Deadly Boss Mods share data. A client announces itself about 10 seconds
+after login (and asks the guild to announce too), and again when a skill changes, at most once every two
+minutes. What it hears is kept in `GuildCensusDB.reports` (reports older than 60 days are dropped) and
+fills in the skill level in the Profession Finder, ahead of a number written in a note. Only members who
+run the addon can report, so everyone else still falls back to the note, and the levels are
+self-reported. Only profession names and levels are sent, never notes or roles. Untick the checkbox in the
+settings to stop sending (the addon still listens). `/gcensus comms` sends now and prints the status.
 
 Detection reads each member's **public** guild note and, when you are allowed to see it, their **officer
 note** too (the two are searched together). If the officer note is hidden from you, it is skipped without

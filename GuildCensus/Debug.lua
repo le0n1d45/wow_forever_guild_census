@@ -425,6 +425,11 @@ local function guildTradeSkillExperiment(lines, finish)
     run(1)
 end
 
+local function commsSection(lines)
+    if not ns.Comms then add(lines, "Comms is missing") return end
+    for _, line in ipairs(ns.Comms.Status()) do add(lines, line) end
+end
+
 local function pipelineSection(lines)
     local club = ns.Roster.ReadClubProfessions()
     local byName = 0
@@ -452,6 +457,7 @@ function Debug.Report(done)
     guarded(lines, "C_Club guild club (what GuildCensus reads)", function() clubSection(lines) end)
     guarded(lines, "Your own professions (skill level sources)", function() selfSkillSection(lines) end)
     guarded(lines, "GuildCensus pipeline", function() pipelineSection(lines) end)
+    guarded(lines, "Skill sharing between Guild Census users", function() commsSection(lines) end)
     local ok, err = pcall(guildTradeSkillExperiment, lines, function() if done then done(lines) end end)
     if not ok then
         add(lines, "EXPERIMENT ERROR: " .. fmt(err))

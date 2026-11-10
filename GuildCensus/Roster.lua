@@ -151,6 +151,23 @@ function Roster.ApplyOwnSkills(list)
     end
 end
 
+-- Puts skill levels other Guild Census users reported (Comms) onto a member's profession list:
+-- onto the entries the game listed, or, when the game has no list, as the list itself.
+function Roster.ApplyReportedSkills(list, reported)
+    if not reported then return list end
+    if not list then
+        list = {}
+        for _, def in ipairs(ns.Config.PROFESSIONS) do
+            if reported[def.key] then list[#list + 1] = { key = def.key, skill = reported[def.key] } end
+        end
+        return #list > 0 and list or nil
+    end
+    for _, entry in ipairs(list) do
+        entry.skill = reported[entry.key] or entry.skill
+    end
+    return list
+end
+
 -- Reads the cached guild roster into the member shape Census.Build expects
 -- ({ name, level, className, classFile, note, online, professions?, race? }).
 function Roster.Read()
@@ -171,7 +188,9 @@ function Roster.Read()
             classFile = classFile,
             note = Roster.CombineNotes(note, officerNote),
             online = isOnline and true or false,
-            professions = (guid and club.byGuid[guid]) or club.byName[name], -- nil when the game has none
+            professions = Roster.ApplyReportedSkills(
+                (guid and club.byGuid[guid]) or club.byName[name], -- nil when the game has none
+                ns.Comms and ns.Comms.SkillsFor(name)),
             race = (guid and club.raceByGuid[guid]) or club.raceByName[name] or raceFromGuid(guid), -- nil when unknown
         }
     end
