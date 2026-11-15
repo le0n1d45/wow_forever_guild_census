@@ -10,6 +10,7 @@ local CHARTS = {
     { key = "classes",     title = "Classes" },
     { key = "races",       title = "Races" },
     { key = "levels",      title = "Levels" },
+    { key = "identities",  title = "Mains and alts (from notes)", col = 2, row = 1 },
     -- Every race/class combo gets a legend line, so it has a row of its own with room
     -- for the legend to run in columns.
     { key = "raceClasses", title = "Race and class", col = 0, row = 2,

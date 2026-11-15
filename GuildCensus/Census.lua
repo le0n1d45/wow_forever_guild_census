@@ -7,6 +7,12 @@ Census.LEVEL_BUCKET_SIZE = 10
 Census.MAX_PROFESSIONS = 2
 Census.UNKNOWN_RACE = "Unknown"
 
+-- Slice labels of the main/alt chart, in display order. A member whose note matches both
+-- a main and an alt keyword is a logged conflict, so is counted as unspecified.
+Census.IDENTITY_LABELS = { main = "Mains", alt = "Alts", unspecified = "Not specified" }
+local IDENTITY_ORDER = { [Census.IDENTITY_LABELS.main] = 1, [Census.IDENTITY_LABELS.alt] = 2,
+                         [Census.IDENTITY_LABELS.unspecified] = 3 }
+
 -- Classes with no tank or healer spec are counted as DPS without needing a note.
 local PURE_DPS_CLASSES = { WARLOCK = true, HUNTER = true, MAGE = true, ROGUE = true }
 
@@ -201,14 +207,14 @@ end
 -- members: list of { name, level, classFile, className, note, race? }; a member with no
 -- race counts under "Unknown" in the race charts
 -- settings: Config settings table (defaults when omitted)
--- Returns { total, roles, professions, classes, races, raceClasses, levels, conflicts }. The chart
+-- Returns { total, roles, professions, classes, races, raceClasses, identities, levels, conflicts }. The chart
 -- fields are slice lists; conflicts are computed over ALL members regardless of
 -- the alt/main filters, since their purpose is tuning detection.
 function Census.Build(members, settings)
     local rules = Census.Rules(settings)
 
     local roles, professions, classes, levels = {}, {}, {}, {}
-    local races, combos = {}, {}
+    local races, combos, identities = {}, {}, {}
     local levelOrder, classNames = {}, {}
     local conflicts, total = {}, 0
 
@@ -218,6 +224,14 @@ function Census.Build(members, settings)
 
         if analysis.included then
             total = total + 1
+
+            local identity = "unspecified"
+            if analysis.mainWord and not analysis.altWord then
+                identity = "main"
+            elseif analysis.altWord and not analysis.mainWord then
+                identity = "alt"
+            end
+            increment(identities, Census.IDENTITY_LABELS[identity])
 
             for _, label in ipairs(analysis.roles) do
                 increment(roles, label)
@@ -271,6 +285,7 @@ function Census.Build(members, settings)
         classes = classSlices,
         races = toSlices(races),
         raceClasses = toSlices(combos),
+        identities = toSlices(identities, function(slice) return IDENTITY_ORDER[slice.label] end),
         levels = toSlices(levels, function(slice) return levelOrder[slice.label] end),
         conflicts = conflicts,
     }

@@ -109,6 +109,30 @@ return function(ns)
         end)
     end)
 
+    describe("Census.Build identities", function()
+        local function noted(note) return { level = 60, classFile = "MAGE", className = "Mage", note = note } end
+
+        it("counts mains, alts and members with neither, in that order", function()
+            local census = Census.Build({
+                noted("alt of Bob"), noted("Main"), noted(""), noted("main"), noted("alt"), noted(""), noted(""),
+            })
+            assertEqual(census.identities, {
+                { label = "Mains", count = 2 }, { label = "Alts", count = 2 }, { label = "Not specified", count = 3 },
+            })
+        end)
+
+        it("counts a note that says both as not specified, and omits empty slices", function()
+            assertEqual(Census.Build({ noted("main and alt") }).identities,
+                { { label = "Not specified", count = 1 } })
+            assertEqual(Census.Build({}).identities, {})
+        end)
+
+        it("leaves excluded alts out", function()
+            local census = Census.Build({ noted("alt of Bob"), noted("Main") }, { includeAlts = false })
+            assertEqual(census.identities, { { label = "Mains", count = 1 } })
+        end)
+    end)
+
     describe("Census.Build pure-DPS classes", function()
         it("counts warlock, hunter, mage and rogue as DPS with empty notes", function()
             local census = Census.Build({

@@ -585,7 +585,7 @@ return function()
             local ns = loadAddon()
             SlashCmdList["GUILDCENSUS"]("demo")
             local census = ns.Census.Build(ns.Demo.Generate(), ns.settings)
-            for _, key in ipairs({ "roles", "professions", "classes", "races", "raceClasses", "levels" }) do
+            for _, key in ipairs({ "roles", "professions", "classes", "races", "raceClasses", "identities", "levels" }) do
                 local chartRuns = runs(GuildCensusWindow.charts[key])
                 local slices = census[key]
                 assertEqual(#chartRuns, #slices)

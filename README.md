@@ -60,7 +60,7 @@ repository's TOC uses the Forever interface number.
 | `/gcensus comms` | Send your skill levels to the guild now and print the skill sharing status |
 | `/gcensus debug` | Open a copyable diagnostic report (versions, missing APIs, what the guild data returns, where each skill level came from, skill sharing status) for bug reports; also saved to the SavedVariables file |
 
-The window has four tabs: **Census** (the six pie charts: roles, professions, classes, races, race and class, levels), **Role Finder**, **Profession Finder** and
+The window has four tabs: **Census** (the seven pie charts: roles, professions, classes, races, race and class, levels, mains and alts), **Role Finder**, **Profession Finder** and
 **Logs**. The Logs tab
 shows how many conflicts were found, for example `Logs (27)`.
 
