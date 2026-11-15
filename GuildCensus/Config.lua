@@ -86,6 +86,7 @@ Config.IDENTITY = {
 local function fillDefaults(settings)
     if settings.includeAlts == nil then settings.includeAlts = true end
     if settings.onlyMains == nil then settings.onlyMains = false end
+    if settings.unspecifiedIsMain == nil then settings.unspecifiedIsMain = true end
     if settings.shareSkills == nil then settings.shareSkills = true end
     settings.identity = settings.identity or {}
     for _, def in ipairs(Config.IDENTITY) do
@@ -135,6 +136,7 @@ end
 function Config.Reset(settings)
     settings.includeAlts = nil
     settings.onlyMains = nil
+    settings.unspecifiedIsMain = nil
     settings.shareSkills = nil
     settings.identity = {}
     settings.roles = {}

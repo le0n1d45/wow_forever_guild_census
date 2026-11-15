@@ -112,17 +112,28 @@ return function(ns)
     describe("Census.Build identities", function()
         local function noted(note) return { level = 60, classFile = "MAGE", className = "Mage", note = note } end
 
+        it("counts unspecified members as mains by default", function()
+            local census = Census.Build({ noted("alt of Bob"), noted("Main"), noted(""), noted("resto") })
+            assertEqual(census.identities, { { label = "Mains", count = 3 }, { label = "Alts", count = 1 } })
+        end)
+
+        it("only mains keeps unspecified members while they count as mains", function()
+            local s = Config.Defaults()
+            s.onlyMains = true
+            assertEqual(Census.Build({ noted("alt of Bob"), noted("Main"), noted("") }, s).total, 2)
+        end)
+
         it("counts mains, alts and members with neither, in that order", function()
             local census = Census.Build({
                 noted("alt of Bob"), noted("Main"), noted(""), noted("main"), noted("alt"), noted(""), noted(""),
-            })
+            }, { unspecifiedIsMain = false })
             assertEqual(census.identities, {
                 { label = "Mains", count = 2 }, { label = "Alts", count = 2 }, { label = "Not specified", count = 3 },
             })
         end)
 
         it("counts a note that says both as not specified, and omits empty slices", function()
-            assertEqual(Census.Build({ noted("main and alt") }).identities,
+            assertEqual(Census.Build({ noted("main and alt") }, { unspecifiedIsMain = false }).identities,
                 { { label = "Not specified", count = 1 } })
             assertEqual(Census.Build({}).identities, {})
         end)
@@ -183,7 +194,7 @@ return function(ns)
 
         it("only mains keeps just notes that declare a main", function()
             local s = Config.Defaults()
-            s.onlyMains = true
+            s.onlyMains, s.unspecifiedIsMain = true, false
             local census = Census.Build(members, s)
             assertEqual(census.total, 1)
             assertEqual(census.classes, { { label = "Warrior", classFile = "WARRIOR", count = 1 } })
@@ -370,7 +381,7 @@ return function(ns)
 
         it("marks members excluded by only-mains", function()
             local s = Config.Defaults()
-            s.onlyMains = true
+            s.onlyMains, s.unspecifiedIsMain = true, false
             local r = Census.Rules(s)
             assertEqual(Census.Analyze(member("A", 60, "DRUID", "main"), r).included, true)
             assertEqual(Census.Analyze(member("B", 60, "DRUID", "resto"), r).included, false)
@@ -436,7 +447,7 @@ return function(ns)
 
         it("honours only-mains", function()
             local s = Config.Defaults()
-            s.onlyMains = true
+            s.onlyMains, s.unspecifiedIsMain = true, false
             assertEqual(names(Census.Find(roster, { role = "tank" }, s)), { "Elder" })
         end)
 

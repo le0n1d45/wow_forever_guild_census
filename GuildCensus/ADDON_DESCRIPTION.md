@@ -78,7 +78,7 @@ match how *your* guild writes notes:
 - **Role detection:** keywords for Tank, Healer and DPS
 - **Profession detection:** keywords for all nine professions
 - **Alt/Main detection:** keywords that mark alts and mains
-- Checkboxes for **Include alts** and **Include ONLY mains declared within guild notes**
+- Checkboxes for **Include alts** and **Include ONLY mains declared within guild notes**, and **Treat members with no main/alt in their note as mains** (on by default)
 - **Reset to defaults** if you want to start over
 
 Keywords are comma-separated and match whole words, so list the abbreviations *and* the full words you

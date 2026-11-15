@@ -96,7 +96,8 @@ local function addonSection(lines)
     add(lines, "GuildCensus " .. fmt(version) .. ", report made " .. (date and date("%Y-%m-%d %H:%M") or "?"))
     local settings = ns.settings or {}
     add(lines, "settings: shareSkills=" .. fmt(settings.shareSkills) .. " includeAlts=" .. fmt(settings.includeAlts) ..
-        " onlyMains=" .. fmt(settings.onlyMains) .. " demoMode=" .. fmt(ns.demoMode))
+        " onlyMains=" .. fmt(settings.onlyMains) ..
+        " unspecifiedIsMain=" .. fmt(settings.unspecifiedIsMain) .. " demoMode=" .. fmt(ns.demoMode))
 end
 
 local function clientSection(lines)

@@ -107,7 +107,7 @@ return function(ns)
             local noAlts = Config.Defaults()
             noAlts.includeAlts = false
             local onlyMains = Config.Defaults()
-            onlyMains.onlyMains = true
+            onlyMains.onlyMains, onlyMains.unspecifiedIsMain = true, false
             assertEqual(all, #members)
             local withoutAlts = Census.Build(members, noAlts).total
             local mains = Census.Build(members, onlyMains).total

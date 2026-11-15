@@ -1491,6 +1491,7 @@ return function()
             local c = GuildCensusOptionsPanel.controls
             assertEqual(c.includeAlts.checked, true)
             assertEqual(c.onlyMains.checked, false)
+            assertEqual(c.unspecifiedIsMain.checked, true)
             assertEqual(c.identity.main.text, ns.Config.IDENTITY[1].default)
             assertEqual(c.identity.alt.text, ns.Config.IDENTITY[2].default)
             assertEqual(c.roles.tank.text, ns.Config.ROLES[1].default)

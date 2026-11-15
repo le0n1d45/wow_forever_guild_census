@@ -6,6 +6,7 @@ return function(ns)
             local d = Config.Defaults()
             assertEqual(d.includeAlts, true)
             assertEqual(d.onlyMains, false)
+            assertEqual(d.unspecifiedIsMain, true)
             assertEqual(d.identity, { main = "main, mains", alt = "alt, alts" })
             assertEqual(d.roles.tank, "tank, tanks, tanking, bear, prot, protection")
             assertEqual(d.roles.healer, "heal, heals, healer, healers, healing, resto, restoration, holy, disc, discipline")
@@ -74,7 +75,7 @@ return function(ns)
 
         it("Reset restores defaults in place", function()
             local s = Config.Defaults()
-            s.includeAlts, s.onlyMains, s.roles.tank, s.identity.alt = false, true, "x", "y"
+            s.includeAlts, s.onlyMains, s.unspecifiedIsMain, s.roles.tank, s.identity.alt = false, true, false, "x", "y"
             Config.Reset(s)
             assertEqual(s, Config.Defaults())
         end)

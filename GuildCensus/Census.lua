@@ -157,6 +157,7 @@ end
 -- professions is optional game-reported data: a list of { key, skill }.
 -- Returns:
 --   mainWord / altWord   the main/alt keyword that matched, or nil
+--   impliedMain          true when neither matched and settings.unspecifiedIsMain (default on) counts the member as a main
 --   roleHits             note-detected roles: { key, label, word } (conflict checks use these)
 --   roles / roleKeys     roles to count: note hits plus DPS for pure-DPS classes, as a
 --                        label list and a { key = true } set
@@ -190,11 +191,14 @@ function Census.Analyze(member, rules)
 
     -- "Only mains" additionally requires a declared main, on top of the alts filter.
     local altOk = settings.includeAlts ~= false or not altWord
-    local mainOk = not settings.onlyMains or mainWord
+    -- With "unspecified is main" a note naming neither counts as a main, in the chart and in "only mains".
+    local impliedMain = settings.unspecifiedIsMain ~= false and not mainWord and not altWord
+    local mainOk = not settings.onlyMains or mainWord or impliedMain
 
     return {
         mainWord = mainWord,
         altWord = altWord,
+        impliedMain = impliedMain,
         roleHits = roleHits,
         roles = roles,
         roleKeys = roleKeys,
@@ -226,7 +230,7 @@ function Census.Build(members, settings)
             total = total + 1
 
             local identity = "unspecified"
-            if analysis.mainWord and not analysis.altWord then
+            if analysis.impliedMain or (analysis.mainWord and not analysis.altWord) then
                 identity = "main"
             elseif analysis.altWord and not analysis.mainWord then
                 identity = "alt"

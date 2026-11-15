@@ -60,9 +60,10 @@ local function build()
     end
     addCheckbox("includeAlts", "Include alts", -44)
     addCheckbox("onlyMains", "Include ONLY mains declared within guild notes", -72)
-    addCheckbox("shareSkills", "Share my profession skill levels with other Guild Census users in my guild", -100)
+    addCheckbox("unspecifiedIsMain", "Treat members with no main/alt in their note as mains", -100)
+    addCheckbox("shareSkills", "Share my profession skill levels with other Guild Census users in my guild", -128)
 
-    local y = -138
+    local y = -166
     addLabel(panel, "Alt/Main Detection (comma-separated list)", 16, y, "GameFontNormal")
     y = addRuleRows(panel, "identity", ns.Config.IDENTITY, 1, y - 24, 400)
 
@@ -78,6 +79,7 @@ local function build()
         local s = ns.settings
         panel.controls.includeAlts:SetChecked(s.includeAlts)
         panel.controls.onlyMains:SetChecked(s.onlyMains)
+        panel.controls.unspecifiedIsMain:SetChecked(s.unspecifiedIsMain)
         panel.controls.shareSkills:SetChecked(s.shareSkills)
         for group, defs in pairs({
             identity = ns.Config.IDENTITY,

@@ -116,6 +116,9 @@ listed.
   [Skill levels from other players](#skill-levels-from-other-players).
 - **Include alts** and **Include ONLY mains declared within guild notes** checkboxes. When both
   apply, a member must pass the alts checkbox and also declare a main.
+- **Treat members with no main/alt in their note as mains** (on by default): a note naming neither
+  counts as a main, in the Mains and alts chart and in "only mains". Turn it off to leave them as
+  "Not specified" and out of "only mains".
 - **Alt/Main, Role and Profession detection:** comma-separated keyword lists. Changes apply
   immediately, and **Reset to defaults** restores the originals.
 
