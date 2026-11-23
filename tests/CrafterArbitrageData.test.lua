@@ -37,7 +37,7 @@ return function()
         it("says what a trainer charges and requires for a recipe", function()
             local r = CA.Data.Tailoring.recipes[2385]
             assertEqual(r.train, { 10, 45 }) -- skill 10, 45 copper
-            assertEqual(CA.Data.Trainers[1103], { "Eldrin", "Journeyman Tailor" })
+            assertEqual(CA.Data.Trainers[1103], { "Eldrin", "Journeyman Tailor", "A", 12, 79.22, 69.03 }) -- Alliance, Elwynn Forest
             local listed = false
             for _, npc in ipairs(r.trainers) do listed = listed or npc == 1103 end
             assert(listed, "Eldrin should teach Brown Linen Vest")
@@ -46,6 +46,13 @@ return function()
         it("lists at least one trainer for every recipe with a trainer price", function()
             for _, r in pairs(CA.Data.Tailoring.recipes) do
                 assert(not r.train or #r.trainers > 0, "train without trainers")
+            end
+        end)
+
+        it("says which faction each trainer serves", function()
+            assertEqual(CA.Data.Trainers[3004][3], "H") -- Tepa
+            for npc, t in pairs(CA.Data.Trainers) do
+                assert(t[3] == "A" or t[3] == "H" or t[3] == "AH" or t[3] == "", "trainer " .. npc .. " has faction " .. tostring(t[3]))
             end
         end)
 
