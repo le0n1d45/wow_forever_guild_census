@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: CrafterArbitrage
-## Notes: Auction house arbitrage and crafting route planning for WoW Forever.
+## Notes: Scans the auction house for crafts that make a profit when the crafted item is sold to a vendor.
 ## Author: Le0n1d45
 ## Version: 0.0.1
 ## X-License: MIT

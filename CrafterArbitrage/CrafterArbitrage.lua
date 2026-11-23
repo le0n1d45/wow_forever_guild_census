@@ -1,3 +1,3 @@
 local addonName, ns = ...
 
--- CrafterArbitrage: placeholder. Route planning and AH scanning will follow.
+-- CrafterArbitrage: placeholder. Will scan the AH and find crafts that net a profit when the result is vendored.
