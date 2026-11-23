@@ -22,6 +22,8 @@ jobs:
           - { addon: GuildCensus, flavor: Retail, interface: "120105" }
           - { addon: MobHunter, flavor: Forever, interface: "16001" }
           - { addon: MobHunter, flavor: Retail, interface: "120105" }
+          - { addon: CrafterArbitrage, flavor: Forever, interface: "16001" }
+          - { addon: CrafterArbitrage, flavor: Retail, interface: "120105" }
     env:
       ARTIFACT_PREFIX: ${{ matrix.addon }}-${{ matrix.flavor }}-
     steps:

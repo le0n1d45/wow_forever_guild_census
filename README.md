@@ -199,20 +199,25 @@ reported for every guild member regardless of the alts/mains filters.
 
 - **MobHunter** (`MobHunter/`): `/mobhunt <mob name>` alerts you when that mob is in range or is one of your
   minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build and release workflows package it.
+- **CrafterArbitrage** (`CrafterArbitrage/`): work in progress. It will scan the auction house and find crafts that
+  make a profit when the crafted item is sold to a vendor. Currently an empty skeleton; the build and release
+  workflows already package it.
 
 ## Development
 
 - **Tests:** `lua tests/run.lua` (Lua 5.1) runs note-parsing and census tests plus headless UI tests
   against a strict WoW widget stub (`tests/wow_stub.lua`). The stub checks logic and widget-method
   names; it does not check rendering or Forever API compatibility.
-- **Builds:** `.github/workflows/build.yml` publishes Forever and Retail artifacts for both Guild Census and MobHunter
+- **Builds:** `.github/workflows/build.yml` publishes Forever and Retail artifacts for Guild Census, MobHunter and CrafterArbitrage
   (`GuildCensus-Forever-N`, `MobHunter-Retail-N`, ...) and keeps the newest 5 of each.
 - **Releases:** run **Actions > GuildCensus Release > Run workflow** by hand (it never runs on its own). It takes the
   newest `guildcensus-X.Y.Z` tag (or, for the first run, the newest older plain `X.Y.Z` tag), bumps minor/patch/major (or uses a version you type), sets `## Version` in the TOC,
   tags the commit as `guildcensus-<version>` and publishes a GitHub release with `GuildCensus-Forever-<version>.zip` and
   `GuildCensus-Retail-<version>.zip`. It only runs from `main` and runs the tests first.
   **Actions > MobHunter Release** does the same for MobHunter (tags `mobhunter-<version>`, zips
-  `MobHunter-<flavor>-<version>.zip`, version in `MobHunter/MobHunter.toc`, starting from 0.1.0). Release runs
+  `MobHunter-<flavor>-<version>.zip`, version in `MobHunter/MobHunter.toc`, starting from 0.1.0).
+  **Actions > CrafterArbitrage Release** does the same for CrafterArbitrage (tags `crafterarbitrage-<version>`).
+  Release runs
   are queued one at a time because they all push to `main`.
 - **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`, and `tools/make_mobhunter_icon.py`
   regenerates `MobHunter/icon.tga` (plus `assets/mobhunter-icon.png` with `--preview-dir assets --size 512`). Add `--size N --jpeg PATH` (needs
