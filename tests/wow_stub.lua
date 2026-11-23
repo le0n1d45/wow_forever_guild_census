@@ -34,7 +34,9 @@ local Frame = class("Frame", extend(Region, {
     "SetAutoFocus", "SetMaxLetters", "SetCursorPosition", "ClearFocus",
     "SetHeight", "SetWidth", "SetScrollChild", "SetNumeric",
     "SetMultiLine", "SetFontObject", "SetFocus", "HighlightText", "UnregisterAllEvents",
+    "SetFrameLevel", "RegisterForClicks", "ClearAllPoints",
 }))
+local Texture = class("Texture", extend(Region, { "SetTexture", "SetAllPoints", "SetTexCoord", "SetDrawLayer" }))
 local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth", "SetWordWrap" }))
 local Line = class("Line", extend(Region, { "SetThickness" }))
 
@@ -90,6 +92,11 @@ local function makeFrame(name, template)
     function f:Disable() self.enabled = false end
     function f:CreateFontString() return makeFontString() end
     function f:CreateLine() return makeLine() end
+    function f:CreateTexture() return track(Texture()) end
+    function f:SetSize(w, h) self.width, self.height = w, h end
+    function f:GetWidth() return rawget(self, "width") or 0 end
+    function f:GetCenter() return rawget(self, "centerX") or 0, rawget(self, "centerY") or 0 end
+    function f:GetEffectiveScale() return rawget(self, "scale") or 1 end
     function f:SetText(text) self.text = text end
     function f:GetText() return rawget(self, "text") or "" end
     function f:SetChecked(checked) self.checked = checked and true or false end

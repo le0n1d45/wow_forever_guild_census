@@ -39,6 +39,9 @@ The Auction House allows one full scan every 15 minutes; CrafterArbitrage also r
 (Auctionator) started.
 
 Type **/carb** to open the window. Other commands: **/carb scan**, **/carb ah**, **/carb vendor**,
-**/carb filter known|learnable|all**, **/carb neutral on|off**.
+**/carb filter known|learnable|all**, **/carb neutral on|off**, **/carb minimap on|off**.
+
+A **minimap button** opens the window (left-click), scans the Auction House (right-click), and can be dragged
+around the minimap.
 
 ---

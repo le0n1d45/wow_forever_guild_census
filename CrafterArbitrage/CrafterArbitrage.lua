@@ -31,6 +31,8 @@ function handlers.ADDON_LOADED(loadedName)
     if db.channel ~= "ah" then db.channel = "vendor" end
     ns.db, ns.settings = db, db
     ns.Prices.Import(db.scan)
+    local ok, err = pcall(ns.MinimapButton.Create) -- a problem with the button must not stop the rest of the addon
+    if not ok then ns.Print("the minimap button could not be created: " .. tostring(err)) end
     ns.frame:UnregisterEvent("ADDON_LOADED")
 end
 
@@ -41,7 +43,9 @@ function handlers.AUCTION_ITEM_LIST_UPDATE() ns.Scanner.OnListUpdate() end
 
 local frame = CreateFrame("Frame", "CrafterArbitrageEventFrame")
 ns.frame = frame
-for event in pairs(handlers) do frame:RegisterEvent(event) end
+-- A client that lacks one of the auction house events (the modern or the classic one) raises an error when it is
+-- registered; skip that event instead of losing the rest of the addon.
+for event in pairs(handlers) do pcall(frame.RegisterEvent, frame, event) end
 frame:SetScript("OnEvent", function(_, event, ...) handlers[event](...) end)
 frame:SetScript("OnUpdate", function(_, elapsed) ns.Scanner.OnUpdate(elapsed) end)
 
@@ -70,10 +74,14 @@ local function slash(msg)
     elseif cmd == "neutral" then
         s.neutral = arg ~= "off"
         status()
+    elseif cmd == "minimap" then
+        s.minimapHide = arg == "off"
+        ns.MinimapButton.Refresh()
+        ns.Print("minimap button " .. (s.minimapHide and "hidden." or "shown."))
     elseif cmd == "status" then
         status()
     else
-        ns.Print("/carb opens the window. /carb scan, /carb ah, /carb vendor, /carb filter known|learnable|all, /carb neutral on|off, /carb status.")
+        ns.Print("/carb opens the window. /carb scan, /carb ah, /carb vendor, /carb filter known|learnable|all, /carb neutral on|off, /carb minimap on|off, /carb status.")
     end
 end
 

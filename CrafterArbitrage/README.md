@@ -14,6 +14,7 @@ documented APIs and Crafter's Journal's findings but still need an in-game check
 | `/carb vendor` / `/carb ah` | Sell to a vendor (default) or on the auction house. |
 | `/carb filter known\|learnable\|all` | Which recipes to consider. |
 | `/carb neutral on\|off` | Neutral auction house: 15% cut instead of 5%. |
+| `/carb minimap on\|off` | Show or hide the minimap button (left-click opens the window, right-click scans, drag moves it). |
 | `/carb status` | Show the settings and the age of the last scan. |
 
 ## How it works

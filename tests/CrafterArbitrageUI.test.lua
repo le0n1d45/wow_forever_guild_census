@@ -8,6 +8,7 @@ return function()
             local ok, err = pcall(fn)
             print, time, GameTooltip = realPrint, nil, nil
             IsPlayerSpell, UnitFactionGroup, UnitClass, C_TradeSkillUI, CrafterArbitrageDB = nil, nil, nil, nil, nil
+            Minimap, GetCursorPosition = nil, nil
             if not ok then error(err, 0) end
         end)
     end
@@ -23,6 +24,9 @@ return function()
         UnitFactionGroup = function() return "Alliance" end
         UnitClass = function() return "Mage", "MAGE", 8 end
         C_TradeSkillUI = { GetProfessionInfoBySkillLineID = function() return { skillLevel = 300 } end }
+        Minimap = CreateFrame("Frame", "Minimap", UIParent)
+        Minimap:SetSize(140, 140)
+        GetCursorPosition = function() return 0, 0 end
         local ns = {}
         for line in io.lines("CrafterArbitrage/CrafterArbitrage.toc") do
             if line:match("%.lua$") then loadAddonFile(ns, (line:gsub("\\", "/")), "CrafterArbitrage") end
@@ -188,6 +192,84 @@ return function()
             assert(printed[#printed]:find("Open the Auction House"))
             slash("help")
             assert(printed[#printed]:find("/carb opens the window"))
+        end)
+
+        it("still registers /carb when the client does not know one of the events", function()
+            InstallWowStub()
+            local known = { ADDON_LOADED = true, AUCTION_HOUSE_SHOW = true, AUCTION_HOUSE_CLOSED = true, AUCTION_ITEM_LIST_UPDATE = true }
+            local realCreate = CreateFrame
+            CreateFrame = function(...)
+                local f = realCreate(...)
+                function f:RegisterEvent(event)
+                    if not known[event] then error("Attempt to register unknown event \"" .. event .. "\"") end
+                end
+                return f
+            end
+            local ns = {}
+            SlashCmdList = {}
+            for line in io.lines("CrafterArbitrage/CrafterArbitrage.toc") do
+                if line:match("%.lua$") then loadAddonFile(ns, (line:gsub("\\", "/")), "CrafterArbitrage") end
+            end
+            CreateFrame = realCreate
+            assert(SlashCmdList["CRAFTERARBITRAGE"], "the slash command should exist")
+        end)
+
+        it("puts a minimap button on the minimap's edge, saved angle and all", function()
+            local ns = loadAddon({ db = { minimapAngle = 0 } })
+            local button = ns.MinimapButton.Button()
+            assert(button, "button created")
+            assertEqual(button.shown, true)
+            assertEqual(button.icon.shown, true)
+        end)
+
+        it("opens the window on a left click and scans on a right click", function()
+            local ns = loadAddon()
+            local button = ns.MinimapButton.Button()
+            button.scripts.OnClick(button, "LeftButton")
+            assertEqual(ns.UI.Window():IsShown(), true)
+            button.scripts.OnClick(button, "LeftButton")
+            assertEqual(ns.UI.Window():IsShown(), false)
+            button.scripts.OnClick(button, "RightButton")
+            assert(printed[#printed]:find("Open the Auction House"))
+        end)
+
+        it("follows the cursor while dragged and saves the angle", function()
+            local ns = loadAddon()
+            local button = ns.MinimapButton.Button()
+            Minimap.centerX, Minimap.centerY = 100, 100
+            button.scripts.OnDragStart(button)
+            GetCursorPosition = function() return 100, 200 end -- straight above the centre
+            button.scripts.OnUpdate(button, 0.016)
+            assertEqual(math.floor(ns.settings.minimapAngle + 0.5), 90)
+            button.scripts.OnDragStop(button)
+            assertEqual(button.scripts.OnUpdate, nil)
+        end)
+
+        it("measures the angle round the minimap", function()
+            local ns = loadAddon()
+            local angle = ns.MinimapButton.AngleFrom
+            assertEqual(angle(0, 0, 10, 0), 0)
+            assertEqual(angle(0, 0, 0, 10), 90)
+            assertEqual(angle(0, 0, -10, 0), 180)
+            assertEqual(angle(0, 0, 0, -10), 270)
+        end)
+
+        it("hides and shows the button with /carb minimap", function()
+            local ns = loadAddon()
+            SlashCmdList["CRAFTERARBITRAGE"]("minimap off")
+            assertEqual(ns.MinimapButton.Button().shown, false)
+            SlashCmdList["CRAFTERARBITRAGE"]("minimap on")
+            assertEqual(ns.MinimapButton.Button().shown, true)
+        end)
+
+        it("shows a tooltip on the minimap button", function()
+            local ns = loadAddon()
+            local lines = {}
+            GameTooltip = { SetOwner = function() end, AddLine = function(_, t) lines[#lines + 1] = t end, Show = function() end, Hide = function() end }
+            local button = ns.MinimapButton.Button()
+            button.scripts.OnEnter(button)
+            assertEqual(lines[1], "CrafterArbitrage")
+            assert(lines[2]:find("Left%-click"))
         end)
 
         it("lets the window be toggled closed", function()
