@@ -1,0 +1,3 @@
+local addonName, ns = ...
+
+-- CrafterArbitrage: placeholder. Route planning and AH scanning will follow.

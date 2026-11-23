@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: CrafterArbitrage
+## Notes: Auction house arbitrage and crafting route planning for WoW Forever.
+## Author: Le0n1d45
+## Version: 0.0.1
+## X-License: MIT
+## SavedVariables: CrafterArbitrageDB
+## IconTexture: Interface\AddOns\CrafterArbitrage\icon
+
+CrafterArbitrage.lua
