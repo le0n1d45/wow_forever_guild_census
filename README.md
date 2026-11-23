@@ -199,9 +199,10 @@ reported for every guild member regardless of the alts/mains filters.
 
 - **MobHunter** (`MobHunter/`): `/mobhunt <mob name>` alerts you when that mob is in range or is one of your
   minimap tracking dots. See [MobHunter/README.md](MobHunter/README.md). The build and release workflows package it.
-- **CrafterArbitrage** (`CrafterArbitrage/`): work in progress. It will scan the auction house and find crafts that
-  make a profit when the crafted item is sold to a vendor. Currently an empty skeleton; the build and release
-  workflows already package it.
+- **CrafterArbitrage** (`CrafterArbitrage/`): `/carb` scans the Auction House and lists the crafts that make a profit
+  when sold to a vendor (or on the Auction House), filtered by recipes you know, can learn from a trainer, or all.
+  See [CrafterArbitrage/README.md](CrafterArbitrage/README.md). Not yet tried on the real client. The build and
+  release workflows package it.
 
 ## Development
 
@@ -219,7 +220,8 @@ reported for every guild member regardless of the alts/mains filters.
   **Actions > CrafterArbitrage Release** does the same for CrafterArbitrage (tags `crafterarbitrage-<version>`).
   Release runs
   are queued one at a time because they all push to `main`.
-- **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`, and `tools/make_mobhunter_icon.py`
+- **Icon:** `tools/make_icon.py` regenerates `GuildCensus/icon.tga`, `tools/make_crafterarbitrage_icon.py`
+  regenerates `CrafterArbitrage/icon.tga`, and `tools/make_mobhunter_icon.py`
   regenerates `MobHunter/icon.tga` (plus `assets/mobhunter-icon.png` with `--preview-dir assets --size 512`). Add `--size N --jpeg PATH` (needs
   Pillow) for a larger JPEG; the repo's copies are in `assets/`.
 - **Client notes:** WoW runs Lua 5.1; use `C_Spell` / `C_Item` rather than removed globals, don't

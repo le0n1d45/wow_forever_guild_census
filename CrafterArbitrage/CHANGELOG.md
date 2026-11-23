@@ -6,3 +6,6 @@ user-visible change to this addon, and move it under a version heading when that
 version is `## Version` in `CrafterArbitrage/CrafterArbitrage.toc`).
 
 ## Unreleased
+
+### Added
+- First version. Scan the Auction House and see which crafts pay: buy the reagents, craft, and sell to a vendor (or, with a checkbox, on the Auction House). Reagents are priced listing by listing, so the list says how many crafts to make before the next one stops paying. Filter by recipes you know, recipes a trainer of your faction can teach you at your skill, or all recipes with where to get them. Open it with `/carb`.

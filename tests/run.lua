@@ -60,9 +60,11 @@ dofile("tests/Demo.test.lua")(ns)
 dofile("tests/CrafterArbitrageData.test.lua")()
 dofile("tests/CrafterArbitrageCalc.test.lua")()
 dofile("tests/CrafterArbitrageEngine.test.lua")()
+dofile("tests/CrafterArbitrageScanner.test.lua")()
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()
+dofile("tests/CrafterArbitrageUI.test.lua")()
 
 dofile("tests/MobHunter.test.lua")()
 
