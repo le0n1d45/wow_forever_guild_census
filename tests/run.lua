@@ -57,6 +57,7 @@ dofile("tests/Census.test.lua")(ns)
 dofile("tests/Logs.test.lua")(ns)
 dofile("tests/Dungeons.test.lua")(ns)
 dofile("tests/Demo.test.lua")(ns)
+dofile("tests/CrafterArbitrageData.test.lua")()
 
 dofile("tests/wow_stub.lua")
 dofile("tests/UI.test.lua")()
