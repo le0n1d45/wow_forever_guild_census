@@ -7,6 +7,7 @@ return function()
         assert(loadfile("CrafterArbitrage/Data/" .. name .. ".lua"))("CrafterArbitrage", CA)
     end
     assert(loadfile("CrafterArbitrage/Data/Items.lua"))("CrafterArbitrage", CA)
+    assert(loadfile("CrafterArbitrage/Data/Trainers.lua"))("CrafterArbitrage", CA)
 
     describe("CrafterArbitrage data", function()
         it("has recipes for every profession", function()
@@ -31,6 +32,25 @@ return function()
 
         it("has vendor prices for items", function()
             assertEqual(CA.Data.Items[2589].sell, 13) -- Linen Cloth
+        end)
+
+        it("says what a trainer charges and requires for a recipe", function()
+            local r = CA.Data.Tailoring.recipes[2385]
+            assertEqual(r.train, { 10, 45 }) -- skill 10, 45 copper
+            assertEqual(CA.Data.Trainers[1103], { "Eldrin", "Journeyman Tailor" })
+            local listed = false
+            for _, npc in ipairs(r.trainers) do listed = listed or npc == 1103 end
+            assert(listed, "Eldrin should teach Brown Linen Vest")
+        end)
+
+        it("lists at least one trainer for every recipe with a trainer price", function()
+            for _, r in pairs(CA.Data.Tailoring.recipes) do
+                assert(not r.train or #r.trainers > 0, "train without trainers")
+            end
+        end)
+
+        it("lists the profession ranks with their price and skill", function()
+            assertEqual(CA.Data.Tailoring.ranks, { { 1, 10, 0, 5 }, { 2, 450, 50, 10 }, { 3, 4500, 125, 20 }, { 4, 50000, 200, 0 } })
         end)
 
         it("gives every recipe an output quantity and reagents", function()

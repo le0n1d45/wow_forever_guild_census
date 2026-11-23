@@ -8,6 +8,7 @@
 ## IconTexture: Interface\AddOns\CrafterArbitrage\icon
 
 Data\Items.lua
+Data\Trainers.lua
 Data\Alchemy.lua
 Data\Blacksmithing.lua
 Data\Engineering.lua
