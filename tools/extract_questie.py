@@ -8,7 +8,8 @@ tools/questie/trainers.csv: npc, faction (A, H, AH or empty), area (zone area id
 (x, y are percent of the zone map). Also writes, for each recipe item that teaches one of our recipes:
 tools/questie/recipe_sources.csv: item, kind (vendor, drop, object, quest), id (npc, npc, object or quest id),
 tools/questie/npcs.csv: the vendors and (up to MAX_DROPPERS) droppers among them: npc, name, subtitle, faction,
-area, x, y, and tools/questie/quests.csv: id, name. Only the numbers are committed, not QuestieDB's files.
+area, x, y, tools/questie/quests.csv: id, name, and tools/questie/vendor_items.csv: every reagent or crafted item
+that some vendor sells (a vendor never runs out, unlike the auction house). Only the numbers are committed, not QuestieDB's files.
 """
 import base64
 import csv
@@ -154,6 +155,14 @@ def main():
         row = scalar_row(store, "Npc", str(npc)) or {}
         npc_rows.append((npc, row.get(1, ""), row.get(14, ""), *npc_place(store, str(npc))))
     write_csv(HERE / "questie" / "npcs.csv", ["npc", "name", "subname", "faction", "area", "x", "y"], npc_rows)
+    with open(HERE / "wago" / "SpellReagents.csv", encoding="utf-8", newline="") as f:
+        goods = {r[f"Reagent_{i}"] for r in csv.DictReader(f) for i in range(8) if r[f"Reagent_{i}"] not in ("", "0")}
+    with open(HERE / "wago" / "SpellEffect.csv", encoding="utf-8", newline="") as f:
+        goods |= {r["EffectItemType"] for r in csv.DictReader(f)}
+    sold = [(i,) for i in sorted(goods, key=int)
+            if isinstance(table_field(store, "Item", i, ITEM_VENDORS), list) and table_field(store, "Item", i, ITEM_VENDORS)]
+    write_csv(HERE / "questie" / "vendor_items.csv", ["item"], sold)
+    print(len(sold), "reagents or products are sold by a vendor")
     quest_rows = [(q, (scalar_row(store, "Quest", str(q)) or {}).get(1, "")) for q in sorted(quests)]
     write_csv(HERE / "questie" / "quests.csv", ["id", "name"], quest_rows)
     with_source = {s[0] for s in sources}

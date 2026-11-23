@@ -15,7 +15,7 @@ Data/Sources.lua: Npcs[id] = { name, subtitle, faction, area, x, y } for those v
 Data/Trainers.lua: trainer npc id -> name, subtitle, faction (A, H, AH), zone area id and x, y (percent of that
 zone's map; tools/questie).
 Data/Items.lua: every output and reagent item with its vendor sell price (copper), vendor buy price, quality,
-  and bop = binds when picked up (cannot go on the auction house).
+  bop = binds when picked up (cannot go on the auction house) and vendor = true when some vendor sells it.
 """
 import csv
 from pathlib import Path
@@ -87,6 +87,7 @@ def main():
     source_npcs = {r["npc"]: r for r in read("npcs", HERE / "questie")}
     source_quests = {r["id"]: r["name"] for r in read("quests", HERE / "questie")}
     used_npcs, used_quests = set(), set()
+    vendor_sold = {r["item"] for r in read("vendor_items", HERE / "questie")}
 
     OUT.mkdir(parents=True, exist_ok=True)
     used_items = set()
@@ -189,6 +190,8 @@ def main():
                   f"quality = {num(r['OverallQualityID'])}"]
         if r["Bonding"] == BIND_ON_PICKUP:
             fields.append("bop = true")
+        if item in vendor_sold:
+            fields.append("vendor = true")
         lines.append(f"  [{item}] = {{ " + ", ".join(fields) + " },")
     lines += ["}", ""]
     (OUT / "Items.lua").write_text("\n".join(lines), encoding="utf-8")
