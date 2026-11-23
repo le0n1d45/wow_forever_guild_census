@@ -10,6 +10,17 @@ local PAGE_SIZE = 12
 local ROW_HEIGHT = 24
 local FILTERS = { { "known", "Known" }, { "learnable", "Learnable" }, { "all", "All" } }
 
+-- The table's columns, shared by the header and every row so they line up: x is from the table's left edge.
+local COLUMNS = {
+    { key = "name", title = "Recipe", x = 0, width = 205, justify = "LEFT" },
+    { key = "crafts", title = "Crafts", x = 210, width = 50, justify = "RIGHT" },
+    { key = "cost", title = "Cost", x = 265, width = 105, justify = "RIGHT" },
+    { key = "profit", title = "Profit", x = 375, width = 105, justify = "RIGHT" },
+    { key = "source", title = "Learn from", x = 495, width = 175, justify = "LEFT" },
+}
+local TABLE_LEFT, TABLE_WIDTH = 14, 672
+local TABLE_TOP = -184 -- y of the first row; the header sits just above
+
 local window, job, results, page = nil, nil, {}, 1
 
 local function settings() return ns.settings end
@@ -44,20 +55,19 @@ end
 
 local function addRow(parent, index)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetSize(600, ROW_HEIGHT)
+    row:SetSize(TABLE_WIDTH, ROW_HEIGHT)
+    row:SetPoint("TOPLEFT", TABLE_LEFT, TABLE_TOP - (index - 1) * ROW_HEIGHT)
     row:EnableMouse(true)
     row:SetScript("OnEnter", showTooltip)
     row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-    local function text(x, width, justify)
+    for _, column in ipairs(COLUMNS) do
         local fs = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        fs:SetPoint("TOPLEFT", x, -4)
-        fs:SetWidth(width)
-        fs:SetJustifyH(justify or "LEFT")
+        fs:SetPoint("TOPLEFT", column.x, -5)
+        fs:SetWidth(column.width)
+        fs:SetJustifyH(column.justify)
         fs:SetWordWrap(false)
-        return fs
+        row[column.key] = fs
     end
-    row.name, row.crafts = text(0, 200), text(205, 40, "RIGHT")
-    row.cost, row.profit, row.source = text(250, 90, "RIGHT"), text(345, 90, "RIGHT"), text(445, 155)
     return row
 end
 
@@ -131,7 +141,7 @@ end
 
 local function build()
     local f = CreateFrame("Frame", addonName .. "Window", UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(650, 480)
+    f:SetSize(TABLE_WIDTH + 2 * TABLE_LEFT + 6, 520)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -155,23 +165,23 @@ local function build()
         settings().channel = on and "ah" or "vendor"
         UI.Recompute()
     end)
-    f.neutralBox = addCheckbox(f, "Neutral Auction House (15% cut)", 340, -58, function(on)
+    f.neutralBox = addCheckbox(f, "Neutral Auction House (15% cut)", 10, -84, function(on)
         settings().neutral = on
         UI.Recompute()
     end)
-    f.bagsBox = addCheckbox(f, "Use reagents in my bags", 10, -84, function(on)
+    f.bagsBox = addCheckbox(f, "Use reagents in my bags", 300, -84, function(on)
         settings().useBags = on
         UI.Recompute()
     end)
 
     local label = f:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    label:SetPoint("TOPLEFT", 14, -118)
+    label:SetPoint("TOPLEFT", 14, -122)
     label:SetText("Recipes:")
     f.filterButtons = {}
     for i, def in ipairs(FILTERS) do
         local button = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
         button:SetSize(90, 22)
-        button:SetPoint("TOPLEFT", 74 + (i - 1) * 94, -114)
+        button:SetPoint("TOPLEFT", 74 + (i - 1) * 94, -118)
         button:SetText(def[2])
         button:SetScript("OnClick", function()
             settings().filter = def[1]
@@ -180,16 +190,19 @@ local function build()
         f.filterButtons[def[1]] = button
     end
     f.summary = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    f.summary:SetPoint("TOPLEFT", 14, -142)
+    f.summary:SetPoint("TOPLEFT", 14, -150)
 
-    local header = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    header:SetPoint("TOPLEFT", 14, -164 - 0)
-    header:SetText("Recipe                                              Crafts        Cost       Profit      Learn from")
+    for _, column in ipairs(COLUMNS) do
+        local title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        title:SetPoint("TOPLEFT", TABLE_LEFT + column.x, TABLE_TOP + 16)
+        title:SetWidth(column.width)
+        title:SetJustifyH(column.justify)
+        title:SetText(column.title)
+    end
 
     f.rows = {}
     for i = 1, PAGE_SIZE do
         f.rows[i] = addRow(f, i)
-        f.rows[i]:SetPoint("TOPLEFT", 14, -178 - (i - 1) * ROW_HEIGHT)
     end
 
     f.prevButton = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")

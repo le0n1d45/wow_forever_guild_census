@@ -13,3 +13,4 @@ version is `## Version` in `CrafterArbitrage/CrafterArbitrage.toc`).
 
 ### Fixed
 - `/carb` did nothing on clients that do not know one of the Auction House events the addon listens for; the addon now skips an event the client rejects.
+- The window's layout: the table's header now lines up with its columns, the checkboxes no longer overlap, and the window is wide enough for the "Learn from" column.
