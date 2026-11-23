@@ -9,6 +9,7 @@
 
 Data\Items.lua
 Data\Trainers.lua
+Data\Sources.lua
 Data\Alchemy.lua
 Data\Blacksmithing.lua
 Data\Engineering.lua

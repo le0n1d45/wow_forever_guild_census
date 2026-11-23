@@ -5,7 +5,7 @@ Usage: python3 tools/filter_wago.py <folder with the full CSVs> <build>
 
 Download each of these into the folder as <Table>.csv from
 https://wago.tools/db2/<Table>/csv?build=<build>   (Forever builds are 1.60.1.x; see https://wago.tools/builds):
-  SkillLineAbility, SpellEffect, SpellReagents, SpellName, ItemSparse, Item
+  SkillLineAbility, SpellEffect, SpellReagents, SpellName, ItemSparse, Item, ItemEffect, ItemXItemEffect
 Writes tools/wago/<Table>.csv (only the crafting professions' rows and the columns the generator reads) and
 tools/wago/BUILD. Commit the result: gen_recipes.py reads those files and needs no network.
 """
@@ -21,6 +21,7 @@ SRC = None  # folder with the downloaded CSVs, set by main()
 # only for smelting: a bar can be made from ore instead of bought.
 SKILL_LINES = {"171", "164", "202", "165", "197", "185", "129", "186"}
 CREATE_ITEM = "24"  # spell effect "create item"
+LEARN_SPELL = "36"  # spell effect "learn spell" (recipe items use it)
 
 SLA_COLS = ["SkillLine", "Spell", "MinSkillLineRank", "SupercedesSpell", "AcquireMethod",
             "TrivialSkillLineRankHigh", "TrivialSkillLineRankLow", "ClassMask", "RaceMasks_0", "RaceMasks_1"]
@@ -63,6 +64,7 @@ def main():
     write("SkillLineAbility", SLA_COLS, sla_out)
 
     eff, f = download("SpellEffect", build)
+    all_effects = eff
     eff = [r for r in eff if r["SpellID"] in spells and r["Effect"] == CREATE_ITEM]
     eff_out, missing = keep_cols(eff, f, EFFECT_COLS)
     write("SpellEffect", EFFECT_COLS, eff_out)
@@ -72,7 +74,26 @@ def main():
     rea_out, _ = keep_cols(rea, f, REAGENT_COLS)
     write("SpellReagents", REAGENT_COLS, rea_out)
 
-    items = {r["EffectItemType"] for r in eff}
+    # Recipe items: the item whose use teaches a recipe, directly or through a "learn spell" (effect 36).
+    learn_effects = {}
+    for r in all_effects:
+        if r["Effect"] == LEARN_SPELL:
+            learn_effects.setdefault(r["SpellID"], set()).add(r["EffectTriggerSpell"])
+    item_effects, _ = download("ItemEffect")
+    effect_spell = {r["ID"]: r["SpellID"] for r in item_effects}
+    taught = set()
+    crafts = {x["SpellID"] for x in eff}
+    for r in download("ItemXItemEffect")[0]:
+        spell = effect_spell.get(r["ItemEffectID"])
+        if spell is None:
+            continue
+        for target in {spell} | learn_effects.get(spell, set()):
+            if target in crafts:
+                taught.add((r["ItemID"], target))
+    recipe_items = [{"item": i, "spell": sp} for i, sp in sorted(taught, key=lambda t: (int(t[0]), int(t[1])))]
+    write("RecipeItems", ["item", "spell"], recipe_items)
+
+    items = {r["EffectItemType"] for r in eff} | {i for i, _ in taught}
     for r in rea:
         items.update(r[f"Reagent_{i}"] for i in range(8) if r[f"Reagent_{i}"] not in ("", "0"))
 

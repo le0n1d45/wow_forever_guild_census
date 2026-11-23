@@ -1,0 +1,682 @@
+npc,name,subname,faction,area,x,y
+3,Flesh Eater,,,10,25.06,38.2
+36,Harvest Golem,,,40,47.11,67.64
+46,Murloc Forager,,,12,68.64,85.46
+48,Skeletal Warrior,,,10,77.41,73.76
+66,Tharynn Bouden,Trade Supplies,A,12,41.82,67.16
+92,Rock Elemental,,,3,45.45,81.39
+95,Defias Smuggler,,,40,46.59,19.56
+98,Riverpaw Taskmaster,,,40,56.51,70.11
+114,Harvest Watcher,,,40,38,47.84
+115,Harvest Reaper,,,40,65.74,61.1
+121,Defias Pathstalker,,,40,38.73,69.91
+122,Defias Highwayman,,,40,46.38,78.29
+124,Riverpaw Brute,,,40,30.72,69.83
+127,Murloc Tidehunter,,,40,28.44,70.33
+154,Greater Fleshripper,,,40,27.08,42.4
+193,Blue Dragonspawn,,,16,36.88,78.69
+202,Skeletal Horror,,,10,79.67,61.87
+203,Skeletal Mage,,,10,78.15,75.64
+205,Nightbane Dark Runner,,,10,65.44,67.81
+206,Nightbane Vile Fang,,,10,62.64,79.82
+210,Bone Chewer,,,10,25.54,28.1
+212,Splinter Fist Warrior,,,10,35.3,79.35
+232,Farmer Ray,,A,267,33.22,34.76
+300,Zzarc' Vul,,,10,35,80
+314,Eliza,Bride of the Embalmer,,10,28.82,30.91
+315,Stalvan Mistmantle,,,10,77.35,36.19
+334,Gath'Ilzogg,Warlord of the Blackrock Clan,,44,64.52,55.79
+335,Singe,,,44,64.66,56.07
+340,Kendor Kabonka,Master of Cooking Recipes,A,1519,77.47,52.69
+345,Bellygrub,,,44,10.59,49.31
+412,Stitches,Gift from the Embalmer,AH,10,28.96,31.6
+417,Felhunter,,A,,,
+422,Murloc Flesheater,,,44,55.84,61.57
+423,Redridge Mongrel,,,44,38.53,71.07
+426,Redridge Brute,,,44,18.91,34.91
+428,Dire Condor,,,44,54.7,76.07
+429,Shadowhide Darkweaver,,,44,74.93,49.78
+431,Shadowhide Slayer,,,44,78.79,57.98
+433,Shadowhide Gnoll,,,44,68.2,54.82
+440,Blackrock Grunt,,,44,70.01,74.3
+445,Redridge Alpha,,,44,12.15,17.83
+450,Defias Renegade Mage,,,40,37.36,75.23
+476,Kobold Geomancer,,,12,63.53,58.32
+531,Skeletal Fiend,,,10,16.24,42.81
+533,Nightbane Shadow Weaver,,,10,65.48,69.13
+587,Bloodscalp Warrior,,,33,29.82,19.1
+588,Bloodscalp Scout,,,33,22.26,13.08
+590,Defias Looter,,,40,29.69,47.08
+595,Bloodscalp Hunter,,,33,22.69,11.96
+597,Bloodscalp Berserker,,,33,20.26,12.2
+603,Grimtooth,,,2597,51.71,94.86
+604,Plague Spreader,,,10,22.91,28.22
+639,Edwin VanCleef,Defias Kingpin,,1581,-1,-1
+643,Sneed,Lumbermaster,,1581,-1,-1
+644,Rhahk'Zor,The Foreman,,1581,-1,-1
+645,Cookie,The Ship's Cook,,1581,-1,-1
+646,Mr. Smite,The Ship's First Mate,,1581,-1,-1
+647,Captain Greenskin,,,1581,-1,-1
+657,Defias Pirate,,,1581,-1,-1
+660,Bloodscalp Witch Doctor,,,33,20.26,11.79
+667,Skullsplitter Warrior,,,33,47.19,38.55
+669,Skullsplitter Hunter,,,33,46.16,42.97
+670,Skullsplitter Witch Doctor,,,33,45.6,42.78
+671,Bloodscalp Headhunter,,,33,20.04,11.67
+672,Skullsplitter Spiritchaser,,,33,48.01,42.58
+674,Venture Co. Strip Miner,,,33,41.67,43.91
+676,Venture Co. Surveyor,,,33,42.06,44.54
+677,Venture Co. Tinkerer,,,33,41.97,44.64
+678,Mosh'Ogg Mauler,,,33,51.48,27.13
+679,Mosh'Ogg Shaman,,,33,50.31,30.45
+680,Mosh'Ogg Lord,,,33,52.79,27.68
+681,Young Stranglethorn Tiger,,,33,31.4,8.4
+682,Stranglethorn Tiger,,,33,27.8,9.6
+684,Shadowmaw Panther,,,33,41.3,34.76
+685,Stranglethorn Raptor,,,33,24.17,16.16
+686,Lashtail Raptor,,,33,39.34,19.1
+687,Jungle Stalker,,,33,23.35,48.24
+689,Crystal Spine Basilisk,,,33,49.23,9.64
+691,Lesser Water Elemental,,,33,19.9,24.49
+709,Mosh'Ogg Warmonger,,,33,50.24,31
+710,Mosh'Ogg Spellcrafter,,,33,51.76,27.38
+728,Bhag'thera,,,33,47.2,28.4
+730,Tethis,,,33,28.74,44.85
+734,Corporal Bluth,Camp Trader,A,33,37.96,2.99
+736,Panther,,,33,28.2,12.2
+740,Adolescent Whelp,,,8,16.24,64.54
+741,Dreaming Whelp,,,8,14.52,64.18
+745,Scalebane Captain,,,8,77.97,68.2
+760,Lost One Muckdweller,,,8,58.41,28.46
+766,Tangled Horror,,,8,74.06,71.51
+767,Swamp Jaguar,,,8,37.48,37.62
+769,Deathstrike Tarantula,,,8,60.62,68.9
+772,Stranglethorn Tigress,,,33,41.3,34.76
+777,Amy Davenport,Tradeswoman,A,44,24.04,47.32
+818,Mai'Zoth,,,33,52.93,27.6
+843,Gina MacGregor,Trade Supplies,A,40,57.64,54.05
+861,Stonard Scout,,H,8,17.33,50.42
+910,Defias Enchanter,,,10,21.35,73.36
+938,Kurzen Commando,,,33,44.15,7.91
+950,Swamp Talker,,,8,60.4,84.4
+979,Kurzen Shadow Hunter,,,33,49.65,5.76
+989,Banalash,Trade Goods,H,8,44.77,56.63
+1020,Mottled Raptor,,,11,23.02,59.84
+1045,Red Dragonspawn,,,11,79.54,48.35
+1046,Red Wyrmkin,,,11,78.95,44.43
+1047,Red Scalebane,,,11,85.19,51.63
+1048,Scalebane Lieutenant,,,11,88.52,62.93
+1049,Wyrmkin Firebrand,,,11,87.67,52.07
+1050,Scalebane Royal Guard,,,11,86.63,69.51
+1061,Gan'zulah,Bloodscalp Chief,,33,23.44,8.12
+1082,Sawtooth Crocolisk,,,8,53.6,55.99
+1096,Venture Co. Geologist,,,33,28.86,6.9
+1134,Young Wendigo,,,,,
+1146,Vharr,Superior Weaponsmith,H,33,32.36,27.95
+1148,Nerrist,Trade Goods,H,33,32.7,29.23
+1149,Uthok,General Supplies,H,33,31.55,27.95
+1160,Captain Halyndor,,,11,15.45,23.61
+1250,Drake Lindgren,General & Trade Supplies,A,12,83.31,66.69
+1304,Darian Singh,Fireworks Vendor,A,1519,42.44,76.92
+1313,Maria Lumere,Alchemy Supplies,A,1519,55.9,85.64
+1318,Jessara Cordell,Enchanting Supplies,A,1519,52.8,74.26
+1347,Alexandra Bolero,Tailoring Supplies,A,1519,53.14,81.76
+1397,Frostmane Seer,,,,,
+1454,Jennabink Powerseam,Tailoring Supplies & Specialty Goods,A,11,8.12,55.84
+1465,Drac Roughcut,Tradesman,A,38,35.57,49.15
+1471,Jannos Ironwill,Superior Macecrafter,A,45,45.98,47.72
+1474,Rann Flamespinner,Tailoring Supplies,A,38,35.95,45.87
+1489,Zanzil Hunter,,,33,39.33,58.77
+1490,Zanzil Witch Doctor,,,33,34.88,51.68
+1491,Zanzil Naga,,,33,40.74,58.04
+1492,Gorlash,,,33,36.95,69.73
+1493,Mok'rash,,,,,
+1545,Vile Fin Muckdweller,,,85,70.06,24.97
+1550,Thrashtail Basilisk,,,33,39.1,49.48
+1557,Elder Mistvale Gorilla,,,33,34.4,62.52
+1559,King Mukla,,,33,40.95,83.9
+1561,Bloodsail Raider,,,33,32.34,71.67
+1562,Bloodsail Mage,,,33,32.05,72.53
+1564,Bloodsail Warlock,,,33,22.77,53.91
+1653,Bloodsail Elder Magus,,,33,31.89,53.88
+1663,Dextren Ward,,,717,-1,-1
+1666,Kam Deepfury,,,717,-1,-1
+1669,Defias Profiteer,Free Wheeling Merchant,AH,40,43.47,66.76
+1672,Lohgan Eva,Tailoring Supplies,A,10,75.71,44.56
+1684,Khara Deepwater,Fishing Supplies,A,38,40.28,39.28
+1685,Xandar Goodbeard,General Supplies,A,38,82.47,63.35
+1696,Targorr the Dread,,,717,-1,-1
+1716,Bazil Thredd,,,717,-1,-1
+1717,Hamhock,,,717,-1,-1
+1732,Defias Squallshaper,,,1581,-1,-1
+1763,Gilnid,The Smelter,,1581,-1,-1
+1783,Skeletal Flayer,,,28,38.29,56.44
+1784,Skeletal Sorcerer,,,28,35.74,56.2
+1785,Skeletal Terror,,,28,45.04,52
+1787,Skeletal Executioner,,,28,39.38,72.27
+1788,Skeletal Warlord,,,28,45.15,69.56
+1789,Skeletal Acolyte,,,28,49.54,63.52
+1791,Slavering Ghoul,,,28,38.86,55.24
+1793,Rotting Ghoul,,,28,54.61,66.07
+1795,Searing Ghoul,,,28,42.73,68.57
+1796,Freezing Ghoul,,,28,53.05,67.24
+1801,Blood Wraith,,,,,
+1802,Hungering Wraith,,,28,63.55,55.87
+1804,Wailing Death,,,28,64.03,56.22
+1805,Flesh Golem,,,28,47.58,69.3
+1806,Vile Slime,,,28,63.19,37.53
+1808,Devouring Ooze,,,28,63.85,35.87
+1812,Rotting Behemoth,,,28,64.03,34.38
+1813,Decaying Horror,,,28,61.98,33.84
+1816,Diseased Grizzly,,,28,67.2,48.19
+1817,Diseased Wolf,,,28,52.53,70.45
+1821,Carrion Lurker,,,28,52.53,70.45
+1822,Venom Mist Lurker,,,28,33.42,61.43
+1826,Scarlet Mage,,,28,57.57,35.65
+1827,Scarlet Sentinel,,,28,46.91,20.42
+1831,Scarlet Hunter,,,28,41.01,52.43
+1832,Scarlet Magus,,,28,44.99,15.71
+1834,Scarlet Paladin,,,28,42.7,18.21
+1836,Scarlet Cavalier,,,28,41.67,15.43
+1852,Araj the Summoner,,,28,45.27,69.21
+1853,Darkmaster Gandling,,,2057,-1,-1
+1883,Scarlet Worker,,,28,46.12,12.36
+1884,Scarlet Lumberjack,,,28,46.53,32.18
+1885,Scarlet Smith,,,28,44.36,13.54
+1907,Naga Explorer,,,33,27.92,61.59
+1934,Tirisfal Farmer,,,85,37.89,50.65
+1943,Raging Rot Hide,,,130,65.71,23.78
+2007,Gnarlpine Gardener,,,141,65.26,65.56
+2015,Bloodfeather Harpy,,,141,37.87,43.67
+2118,Abigail Shiel,Trade Supplies,H,85,61.03,52.37
+2169,Blackwood Totemic,,,148,42.54,85.56
+2180,Stormscale Siren,,,148,55.23,34.84
+2242,Syndicate Spy,,,36,64.2,41.62
+2243,Syndicate Sentry,,,36,51.88,30.63
+2246,Syndicate Assassin,,,36,38.44,14.58
+2247,Syndicate Enforcer,,,36,38.94,13.1
+2253,Crushridge Brute,,,36,42.81,31.15
+2254,Crushridge Mauler,,,36,39.33,40.12
+2261,Syndicate Watchman,,,267,82.9,44.42
+2264,Hillsbrad Tailor,,A,267,36.82,44.26
+2337,Dark Strand Voidcaller,,,148,56.09,26.03
+2376,Torn Fin Oracle,,,267,38.02,72.83
+2377,Torn Fin Tidehunter,,,267,42.69,70.71
+2380,Nandar Branson,Alchemy Supplies,A,267,50.93,57.1
+2381,Micha Yance,Trade Goods,A,267,48.94,55.03
+2383,Lindea Rabonne,Tackle and Bait,A,267,50.63,60.95
+2393,Christoph Jeffcoat,Tradesman,H,267,62.29,19.04
+2394,Mallen Swain,Tailoring Supplies,H,267,61.9,20.98
+2397,Derak Nightfall,Cook,H,267,63.09,19.41
+2434,Shadowy Assassin,,AH,267,50.06,57.91
+2480,Bro'kin,Alchemy Supplies,AH,36,38.24,38.87
+2481,Bliztik,Alchemy Supplies,AH,10,18.04,54.36
+2482,Zarena Cromwind,Superior Weaponsmith,AH,33,28.34,75.46
+2483,Jaquilina Dramet,Superior Axecrafter,AH,,,
+2521,Skymane Gorilla,,,33,40.44,77.28
+2556,Witherbark Headhunter,,,45,70.45,78.2
+2567,Boulderfist Magus,,,45,54.61,81.32
+2572,Drywhisker Kobold,,,45,81.91,37.18
+2589,Syndicate Mercenary,,,45,30.9,26.16
+2590,Syndicate Conjuror,,,45,25.21,62.55
+2636,Blackwater Deckhand,,AH,45,33.2,81.47
+2644,Vilebranch Hideskinner,,,47,67.48,76.24
+2646,Vilebranch Blood Drinker,,,47,65.17,82.12
+2663,Narkk,Pirate Supplies,AH,33,28.13,74.42
+2664,Kelsey Yance,Cook,AH,33,28.23,74.34
+2668,Danielle Zipstitch,Tailoring Supplies,A,10,75.87,45.56
+2669,Sheri Zipstitch,Tailoring Supplies,A,10,75.68,45.57
+2670,Xizk Goodstitch,Tailoring Supplies,AH,33,28.71,76.89
+2672,Cowardly Crosby,Tailoring Supplies,AH,33,27,82.48
+2679,Wenna Silkbeard,Special Goods Dealer,A,11,25.61,25.8
+2682,Fradd Swiftgear,Engineering Supplies,A,11,26.4,25.76
+2683,Namdo Bizzfizzle,Engineering Supplies,A,,,
+2684,Rizz Loosebolt,Engineering Supplies,AH,36,47.3,35.16
+2685,Mazk Snipeshot,Engineering Supplies,AH,,,
+2687,Gnaz Blunderflame,Engineering Supplies,AH,33,50.98,35.21
+2688,Ruppo Zipcoil,Engineering Supplies,AH,47,34.33,37.76
+2692,Highvale Scout,,A,47,33.18,44.57
+2697,Clyde Ranthal,Leatherworking Supplies,A,44,83.93,70.87
+2698,George Candarte,Leatherworking Supplies,H,267,92.02,38.23
+2699,Rikqiz,Leatherworking Supplies,AH,33,28.49,76.05
+2763,Thenan,,,45,36.16,57.91
+2803,Malygen,General Goods,A,361,62.32,25.64
+2805,Deneb Walker,Scrolls & Potions,A,45,26.97,58.83
+2806,Bale,General Goods,H,,,
+2810,Hammon Karwn,Superior Tradesman,A,45,46.49,47.41
+2812,Drovnar Strongbrew,Alchemy Supplies,A,45,46.32,47.04
+2814,Narj Deepslice,Butcher,A,45,45.54,47.61
+2816,Androd Fadran,Leatherworking Supplies,A,45,45.08,46.83
+2819,Tunkk,Leatherworking Supplies,H,45,74.84,34.59
+2821,Keena,Trade Goods,H,45,74.09,32.73
+2838,Crazk Sparks,Fireworks Merchant,AH,33,28.36,76.66
+2843,Jutak,Blade Trader,AH,33,27.46,77.55
+2846,Blixrez Goodstitch,Leatherworking Supplies,AH,,,
+2848,Glyx Brewright,Alchemy Supplies,AH,33,28.14,78.11
+2852,Enslaved Druid of the Talon,,AH,141,38.7,80.65
+2893,Stonevault Bonesnapper,,,3,49.66,64.31
+2894,Stonevault Shaman,,,3,49.66,66.49
+2963,Windfury Wind Witch,,,215,35.72,49.93
+2975,Venture Co. Hireling,,,215,52.24,69.13
+3005,Mahu,Leatherworking & Tailoring Supplies,H,1638,43.8,45.12
+3012,Nata Dawnstrider,Enchanting Supplies,H,,,
+3027,Naal Mistrunner,Cooking Supplier,H,1638,50.99,52.45
+3029,Sewa Mistrunner,Fishing Supplier,H,1638,55.79,47.02
+3081,Wunna Darkmane,Trade Goods,H,215,45.56,61.73
+3085,Gloria Femmel,Cooking Supplies,A,44,21.55,43.48
+3091,Franklin Hamar,Tailoring Supplies,A,44,22.09,45.54
+3096,Captured Servant of Azora,Specialist Tailoring Supplies,AH,44,69.37,79.51
+3115,Dustwind Harpy,,,14,45.85,33.84
+3128,Kul Tiras Sailor,,A,14,55.92,59.05
+3134,Kzixx,Rare Goods,AH,10,81.82,19.77
+3178,Stuart Fleming,Fisherman,A,11,8.02,58.35
+3234,Lost Barrens Kodo,,AH,17,42.39,37.69
+3235,Greater Barrens Kodo,,AH,17,47.21,66.47
+3236,Barrens Kodo,,AH,17,45.8,67.81
+3237,Wooly Kodo,,AH,17,47.1,66.66
+3238,Stormhide,,,17,44.06,75.84
+3239,Thunderhead,,,17,46.05,66.59
+3240,Stormsnout,,,17,48.92,51.37
+3255,Sunscale Screecher,,,17,42.86,25.63
+3280,Witchwing Windcaller,,,17,38.86,12.42
+3333,Shankys,Fishing Supplies,H,1637,69.99,29.77
+3335,Hagrus,Reagents Vendor,H,1637,45.99,45.68
+3346,Kithas,Enchanting Supplies,H,1637,53.88,38.02
+3348,Kor'geld,Alchemy Supplies,H,1637,56.05,34.12
+3356,Sumi,Blacksmithing Supplier,H,1637,82.6,23.96
+3364,Borya,Tailoring Supplies,H,1637,63.08,51.45
+3366,Tamar,Leatherworking Supplies,H,1637,63.05,45.53
+3385,Theramore Marine,,A,17,60.12,54.17
+3386,Theramore Preserver,,A,17,61.43,53.64
+3400,Xen'to,Cooking Supplier,H,1637,57.57,52.9
+3413,Sovik,Engineering Supplies,H,1637,75.49,25.36
+3482,Tari'qa,Trade Supplies,H,17,51.68,30.04
+3485,Wrahk,Tailoring Supplies,H,,,
+3489,Zargh,Butcher,H,17,52.62,29.84
+3490,Hula'mahi,Reagents and Herbs,H,17,51.39,30.2
+3495,Gagsprocket,Engineering Goods,AH,17,62.64,36.27
+3497,Kilxx,Fisherman,AH,17,62.77,38.24
+3499,Ranik,Trade Supplies,AH,17,61.93,38.7
+3522,Constance Brisboise,Apprentice Clothier,H,85,52.6,55.77
+3530,Pyrewood Tailor,,A,130,46.55,72.39
+3531,Moonrage Tailor,,,130,46.72,72.44
+3537,Zixil,Merchant Supreme,AH,267,55.38,34.71
+3550,Martine Tramblay,Fishing Supplies,H,85,65.86,59.64
+3556,Andrew Hilbert,Trade Goods,H,130,43.22,40.66
+3586,Miner Johnson,,,1581,-1,-1
+3653,Kresh,,AH,718,-1,-1
+3654,Mutanus the Devourer,,,718,-1,-1
+3669,Lord Cobrahn,Fanglord,,718,-1,-1
+3670,Lord Pythas,Fanglord,,718,-1,-1
+3671,Lady Anacondra,Fanglord,,,,
+3673,Lord Serpentis,Fanglord,,718,-1,-1
+3674,Skum,,,718,-1,-1
+3683,Kiknikle,Stylish Clothier,AH,17,41.79,38.69
+3711,Wrathtail Myrmidon,,,331,6.62,16.17
+3809,Ashenvale Bear,,,331,67.87,85.51
+3817,Shadowhorn Stag,,AH,331,52.57,54.52
+3864,Fel Steed,,AH,209,-1,-1
+3865,Shadow Charger,,AH,209,-1,-1
+3872,Deathsworn Captain,,,209,-1,-1
+3881,Grimtak,Butcher,H,14,51.13,42.63
+3886,Razorclaw the Butcher,,,209,-1,-1
+3887,Baron Silverlaine,,,209,-1,-1
+3914,Rethilgore,The Cell Keeper,,209,-1,-1
+3927,Wolf Master Nandos,,,209,-1,-1
+3956,Harklan Moongrove,Alchemy Supplies,A,331,50.84,67
+3958,Lardan,Leatherworking Supplies,A,331,34.79,49.84
+3960,Ulthaan,Butcher,A,331,50.01,66.64
+4003,Windshear Geomancer,,,406,74.43,58.39
+4022,Bloodfury Harpy,,,406,30.93,59.23
+4083,Jeeda,Apprentice Witch Doctor,H,406,47.61,61.59
+4086,Veenix,Venture Co. Merchant,AH,406,58.22,51.74
+4101,Screeching Roguefeather,,,400,26.58,53.4
+4116,Gravelsnout Surveyor,,,400,64.05,46.9
+4168,Elynna,Tailoring Supplies,A,1657,64.58,21.58
+4186,Mavralyn,Leather Armor & Leatherworking Supplies,A,148,37,41.2
+4189,Valdaron,Tailoring Supplies,A,148,38.15,40.6
+4200,Laird,Fish Vendor,A,148,36.77,44.28
+4223,Fyldan,Cooking Supplier,A,1657,48.53,21.6
+4225,Saenorion,Leatherworking Supplies,A,1657,63.69,22.28
+4226,Ulthir,Alchemy Supplies,A,1657,55.84,24.47
+4228,Vaean,Enchanting Supplies,A,1657,58.57,14.72
+4265,Nyoma,Cooking Supplies,A,141,57.19,61.26
+4274,Fenrus the Devourer,,,209,-1,-1
+4275,Archmage Arugal,,,209,-1,-1
+4278,Commander Springvale,,,209,-1,-1
+4279,Odo the Blindwatcher,,,209,-1,-1
+4305,Kriggon Talsone,Fisherman,A,40,36.23,90.18
+4307,Heldan Galesong,Fisherman,A,148,36.97,56.35
+4362,Mirefin Coastrunner,,,15,58.32,16.07
+4364,Strashaz Warrior,,,15,74.79,15.12
+4366,Strashaz Serpent Guard,,,15,75.62,22.01
+4368,Strashaz Myrmidon,,,15,77.07,19.54
+4424,Aggem Thorncurse,Death's Head Prophet,,491,-1,-1
+4428,Death Speaker Jargba,Death's Head Captain,,491,-1,-1
+4472,Haunting Vision,,,28,64.45,57.97
+4494,Scarlet Spellbinder,,,28,54.31,35.51
+4553,Ronald Burch,Cooking Supplier,H,1497,62.31,43.09
+4574,Lizbeth Cromwell,Fishing Supplier,H,,,
+4577,Millie Gregorian,Tailoring Supplies,H,1497,70.59,30.14
+4589,Joseph Moore,Leatherworking Supplies,H,1497,70.07,58.44
+4610,Algernon,Alchemy Supplies,H,1497,51.71,74.67
+4617,Thaddeus Webb,Enchanting Supplies,H,1497,62.38,60.98
+4782,Truk Wildbeard,Bartender,A,47,14.36,42.31
+4829,Aku'mai,,,719,-1,-1
+4830,Old Serra'kis,,,719,-1,-1
+4831,Lady Sarevess,,,719,-1,-1
+4832,Twilight Lord Kelris,,,719,-1,-1
+4834,Theramore Infiltrator,,A,15,40.94,25.52
+4877,Jandia,Trade Supplies,H,400,46.21,51.51
+4878,Montarr,Lorekeeper,H,400,45.15,50.79
+4879,Ogg'marr,Butcher,H,15,36.7,30.97
+4887,Ghamoo-ra,,,719,-1,-1
+4897,Helenia Olden,Trade Supplies,A,15,66.44,51.46
+5128,Bombus Finespindle,Leatherworking Supplies,A,1537,39.62,34.49
+5154,Poranna Snowbraid,Tailoring Supplies,A,1537,42.94,28.31
+5158,Tilli Thistlefuzz,Enchanting Supplies,A,1537,61.03,44
+5160,Emrul Riknussun,Cooking Supplier,A,1537,59.88,37.37
+5162,Tansy Puddlefizz,Fishing Supplier,A,1537,48.18,6.51
+5175,Gearcutter Cogspinner,Engineering Supplies,A,,,
+5178,Soolie Berryfizz,Alchemy Supplies,A,1537,66.23,54.52
+5226,Murk Worm,,,1477,-1,-1
+5411,Krinkle Goodsteel,Blacksmithing Supplies,AH,440,51.46,28.81
+5483,Erika Tate,Cooking Supplier,A,1519,78.53,52.88
+5494,Catherine Leland,Fishing Supplier,A,1519,55.09,69.76
+5512,Kaita Deepforge,Blacksmithing Supplies,A,1519,63.26,37.74
+5565,Jillian Tanner,Leatherworking Supplies,A,1519,71.57,62.77
+5594,Alchemist Pestlezugg,Alchemy Supplies,AH,440,50.89,26.96
+5615,Wastewander Rogue,,,440,60.81,32.87
+5616,Wastewander Thief,,,440,63.61,30.96
+5617,Wastewander Shadow Mage,,,440,61.97,35.46
+5618,Wastewander Bandit,,,440,59.4,24.71
+5623,Wastewander Assassin,,,440,65.51,36.38
+5748,Killian Sanatha,Fisherman,H,130,33,17.85
+5757,Lilly,Enchanting Supplies,H,130,43.02,50.82
+5758,Leo Sarn,Enchanting Supplies,H,130,53.89,82.21
+5775,Verdan the Everliving,,,718,-1,-1
+5783,Kalldan Felmoon,Specialist Leatherworking Supplies,AH,17,45.89,35.7
+5844,Dark Iron Slaver,,,51,44.38,31.07
+5846,Dark Iron Taskmaster,,,51,38.03,31.95
+5861,Twilight Fire Guard,,,51,19.65,38.6
+5940,Harn Longcast,Fishing Supplies,H,215,46.67,59.13
+5942,Zansoa,Fishing Supplies,H,14,56.06,73.39
+5944,Yonada,Tailoring & Leatherworking Supplies,H,17,45.01,59.33
+5981,Portal Seeker,,,4,44.31,33.6
+6005,Shadowsworn Thug,,,4,62.59,40.81
+6138,Arkkoran Oracle,,,16,77.48,44.39
+6144,Son of Arkkoroc,,,16,56.68,54.07
+6146,Cliff Breaker,,,16,56.71,79.76
+6195,Spitelash Siren,,,16,36.07,50.11
+6201,Legashi Rogue,,,16,62.78,25.49
+6229,Crowd Pummeler 9-60,,,721,-1,-1
+6243,Gelihast,,,719,-1,-1
+6500,Tyrant Devilsaur,,,490,74.2,33.04
+6519,Tar Lord,,,490,48.11,22.42
+6556,Muculent Ooze,,,490,61.84,25.42
+6557,Primal Ooze,,,490,43.47,65.21
+6559,Glutinous Ooze,,,490,30.84,74.41
+6567,Ghok'kah,Tailoring Supplies,H,15,35.15,30.83
+6568,Vizzklick,Tailoring Supplies,AH,440,51.01,27.36
+6574,Jun'ha,Tailoring Supplies,H,45,72.69,36.45
+6576,Brienna Starglow,Tailoring Supplies,A,357,88.96,45.95
+6730,Jinky Twizzlefixxit,Engineering Supplies,AH,400,77.68,77.9
+6731,Harlown Darkweave,Leatherworking Supplies,A,331,18.23,60.04
+6777,Zan Shivsproket,Specialty Engineer,AH,36,85.95,79.96
+6779,Smudge Thunderwood,Poison Vendor,AH,36,86.12,79.58
+7025,Blackrock Soldier,,,46,55.6,54.14
+7027,Blackrock Slayer,,,46,55.82,54.35
+7029,Blackrock Battlemaster,,,46,41.14,34.92
+7035,Firegut Brute,,,46,81.47,39.42
+7037,Thaurissan Firewalker,,,46,63.92,40.91
+7106,Jadefire Rogue,,,361,37.37,66.1
+7107,Jadefire Trickster,,,361,42.7,15.91
+7112,Jaedenar Cultist,,,361,38.12,62.16
+7158,Deadwood Shaman,,,361,64.01,6.79
+7235,Gnarlpine Mystic,,,141,68.64,52.3
+7428,Frostmaul Giant,,,618,65.66,69.28
+7437,Cobalt Mageweaver,,,618,59.69,49.22
+7438,Winterfall Ursa,,,618,65.24,37.81
+7440,Winterfall Den Watcher,,,618,68,34.37
+7441,Winterfall Totemic,,,618,39.42,44.68
+7733,Innkeeper Fizzgrimble,Innkeeper,AH,440,52.51,27.91
+7800,Mekgineer Thermaplugg,,,721,-1,-1
+7805,Wastewander Scofflaw,,,440,66.16,34.99
+7852,Pratt McGrubben,Leatherworking Supplies,A,357,30.63,42.71
+7854,Jangdor Swiftstrider,Leatherworking Supplies,H,357,74.43,42.91
+7856,Southsea Freebooter,,,440,72.45,48.15
+7864,Lingering Highborne,,,16,40.28,46.13
+7883,Andre Firebeard,,,440,73.37,47.14
+7940,Darnall,Tailoring Supplies,AH,,,
+7947,Vivianna,Trade Supplies,A,357,31.3,43.46
+8125,Dirge Quikcleave,Butcher,AH,440,52.63,28.11
+8131,Blizrik Buckshot,Gunsmith,AH,440,50.74,27.53
+8137,Gikkix,Fisherman,AH,440,66.64,22.08
+8139,Jabbey,General Goods,AH,440,67.01,21.99
+8145,Sheendra Tallgrass,Trade Supplies,H,357,74.49,42.73
+8150,Janet Hommers,Food & Drink,A,405,66.19,6.57
+8157,Logannas,Alchemy Supplies,A,357,32.67,44.03
+8158,Bronk,Alchemy Supplies,H,357,76.06,43.28
+8160,Nioma,Leatherworking Supplies,A,47,13.3,43.37
+8161,Harggan,Blacksmithing Supplies,A,47,13.42,44.14
+8176,Gharash,Blacksmithing Supplies,H,8,45.46,51.41
+8177,Rartar,Alchemy Supplies,H,8,45.39,56.87
+8178,Nina Lightbrew,Alchemy Supplies,A,4,66.87,18.24
+8307,Tarban Hearthgrain,Baker,H,17,55.16,32.08
+8508,Gretta Ganter,Fisherman Supplies,A,,,
+8526,Dark Caster,,,139,50.54,58.14
+8538,Unseen Servant,,,139,52.2,53.21
+8546,Dark Adept,Cult of the Damned,,139,32.29,41.23
+8550,Shadowmage,Cult of the Damned,,139,32.29,41.23
+8551,Dark Summoner,Cult of the Damned,,139,52.68,60.08
+8561,Mossflayer Shadowhunter,,,139,62.54,8.07
+8598,Frenzied Plaguehound,,,139,57.12,25.96
+8637,Dark Iron Watchman,,,51,63.06,58.66
+8678,Jubie Gadgetspring,Engineering Supplier,AH,16,45.28,90.95
+8679,Knaz Blunderflame,Engineering Supplies,AH,33,51.05,35.23
+8681,Outfitter Eric,Speciality Tailoring Supplies,A,1537,43.37,29.31
+8716,Dreadlord,,,4,39.22,77.07
+8878,Muuran,Superior Macecrafter,H,,,
+8889,Anvilrage Overseer,,,1585,-1,-1
+8890,Anvilrage Warden,,,1585,-1,-1
+8891,Anvilrage Guardsman,,,1585,-1,-1
+8892,Anvilrage Footman,,,1585,-1,-1
+8894,Anvilrage Medic,,,1585,-1,-1
+8897,Doomforge Craftsman,,,1585,-1,-1
+8898,Anvilrage Marshal,,,1585,-1,-1
+8899,Doomforge Dragoon,,,1585,-1,-1
+8900,Doomforge Arcanasmith,,,1585,-1,-1
+8903,Anvilrage Captain,,,1585,-1,-1
+8906,Ragereaver Golem,,,1585,-1,-1
+8907,Wrath Hammer Construct,,,1585,-1,-1
+8920,Weapon Technician,,,1585,-1,-1
+9026,Overmaster Pyron,,,10074,46.818,67.705
+9028,Grizzle,,,1584,-1,-1
+9179,Jazzrik,Blacksmithing Supplies,AH,,,
+9259,Firebrand Grunt,Firebrand Legion,,1583,-1,-1
+9260,Firebrand Legionnaire,Firebrand Legion,,1583,-1,-1
+9262,Firebrand Invoker,Firebrand Legion,,1583,-1,-1
+9264,Firebrand Pyromancer,Firebrand Legion,,1583,-1,-1
+9449,Scarlet Cleric,,,139,69.44,67.36
+9450,Scarlet Curate,,,139,76.41,70.24
+9451,Scarlet Archmage,,,139,75.47,70.89
+9452,Scarlet Enchanter,,,139,69.16,74.04
+9477,Cloned Ooze,,,490,56.3,63.89
+9499,Plugger Spazzring,,AH,1585,-1,-1
+9543,Ribbly Screwspigot,,AH,1585,-1,-1
+9544,Yuka Screwspigot,,AH,46,66.06,21.95
+9554,Hammered Patron,,AH,1585,-1,-1
+9596,Bannok Grimaxe,Firebrand Legion Champion,,1583,-1,-1
+9636,Kireena,Trade Goods,H,405,50.98,53.55
+9736,Quartermaster Zigris,Bloodaxe Legion,,1583,-1,-1
+10043,Ribbly's Crony,,AH,1585,-1,-1
+10118,Nessa Shadowsong,Fishing Supplies,A,141,56.26,92.44
+10119,Volchan,,,46,74.3,37.82
+10264,Solakar Flamewreath,,,1583,-1,-1
+10317,Blackhand Elite,Blackhand Legion,,1583,-1,-1
+10318,Blackhand Assassin,Blackhand Legion,,1583,-1,-1
+10319,Blackhand Iron Guard,Blackhand Legion,,1583,-1,-1
+10339,Gyth,Rend Blackhand's Mount,,1583,-1,-1
+10363,General Drakkisath,,,1583,-1,-1
+10366,Rage Talon Dragon Guard,,,1583,-1,-1
+10371,Rage Talon Captain,,,1583,-1,-1
+10372,Rage Talon Fire Tongue,,,1583,-1,-1
+10384,Spectral Citizen,,AH,2017,-1,-1
+10390,Skeletal Guardian,,,2017,-1,-1
+10391,Skeletal Berserker,,,2017,-1,-1
+10398,Thuzadin Shadowcaster,,,2017,-1,-1
+10399,Thuzadin Acolyte,,,2017,-1,-1
+10400,Thuzadin Necromancer,,,2017,-1,-1
+10406,Ghoul Ravener,,,2017,-1,-1
+10407,Fleshflayer Ghoul,,,2017,-1,-1
+10417,Venom Belcher,,,2017,-1,-1
+10421,Crimson Defender,,,2017,-1,-1
+10422,Crimson Sorcerer,,,2017,-1,-1
+10423,Crimson Priest,,,2017,-1,-1
+10425,Crimson Battle Mage,,,2017,-1,-1
+10426,Crimson Inquisitor,,,2017,-1,-1
+10438,Maleki the Pallid,,,2017,-1,-1
+10489,Risen Guard,,,2057,-1,-1
+10499,Spectral Researcher,,,2057,-1,-1
+10508,Ras Frostwhisper,,,2057,-1,-1
+10678,Plagued Hatchling,,,2057,-1,-1
+10717,Temporal Parasite,,,28,45.15,62.28
+10758,Grimtotem Bandit,,,400,33.35,27.43
+10760,Grimtotem Geomancer,,,400,34.04,37.21
+10813,Balnazzar,,,2017,-1,-1
+10856,Argent Quartermaster Hasana,The Argent Dawn,AH,85,83.26,68.14
+10857,Argent Quartermaster Lightspark,The Argent Dawn,AH,28,42.84,83.72
+10899,Goraluk Anvilcrack,Blackhand Legion Armorsmith,,1583,-1,-1
+10997,Cannon Master Willey,,,2017,-1,-1
+11185,Xizzer Fizzbolt,Engineering Supplies,AH,618,60.8,38.6
+11187,Himmik,Food & Drink,AH,618,61.33,39.16
+11189,Qia,Trade Goods Supplies,AH,618,61.2,37.21
+11278,Magnus Frostwake,,AH,28,68.12,77.57
+11339,Hakkari Shadow Hunter,,,1977,-1,-1
+11352,Gurubashi Berserker,,,2597,55.51,68.85
+11359,Soulflayer,,,1977,-1,-1
+11370,Razzashi Broodwidow,,,1977,-1,-1
+11391,Vilebranch Speaker,Vilebranch Troll Ambassador,,1977,-1,-1
+11448,Gordok Warlock,,,10022,-1,-1
+11450,Gordok Reaver,,,10022,-1,-1
+11487,Magister Kalendris,,,10024,-1,-1
+11517,Oggleflint,Ragefire Chieftain,,2437,-1,-1
+11518,Jergosh the Invoker,,,2437,-1,-1
+11519,Bazzalan,,,2437,-1,-1
+11520,Taragaman the Hungerer,,,2437,-1,-1
+11536,Quartermaster Miranda Breechlock,The Argent Dawn,AH,,,
+11557,Meilosh,,,361,65.69,2.81
+11582,Scholomance Dark Summoner,,,2057,-1,-1
+11659,Molten Destroyer,,,2717,-1,-1
+11665,Lava Annihilator,,,2717,-1,-1
+11666,Firewalker,,,2717,-1,-1
+11668,Firelord,,,2717,-1,-1
+11673,Ancient Core Hound,,,2717,-1,-1
+11726,Hive'Zora Tunneler,,,1377,32.53,64.15
+11874,Masat T'andr,Superior Leatherworker,AH,8,26.46,31.47
+11881,Twilight Geolord,Twilight's Hammer,,1377,24.82,38.48
+11915,Gogger Rock Keeper,,,406,58.51,91.47
+12022,Lorelae Wintersong,Trade Supplies,AH,493,48.24,40.14
+12033,Wulan,Cooking Supplies,H,405,26.17,69.65
+12076,Lava Elemental,,,2717,-1,-1
+12101,Lava Surger,,,2717,-1,-1
+12245,Vendor-Tron 1000,,AH,405,60.33,38.12
+12246,Super-Seller 680,,AH,405,40.48,79.27
+12468,Death Talon Hatcher,,,2677,-1,-1
+12876,Baron Aquanis,,,719,-1,-1
+12902,Lorgus Jett,,,719,-1,-1
+12941,Jase Farlane,Trade Supplies,AH,139,70.86,48.06
+12942,Leonard Porter,Leatherworking Supplies,A,28,43.08,84.31
+12943,Werg Thickblade,Leatherworking Supplies,H,85,83.3,69.72
+12944,Lokhtos Darkbargainer,The Thorium Brotherhood,AH,1585,-1,-1
+12956,Zannok Hidepiercer,Leatherworking Supplies,AH,1377,82,17.74
+12957,Blimo Gadgetspring,Trade Supplier,AH,16,45.21,90.85
+12958,Gigget Zipcoil,Trade Supplies,AH,47,34.46,38.59
+12959,Nergal,General Goods Vendor,AH,490,43.27,7.73
+12962,Wik'Tar,Fish Merchant & Supplies,H,331,11.71,34.1
+13420,Penney Copperpinch,Smokywood Pastures,AH,1637,53.21,65.89
+13429,Nardstrum Copperpinch,Smokywood Pastures,AH,1497,68.24,38.86
+13432,Seersa Copperpinch,Smokywood Pastures,AH,1638,39.04,61.07
+13433,Wulmort Jinglepocket,Smokywood Pastures,AH,1537,33.7,67.23
+13435,Khole Jinglepocket,Smokywood Pastures,AH,1519,62.24,70.29
+13476,Balai Lok'Wein,"Potions, Scrolls and Reagents",H,15,36.49,30.36
+14351,Gordok Bushwacker,,,10022,-1,-1
+14354,Pusillin,,AH,10026,-1,-1
+14371,Shen'dralar Provisioner,,AH,2557,-1,-1
+14454,The Windreaver,,,1377,28.66,26.85
+14457,Princess Tempestria,,,618,54.96,41.58
+14637,Zorbin Fandazzle,,AH,357,44.81,43.42
+14738,Otho Moji'ko,Cooking Supplier,H,47,79.38,79.08
+14921,Rin'wosho the Trader,Zandalar Supplies and Repair,AH,33,15.07,16
+15111,Mad Servant,,,1977,-1,-1
+15176,Vargus,Blacksmith,AH,1377,51.23,38.86
+15179,Mishta,General Trade Goods Vendor,AH,1377,49.88,36.33
+15233,Vekniss Guardian,,,3428,-1,-1
+15263,The Prophet Skeram,,,3428,-1,-1
+15264,Anubisath Sentinel,,,3428,-1,-1
+15277,Anubisath Defender,,,3428,-1,-1
+15293,Aendel Windspear,,AH,1377,62.57,49.79
+15340,Moam,,,3429,-1,-1
+15419,Kania,Enchanting Supplier,AH,1377,51.97,39.7
+32287,Archmage Alvareaux,Quartermaster,A,36,13.92,63.29
+213077,Elaine Compton,Supply Officer,A,,,
+214070,Jornah,Supply Officer,H,1637,51.4,63.8
+214096,,,,,,
+214098,Gishah,Supply Officer,H,1497,64.4,38.4
+214099,,,,,,
+214101,Marcy Baker,Supply Officer,A,1657,59.2,56.6
+217689,,,,,,
+240812,,,,,,
+241006,,,,,,
+242498,Reagent Bot,,AH,38,26.73,48.05
+246017,Unstable Sentinel,,,,,
+248196,Apothecary Durelle,Alchemist,H,17,49.91,29.52
+248197,Gor'mak,Blacksmith,H,17,49.82,29.68
+248198,Aza'bek,Chef,H,17,49.74,29.34
+248200,Fizzlefuse,Opportunist Engineer,H,17,49.8,29.69
+248201,Pawani,Leatherworker,H,17,49.62,29.64
+248202,Jim'bek,Tailor,H,17,49.61,29.46
+250283,Vile Fin Attacker,,,85,12.85,59.15
+250657,Rath'mael,,,,,
+251905,Zerril Softbreeze,Cook,AH,16593,43.85,43.84
+251973,Dominique Stefano,Tailoring Supplies,A,36,17.62,60.2
+251991,Taleen Shimmerthread,Tailor,AH,16593,44.88,44.18
+251997,Norvin Alderman,Cloaks,,36,15.97,65.51
+252083,Derek Odds,Cooking Supplies,A,36,12.49,65.94
+252380,Othesia Evengale,Tailor,AH,16593,64.41,81.17
+253139,Gorhak,Magram Clan Quartermaster,,405,66.21,79.36
+254695,Repair Bot,,,40,53.9,51.72
+255894,Innkeeper Zizplink,Innkeeper,,,,
+255895,Grizzek,General Goods,AH,16591,76.66,53.17
+256729,Nina Surefire,Alchemist,A,44,7.96,71.06
+256730,Stondry Darkhammer,Blacksmith,A,44,8.01,74.81
+256731,Kalsey Sanden,Chef,A,44,9.11,69.41
+256733,Fritz Fizzle,Engineer,A,44,10.35,73.03
+256734,Daniel Stitchsong,Leatherworker,A,44,10.02,72.63
+256735,Mivin Shadowweave,Tailor,A,44,9.27,71.45
+257006,Nyalah Brightfire,Cook,AH,16593,60.64,72.66
+257020,Nasalanna Windsinger,Enchanter,AH,16593,43.24,43.15
+258306,Granny Finespindle,Leatherworking Recipes,A,1537,39.23,33.59
+258415,Angela Ward,Tailoring Recipes,H,1497,70.53,29.72
+258463,Darah,Recipe Vendor,H,1637,63.51,50.49
+258466,Boramu,Tailoring Recipes,H,1638,44.06,44.86
+258548,Ellie Stonebrow,Tailoring Recipes,A,1537,43.54,27.88
+258568,Antonio Bolero,Tailoring Recipes,A,1519,53.52,81.83
+258572,Dani'ill,Tailoring Recipes,A,1657,60.53,22.67
+259860,Martha Wellsworth,General Goods,A,16591,64.22,84.14
+259962,Fimbo Greasemitz,,,16591,78.98,54.2
+260326,Relic Guardian,,,,,
+260487,Gritta Chumwater,Fisherman,AH,16591,78.39,54.98
+260565,Kor'gar,Engineering Supplies,AH,16591,77.64,50.92
+260566,Fizzix Boomshot,Gunsmith,AH,16591,78.59,53.66
+260570,Stitch Pinwizzle,Tailoring Supplies,AH,16591,77.33,51.47
+261313,Naluk,Butcher,,16591,58,45.8
+264078,Sutara Plainstalker,Quartermaster,H,215,34.14,22.03
+264797,Aisarra Nightmeadow,Keeper of Knowledge,A,616,71.09,51.32
+266901,Pexmit,Someone's Minion,,616,58.8,41.8
+267000,Paige,Chef,AH,36,20.88,74.61
+270780,Qujo,,,47,77.8,78
+272044,Windmistress Gaedress,,,141,33.18,36.13
+272646,Miranda Turner,Cooking Supplier,A,16591,63.48,82.44
+276061,Decrepit Harvester,,,85,51.66,53.9
+276180,Elder Finseer,,,12,76.3,58.46

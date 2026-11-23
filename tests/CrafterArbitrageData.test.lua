@@ -8,6 +8,7 @@ return function()
     end
     assert(loadfile("CrafterArbitrage/Data/Items.lua"))("CrafterArbitrage", CA)
     assert(loadfile("CrafterArbitrage/Data/Trainers.lua"))("CrafterArbitrage", CA)
+    assert(loadfile("CrafterArbitrage/Data/Sources.lua"))("CrafterArbitrage", CA)
 
     describe("CrafterArbitrage data", function()
         it("has recipes for every profession", function()
@@ -53,6 +54,31 @@ return function()
             assertEqual(CA.Data.Trainers[3004][3], "H") -- Tepa
             for npc, t in pairs(CA.Data.Trainers) do
                 assert(t[3] == "A" or t[3] == "H" or t[3] == "AH" or t[3] == "", "trainer " .. npc .. " has faction " .. tostring(t[3]))
+            end
+        end)
+
+        it("names the item that teaches a recipe and where it comes from", function()
+            -- Recipe: Westfall Stew (item 728) teaches Westfall Stew; Kendor Kabonka (340) sells it and quest 38 gives it
+            local r = CA.Data.Cooking.recipes[2543]
+            assertEqual(r.recipeItems, { { 728, vendors = { 340 }, quests = { 38 } } })
+            assertEqual(CA.Data.Quests[38], "Westfall Stew")
+            assert(CA.Data.Npcs[340], "vendor 340 should have data")
+        end)
+
+        it("describes every vendor, dropper and quest a recipe item refers to", function()
+            for name, prof in pairs(CA.Data) do
+                for spell, r in pairs(prof.recipes or {}) do
+                    for _, book in ipairs(r.recipeItems or {}) do
+                        for _, key in ipairs({ "vendors", "drops" }) do
+                            for _, npc in ipairs(book[key] or {}) do
+                                assert(CA.Data.Npcs[npc], name .. " recipe " .. spell .. " mentions npc " .. npc .. " with no data")
+                            end
+                        end
+                        for _, quest in ipairs(book.quests or {}) do
+                            assert(CA.Data.Quests[quest], name .. " recipe " .. spell .. " mentions quest " .. quest .. " with no data")
+                        end
+                    end
+                end
             end
         end)
 
