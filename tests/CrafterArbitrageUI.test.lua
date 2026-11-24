@@ -317,5 +317,34 @@ return function()
             IsShiftKeyDown, ChatEdit_InsertLink, AuctionHouseFrame = nil, nil, nil
             if not ok then error(err, 0) end
         end)
+
+        it("sorts by a clicked column: descending, ascending, then the default order, with profit per unit", function()
+            local ns = loadAddon()
+            local function deal(id, name, units, cost, profit)
+                return { itemID = id, name = name, units = units, cost = cost, vendor = 0, revenue = cost + profit, profit = profit, cheapest = 1 }
+            end
+            ns.Deals.Import({ deal(1, "Bravo", 10, 50, 500), deal(2, "Alpha", 1, 10, 300), deal(3, "Charlie", 5, 70, 100) })
+            ns.UI.Show()
+            local window = ns.UI.Window()
+            click(window.modeButtons.deals)
+            local function names()
+                local list = {}
+                for _, r in ipairs(ns.UI.Results()) do list[#list + 1] = r.deal.name end
+                return table.concat(list, ",")
+            end
+            assertEqual(names(), "Bravo,Alpha,Charlie") -- by profit
+            assertEqual(window.rows[1].each.text, "50c") -- 500 over 10 units
+            click(window.headerButtons.name)
+            assertEqual(names(), "Charlie,Bravo,Alpha")
+            assert(window.headers.name.text:find("v"), window.headers.name.text)
+            click(window.headerButtons.name)
+            assertEqual(names(), "Alpha,Bravo,Charlie")
+            click(window.headerButtons.name)
+            assertEqual(names(), "Bravo,Alpha,Charlie") -- default again
+            click(window.headerButtons.each) -- per unit: Alpha 300, Bravo 50, Charlie 20
+            assertEqual(names(), "Alpha,Bravo,Charlie")
+            click(window.headerButtons.cost)
+            assertEqual(names(), "Charlie,Bravo,Alpha")
+        end)
     end)
 end

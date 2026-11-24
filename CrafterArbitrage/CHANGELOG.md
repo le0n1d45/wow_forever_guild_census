@@ -8,6 +8,7 @@ version is `## Version` in `CrafterArbitrage/CrafterArbitrage.toc`).
 ## Unreleased
 
 ### Added
+- Click a column heading to sort the list by it: first click sorts high to low, second low to high, third goes back to the default order (best profit first). There is a new "Per unit" column with the profit for each item made or bought.
 - New "Under vendor price" list: a scan now also finds auctions listed for less than a vendor pays for the item, so you can buy them out and vendor them. It covers every item on the Auction House, not only crafting materials, and is ranked by profit. Each row shows the item's icon and quality colour, hovering shows the real item tooltip, and shift-clicking a row searches the Auction House for it (or links it in chat when the Auction House is closed).
 - First version. Scan the Auction House and see which crafts pay: buy the reagents, craft, and sell to a vendor (or, with a checkbox, on the Auction House). Reagents are priced listing by listing, so the list says how many crafts to make before the next one stops paying. Filter by recipes you know, recipes a trainer of your faction can teach you at your skill, or all recipes with where to get them. Open it with `/carb`.
 - A minimap button: left-click opens the window, right-click scans the Auction House, drag moves it around the minimap. `/carb minimap on|off` shows or hides it.

@@ -12,19 +12,22 @@ local FILTERS = { { "known", "Known" }, { "learnable", "Learnable" }, { "all", "
 
 -- The table's columns, shared by the header and every row so they line up: x is from the table's left edge.
 local COLUMNS = {
-    { key = "name", title = "Recipe", x = 0, width = 205, justify = "LEFT" },
-    { key = "crafts", title = "Crafts", x = 210, width = 50, justify = "RIGHT" },
-    { key = "cost", title = "Cost", x = 265, width = 105, justify = "RIGHT" },
-    { key = "profit", title = "Profit", x = 375, width = 105, justify = "RIGHT" },
-    { key = "source", title = "Learn from", x = 495, width = 175, justify = "LEFT" },
+    { key = "name", title = "Recipe", x = 0, width = 190, justify = "LEFT" },
+    { key = "crafts", title = "Crafts", x = 195, width = 45, justify = "RIGHT" },
+    { key = "cost", title = "Cost", x = 245, width = 95, justify = "RIGHT" },
+    { key = "profit", title = "Profit", x = 345, width = 95, justify = "RIGHT" },
+    { key = "each", title = "Per unit", x = 445, width = 80, justify = "RIGHT" },
+    { key = "source", title = "Learn from", x = 535, width = 137, justify = "LEFT" },
 }
 -- What the columns say when the list is auctions under the vendor price.
 local QUALITY_COLORS = { [0] = "9d9d9d", "ffffff", "1eff00", "0070dd", "a335ee", "ff8000" }
-local DEAL_TITLES = { name = "Item", crafts = "Units", cost = "Buy for", profit = "Profit", source = "Buy at / vendor pays" }
+local DEAL_TITLES = { name = "Item", crafts = "Units", cost = "Buy for", profit = "Profit", each = "Per unit", source = "Buy / vendor" }
 local TABLE_LEFT, TABLE_WIDTH = 14, 672
 local TABLE_TOP = -184 -- y of the first row; the header sits just above
 
 local window, job, results, page = nil, nil, {}, 1
+local raw = {} -- the results in the engine's order (best first); `results` is that, sorted by the clicked column
+local sorts = {} -- mode -> { key, descending }; no entry: the default order
 
 local function settings() return ns.settings end
 
@@ -36,6 +39,59 @@ local function addCheckbox(parent, text, x, y, onClick)
     label:SetPoint("TOPLEFT", x + 30, y - 6)
     label:SetText(text)
     return box
+end
+
+-- Profit per unit made (crafts) or bought (deals).
+local function profitEach(result)
+    if result.deal then return result.deal.profit / math.max(1, result.deal.units) end
+    return result.eval.profit / math.max(1, result.eval.units)
+end
+
+-- What a result is sorted by under each column.
+local function sortValue(result, key)
+    local deal = result.deal
+    if key == "name" then return (deal and deal.name or result.recipe.name):lower() end
+    if key == "each" then return profitEach(result) end
+    if deal then
+        return ({ crafts = deal.units, cost = deal.cost, profit = deal.profit, source = deal.cheapest })[key]
+    end
+    if key == "source" then return ns.Format.Source(result.recipe, result.status):lower() end
+    return ({ crafts = result.eval.crafts, cost = result.eval.cost, profit = result.eval.profit })[key]
+end
+
+local function currentSort() return sorts[settings().mode or "crafts"] end
+
+local function applySort()
+    results = {}
+    for i, result in ipairs(raw) do results[i] = result end
+    local sort = currentSort()
+    if not sort then return end
+    local order = {}
+    for i, result in ipairs(raw) do order[result] = i end
+    table.sort(results, function(a, b)
+        local x, y = sortValue(a, sort.key), sortValue(b, sort.key)
+        if x ~= y then
+            if sort.descending then return x > y end
+            return x < y
+        end
+        return order[a] < order[b] -- ties keep the default order
+    end)
+end
+
+-- Clicking a column: descending, then ascending, then back to the default order.
+local function clickColumn(key)
+    local mode = settings().mode or "crafts"
+    local sort = sorts[mode]
+    if not sort or sort.key ~= key then
+        sorts[mode] = { key = key, descending = true }
+    elseif sort.descending then
+        sort.descending = false
+    else
+        sorts[mode] = nil
+    end
+    applySort()
+    page = 1
+    UI.Refresh()
 end
 
 local function showDealTooltip(row, deal)
@@ -117,6 +173,7 @@ local function fillRow(row, result)
         row.crafts:SetText(tostring(d.units))
         row.cost:SetText(ns.Format.Money(d.cost))
         row.profit:SetText(ns.Format.Money(d.profit))
+        row.each:SetText(ns.Format.Money(result.deal.profit / math.max(1, d.units)))
         row.source:SetText(ns.Format.Money(d.cheapest) .. " / " .. ns.Format.Money(d.vendor))
         row:Show()
         return
@@ -130,6 +187,7 @@ local function fillRow(row, result)
     row.crafts:SetText(tostring(e.crafts))
     row.cost:SetText(ns.Format.Money(e.cost))
     row.profit:SetText(ns.Format.Money(e.profit))
+    row.each:SetText(ns.Format.Money(profitEach(result)))
     row.source:SetText(ns.Format.Source(result.recipe, result.status))
     row:Show()
 end
@@ -154,7 +212,9 @@ function UI.Refresh()
     window.modeButtons.crafts[deals and "Enable" or "Disable"](window.modeButtons.crafts)
     window.modeButtons.deals[deals and "Disable" or "Enable"](window.modeButtons.deals)
     for _, column in ipairs(COLUMNS) do
-        window.headers[column.key]:SetText(deals and DEAL_TITLES[column.key] or column.title)
+        local sort = currentSort()
+        local mark = sort and sort.key == column.key and (sort.descending and " v" or " ^") or ""
+        window.headers[column.key]:SetText((deals and DEAL_TITLES[column.key] or column.title) .. mark)
     end
     window.scanText:SetText(ns.Scanner.statusText and ns.Scanner.IsBusy() and ns.Scanner.statusText or scanAgeText())
     local pages = math.max(1, math.ceil(#results / PAGE_SIZE))
@@ -188,8 +248,9 @@ function UI.Recompute()
     local s = settings()
     if s.mode == "deals" then
         job = nil
-        results = {}
-        for i, deal in ipairs(ns.Deals.List()) do results[i] = { deal = deal } end
+        raw = {}
+        for i, deal in ipairs(ns.Deals.List()) do raw[i] = { deal = deal } end
+        applySort()
         page = 1
         UI.Refresh()
         return
@@ -197,14 +258,15 @@ function UI.Recompute()
     job = ns.Engine.NewJob({
         channel = s.channel, filter = s.filter, neutral = s.neutral, useBags = s.useBags, minProfit = s.minProfit,
     })
-    results, page = {}, 1
+    raw, results, page = {}, {}, 1
     UI.Refresh()
 end
 
 local function onUpdate()
     if not job then return end
     if job:Step() then
-        results, job = job.results, nil
+        raw, job = job.results, nil
+        applySort()
     end
     UI.Refresh()
 end
@@ -274,7 +336,7 @@ local function build()
     f.summary = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     f.summary:SetPoint("TOPLEFT", 14, -150)
 
-    f.headers = {}
+    f.headers, f.headerButtons = {}, {}
     for _, column in ipairs(COLUMNS) do
         local title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         title:SetPoint("TOPLEFT", TABLE_LEFT + column.x, TABLE_TOP + 16)
@@ -282,6 +344,11 @@ local function build()
         title:SetJustifyH(column.justify)
         title:SetText(column.title)
         f.headers[column.key] = title
+        local click = CreateFrame("Button", nil, f)
+        click:SetSize(column.width, 16)
+        click:SetPoint("TOPLEFT", TABLE_LEFT + column.x, TABLE_TOP + 18)
+        click:SetScript("OnClick", function() clickColumn(column.key) end)
+        f.headerButtons[column.key] = click
     end
 
     f.rows = {}
@@ -325,6 +392,7 @@ function UI.Window() return window end
 
 -- Tests put a list in place without running the engine.
 function UI.SetResultsForTest(list)
-    results, job, page = list, nil, 1
+    raw, job, page = list, nil, 1
+    applySort()
     UI.Refresh()
 end
