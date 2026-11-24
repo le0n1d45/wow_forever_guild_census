@@ -6,7 +6,7 @@ return function()
         time = function() return now end
         local ns = { Data = { Items = {}, Test = { recipes = { [1] = { out = { 11, 1 }, r = { { 10, 2 } } } } } }, db = {} }
         ns.Print = function(text) printed[#printed + 1] = text end
-        for _, file in ipairs({ "Prices.lua", "Scanner.lua" }) do loadAddonFile(ns, file, "CrafterArbitrage") end
+        for _, file in ipairs({ "Format.lua", "Prices.lua", "Calculator.lua", "Deals.lua", "Scanner.lua" }) do loadAddonFile(ns, file, "CrafterArbitrage") end
         return ns
     end
 
@@ -153,6 +153,41 @@ return function()
             assertEqual(done, true)
             assertEqual(seen[1], "Waiting for the server...")
             assert(seen[#seen]:find("Scanned 1 listings"))
+        end)
+
+        it("lists auctions priced under what a vendor pays, whatever the item is", function()
+            printed = {}
+            local ns = load()
+            ns.Data.Items[500] = { name = "Shiny Rock", sell = 100 }
+            -- 4 for 200 = 50 each (vendor pays 100); 1 for 100 is not a deal; 2 for 150 = 75 each is; item 501 is unknown
+            modern({ { 500, 4, 200 }, { 500, 1, 100 }, { 500, 2, 150 }, { 501, 1, 1 }, { 500, 1, 0 } })
+            ns.Scanner.OnShow()
+            ns.Scanner.Start()
+            run(ns, 8)
+            local deals = ns.Deals.List()
+            assertEqual(#deals, 1)
+            assertEqual(deals[1].itemID, 500)
+            assertEqual(deals[1].units, 6)
+            assertEqual(deals[1].cost, 350)
+            assertEqual(deals[1].profit, 250)
+            assertEqual(deals[1].cheapest, 50)
+            assertEqual(ns.db.deals[1].itemID, 500)
+        end)
+
+        it("ranks deals by profit and reads them back from the saved list", function()
+            printed = {}
+            local ns = load()
+            ns.Data.Items[500] = { name = "A", sell = 100 }
+            ns.Data.Items[501] = { name = "B", sell = 1000 }
+            modern({ { 500, 1, 10 }, { 501, 1, 500 } })
+            ns.Scanner.OnShow()
+            ns.Scanner.Start()
+            run(ns, 8)
+            assertEqual(ns.Deals.List()[1].itemID, 501)
+            ns.Deals.Import(ns.db.deals)
+            assertEqual(#ns.Deals.List(), 2)
+            ns.Deals.Import(nil)
+            assertEqual(#ns.Deals.List(), 0)
         end)
     end)
 end

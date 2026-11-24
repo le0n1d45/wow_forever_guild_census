@@ -134,6 +134,10 @@ end
 local function finish()
     ns.Prices.Build(Scanner.auctions, time())
     if ns.db then ns.db.scan = ns.Prices.Export() end
+    if ns.Deals then
+        ns.Deals.Finish()
+        if ns.db then ns.db.deals = ns.Deals.Export() end
+    end
     local kept = #Scanner.auctions
     Scanner.auctions, Scanner.state = nil, "idle"
     setStatus(string.format("Scanned %d listings of items crafts use.", kept))
@@ -154,6 +158,7 @@ function Scanner.OnUpdate(elapsed)
         end
         if count > 0 and Scanner.stable >= STABLE_SECONDS then
             Scanner.state, Scanner.index, Scanner.total, Scanner.auctions = "reading", 0, count, {}
+            if ns.Deals then ns.Deals.Begin() end
             setStatus("Reading the listings...")
         elseif Scanner.waited >= TIMEOUT then
             Scanner.state = "idle"
@@ -167,6 +172,7 @@ function Scanner.OnUpdate(elapsed)
     for i = Scanner.index + 1, last do
         local itemID, units, buyout = Scanner.client.get(i - (Scanner.client.base or 0))
         if itemID and items[itemID] then Scanner.auctions[#Scanner.auctions + 1] = { itemID, units, buyout } end
+        if ns.Deals then ns.Deals.Consider(itemID, units, buyout) end
     end
     Scanner.index = last
     if Scanner.index >= Scanner.total then finish() end

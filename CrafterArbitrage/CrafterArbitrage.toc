@@ -24,6 +24,7 @@ Prices.lua
 Calculator.lua
 Known.lua
 Engine.lua
+Deals.lua
 Scanner.lua
 UI.lua
 MinimapButton.lua

@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- /carb: finds crafts that pay, from a scan of the auction house. This file sets up the saved settings and
 -- connects the game's events and the slash command to the modules.
 
-local DEFAULTS = { channel = "vendor", filter = "known", neutral = false, useBags = false, minProfit = 100 }
+local DEFAULTS = { channel = "vendor", filter = "known", neutral = false, useBags = false, minProfit = 100, mode = "crafts" }
 local FILTER_NAMES = { known = true, learnable = true, all = true }
 
 function ns.Print(text)
@@ -28,9 +28,11 @@ function handlers.ADDON_LOADED(loadedName)
         if db[key] == nil then db[key] = value end
     end
     if not FILTER_NAMES[db.filter] then db.filter = DEFAULTS.filter end
+    if db.mode ~= "deals" then db.mode = "crafts" end
     if db.channel ~= "ah" then db.channel = "vendor" end
     ns.db, ns.settings = db, db
     ns.Prices.Import(db.scan)
+    ns.Deals.Import(db.deals)
     local ok, err = pcall(ns.MinimapButton.Create) -- a problem with the button must not stop the rest of the addon
     if not ok then ns.Print("the minimap button could not be created: " .. tostring(err)) end
     ns.frame:UnregisterEvent("ADDON_LOADED")

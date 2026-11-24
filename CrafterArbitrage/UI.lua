@@ -18,6 +18,8 @@ local COLUMNS = {
     { key = "profit", title = "Profit", x = 375, width = 105, justify = "RIGHT" },
     { key = "source", title = "Learn from", x = 495, width = 175, justify = "LEFT" },
 }
+-- What the columns say when the list is auctions under the vendor price.
+local DEAL_TITLES = { name = "Item", crafts = "Units", cost = "Buy for", profit = "Profit", source = "Buy at / vendor pays" }
 local TABLE_LEFT, TABLE_WIDTH = 14, 672
 local TABLE_TOP = -184 -- y of the first row; the header sits just above
 
@@ -35,9 +37,20 @@ local function addCheckbox(parent, text, x, y, onClick)
     return box
 end
 
+local function showDealTooltip(row, deal)
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:AddLine(deal.name)
+    GameTooltip:AddLine(string.format("%d listed under the vendor price, cheapest %s each.", deal.units, ns.Format.Money(deal.cheapest)))
+    GameTooltip:AddLine(string.format("Buying them all costs %s; a vendor pays %s each, %s.", ns.Format.Money(deal.cost),
+        ns.Format.Money(deal.vendor), ns.Format.Money(deal.revenue)))
+    GameTooltip:AddLine(string.format("Profit %s. Check the Auction House: the list is as old as the scan.", ns.Format.Money(deal.profit)))
+    GameTooltip:Show()
+end
+
 local function showTooltip(row)
     local result = row.result
     if not result or not GameTooltip then return end
+    if result.deal then return showDealTooltip(row, result.deal) end
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:AddLine(result.recipe.name)
     local e = result.eval
@@ -77,6 +90,16 @@ local function fillRow(row, result)
         row:Hide()
         return
     end
+    if result.deal then
+        local d = result.deal
+        row.name:SetText(d.name)
+        row.crafts:SetText(tostring(d.units))
+        row.cost:SetText(ns.Format.Money(d.cost))
+        row.profit:SetText(ns.Format.Money(d.profit))
+        row.source:SetText(ns.Format.Money(d.cheapest) .. " / " .. ns.Format.Money(d.vendor))
+        row:Show()
+        return
+    end
     local e = result.eval
     row.name:SetText(result.recipe.name)
     row.crafts:SetText(tostring(e.crafts))
@@ -102,6 +125,12 @@ function UI.Refresh()
         local button = window.filterButtons[f[1]]
         if s.filter == f[1] then button:Disable() else button:Enable() end
     end
+    local deals = s.mode == "deals"
+    window.modeButtons.crafts[deals and "Enable" or "Disable"](window.modeButtons.crafts)
+    window.modeButtons.deals[deals and "Disable" or "Enable"](window.modeButtons.deals)
+    for _, column in ipairs(COLUMNS) do
+        window.headers[column.key]:SetText(deals and DEAL_TITLES[column.key] or column.title)
+    end
     window.scanText:SetText(ns.Scanner.statusText and ns.Scanner.IsBusy() and ns.Scanner.statusText or scanAgeText())
     local pages = math.max(1, math.ceil(#results / PAGE_SIZE))
     page = math.max(1, math.min(page, pages))
@@ -109,7 +138,15 @@ function UI.Refresh()
         fillRow(row, results[(page - 1) * PAGE_SIZE + i])
     end
     window.pageText:SetText(string.format("Page %d of %d", page, pages))
-    if job then
+    if deals then
+        if not ns.Prices.HasScan() then
+            window.summary:SetText("Scan the Auction House first: prices come from the scan.")
+        elseif #results == 0 then
+            window.summary:SetText("No auction is listed under its vendor price.")
+        else
+            window.summary:SetText(string.format("%d items are listed under the vendor price, best first.", #results))
+        end
+    elseif job then
         window.summary:SetText(string.format("Working it out: %d%%", math.floor(job.index / math.max(1, job.total) * 100)))
     elseif not ns.Prices.HasScan() then
         window.summary:SetText("Scan the Auction House first: prices come from the scan.")
@@ -124,6 +161,14 @@ end
 function UI.Recompute()
     if not window then return end
     local s = settings()
+    if s.mode == "deals" then
+        job = nil
+        results = {}
+        for i, deal in ipairs(ns.Deals.List()) do results[i] = { deal = deal } end
+        page = 1
+        UI.Refresh()
+        return
+    end
     job = ns.Engine.NewJob({
         channel = s.channel, filter = s.filter, neutral = s.neutral, useBags = s.useBags, minProfit = s.minProfit,
     })
@@ -189,15 +234,29 @@ local function build()
         end)
         f.filterButtons[def[1]] = button
     end
+    f.modeButtons = {}
+    for i, def in ipairs({ { "crafts", "Crafts" }, { "deals", "Under vendor price" } }) do
+        local button = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+        button:SetSize(i == 1 and 70 or 130, 22)
+        button:SetPoint("TOPLEFT", i == 1 and 400 or 474, -118)
+        button:SetText(def[2])
+        button:SetScript("OnClick", function()
+            settings().mode = def[1]
+            UI.Recompute()
+        end)
+        f.modeButtons[def[1]] = button
+    end
     f.summary = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     f.summary:SetPoint("TOPLEFT", 14, -150)
 
+    f.headers = {}
     for _, column in ipairs(COLUMNS) do
         local title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         title:SetPoint("TOPLEFT", TABLE_LEFT + column.x, TABLE_TOP + 16)
         title:SetWidth(column.width)
         title:SetJustifyH(column.justify)
         title:SetText(column.title)
+        f.headers[column.key] = title
     end
 
     f.rows = {}

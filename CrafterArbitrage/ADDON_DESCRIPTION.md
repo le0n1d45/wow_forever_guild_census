@@ -45,3 +45,5 @@ A **minimap button** opens the window (left-click), scans the Auction House (rig
 around the minimap.
 
 ---
+
+**Under vendor price:** the same scan also finds auctions listed for less than a vendor pays for the item. Press **Under vendor price** in the window to see them, best profit first: buy them out and sell them to a vendor.
