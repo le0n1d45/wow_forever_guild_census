@@ -26,6 +26,7 @@ Known.lua
 Engine.lua
 Deals.lua
 Scanner.lua
+Search.lua
 UI.lua
 MinimapButton.lua
 CrafterArbitrage.lua

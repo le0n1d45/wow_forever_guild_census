@@ -19,6 +19,7 @@ local COLUMNS = {
     { key = "source", title = "Learn from", x = 495, width = 175, justify = "LEFT" },
 }
 -- What the columns say when the list is auctions under the vendor price.
+local QUALITY_COLORS = { [0] = "9d9d9d", "ffffff", "1eff00", "0070dd", "a335ee", "ff8000" }
 local DEAL_TITLES = { name = "Item", crafts = "Units", cost = "Buy for", profit = "Profit", source = "Buy at / vendor pays" }
 local TABLE_LEFT, TABLE_WIDTH = 14, 672
 local TABLE_TOP = -184 -- y of the first row; the header sits just above
@@ -39,11 +40,17 @@ end
 
 local function showDealTooltip(row, deal)
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(deal.name)
+    if GameTooltip.SetHyperlink then
+        GameTooltip:SetHyperlink("item:" .. deal.itemID)
+    else
+        GameTooltip:AddLine(deal.name)
+    end
+    GameTooltip:AddLine(" ")
     GameTooltip:AddLine(string.format("%d listed under the vendor price, cheapest %s each.", deal.units, ns.Format.Money(deal.cheapest)))
     GameTooltip:AddLine(string.format("Buying them all costs %s; a vendor pays %s each, %s.", ns.Format.Money(deal.cost),
         ns.Format.Money(deal.vendor), ns.Format.Money(deal.revenue)))
-    GameTooltip:AddLine(string.format("Profit %s. Check the Auction House: the list is as old as the scan.", ns.Format.Money(deal.profit)))
+    GameTooltip:AddLine(string.format("Profit %s. The list is as old as the scan.", ns.Format.Money(deal.profit)))
+    GameTooltip:AddLine("Shift-click to search the Auction House for it (or link it in chat).")
     GameTooltip:Show()
 end
 
@@ -73,6 +80,12 @@ local function addRow(parent, index)
     row:EnableMouse(true)
     row:SetScript("OnEnter", showTooltip)
     row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(ROW_HEIGHT - 4, ROW_HEIGHT - 4)
+    row.icon:SetPoint("TOPLEFT", 0, -2)
+    row:SetScript("OnMouseUp", function(self)
+        if self.result and self.result.deal then ns.Search.Click(self.result.deal) end
+    end)
     for _, column in ipairs(COLUMNS) do
         local fs = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         fs:SetPoint("TOPLEFT", column.x, -5)
@@ -92,7 +105,15 @@ local function fillRow(row, result)
     end
     if result.deal then
         local d = result.deal
-        row.name:SetText(d.name)
+        local info = ns.Data.Items[d.itemID]
+        local color = info and QUALITY_COLORS[info.quality or 1] or QUALITY_COLORS[1]
+        row.name:ClearAllPoints()
+        row.name:SetPoint("TOPLEFT", ROW_HEIGHT, -5)
+        row.name:SetWidth(COLUMNS[1].width - ROW_HEIGHT)
+        row.name:SetText("|cff" .. color .. d.name .. "|r")
+        local icon = (C_Item and C_Item.GetItemIconByID or GetItemIcon)
+        row.icon:SetTexture(icon and icon(d.itemID) or "Interface\\Icons\\INV_Misc_QuestionMark")
+        row.icon:Show()
         row.crafts:SetText(tostring(d.units))
         row.cost:SetText(ns.Format.Money(d.cost))
         row.profit:SetText(ns.Format.Money(d.profit))
@@ -100,6 +121,10 @@ local function fillRow(row, result)
         row:Show()
         return
     end
+    row.icon:Hide()
+    row.name:ClearAllPoints()
+    row.name:SetPoint("TOPLEFT", COLUMNS[1].x, -5)
+    row.name:SetWidth(COLUMNS[1].width)
     local e = result.eval
     row.name:SetText(result.recipe.name)
     row.crafts:SetText(tostring(e.crafts))

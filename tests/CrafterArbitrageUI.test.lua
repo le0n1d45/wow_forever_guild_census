@@ -287,11 +287,35 @@ return function()
             click(window.modeButtons.deals)
             assertEqual(ns.settings.mode, "deals")
             assertEqual(#ns.UI.Results(), 1)
-            assertEqual(window.rows[1].name.text, "Shiny Rock")
+            assertEqual(window.rows[1].name.text, "|cffffffffShiny Rock|r")
             assertEqual(window.rows[1].crafts.text, "6")
             assertEqual(window.headers.crafts.text, "Units")
             click(window.modeButtons.crafts)
             assertEqual(window.headers.crafts.text, "Crafts")
+        end)
+
+        it("shift-click on a deal searches the Auction House, or links the item in chat", function()
+            local ns = loadAddon()
+            ns.Deals.Import({ { itemID = 1, name = "Shiny Rock", units = 6, cost = 350, vendor = 100, revenue = 600, profit = 250, cheapest = 50 } })
+            ns.UI.Show()
+            click(ns.UI.Window().modeButtons.deals)
+            local row = ns.UI.Window().rows[1]
+            local searched, linked, shift = nil, nil, false
+            IsShiftKeyDown = function() return shift end
+            ChatEdit_InsertLink = function(link) linked = link return true end
+            AuctionHouseFrame = { SearchBar = { SearchBox = { SetText = function(_, t) searched = t end }, StartSearch = function() searched = searched .. "!" end } }
+            local ok, err = pcall(function()
+                row.scripts.OnMouseUp(row)
+                assertEqual(searched, nil) -- no shift: nothing happens
+                shift = true
+                row.scripts.OnMouseUp(row) -- shift, Auction House closed: link
+                assert(linked:find("Hitem:1:"), tostring(linked))
+                ns.Scanner.OnShow()
+                row.scripts.OnMouseUp(row)
+                assertEqual(searched, "Shiny Rock!")
+            end)
+            IsShiftKeyDown, ChatEdit_InsertLink, AuctionHouseFrame = nil, nil, nil
+            if not ok then error(err, 0) end
         end)
     end)
 end

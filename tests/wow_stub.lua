@@ -37,7 +37,7 @@ local Frame = class("Frame", extend(Region, {
     "SetFrameLevel", "RegisterForClicks", "ClearAllPoints",
 }))
 local Texture = class("Texture", extend(Region, { "SetTexture", "SetAllPoints", "SetTexCoord", "SetDrawLayer" }))
-local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth", "SetWordWrap" }))
+local FontString = class("FontString", extend(Region, { "SetJustifyH", "SetWidth", "SetWordWrap", "ClearAllPoints" }))
 local Line = class("Line", extend(Region, { "SetThickness" }))
 
 local function track(obj)
