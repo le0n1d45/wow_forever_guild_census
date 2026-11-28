@@ -30,10 +30,17 @@ local function itemLink(deal)
     return link or string.format("|cffffffff|Hitem:%d::::::::|h[%s]|h|r", deal.itemID, deal.name)
 end
 
--- Called with the clicked deal; returns what it did: "search", "link" or nil.
-function Search.Click(deal)
-    if not (IsShiftKeyDown and IsShiftKeyDown()) then return nil end
-    if Search.ForItem(deal.name) then return "search" end
-    if ChatEdit_InsertLink and ChatEdit_InsertLink(itemLink(deal)) then return "link" end
+-- Called with the clicked item { itemID, name }; returns what it did: "search", "link" or nil.
+-- Ctrl-click searches the Auction House; shift-click does too, and links the item in chat when it is closed.
+function Search.Click(item)
+    local ctrl = IsControlKeyDown and IsControlKeyDown()
+    local shift = IsShiftKeyDown and IsShiftKeyDown()
+    if not (ctrl or shift) then return nil end
+    if Search.ForItem(item.name) then return "search" end
+    if ctrl then
+        if ns.Print then ns.Print("Open the Auction House to search for " .. item.name .. ".") end
+        return nil
+    end
+    if ChatEdit_InsertLink and ChatEdit_InsertLink(itemLink(item)) then return "link" end
     return nil
 end

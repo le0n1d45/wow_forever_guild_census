@@ -346,5 +346,33 @@ return function()
             click(window.headerButtons.cost)
             assertEqual(names(), "Charlie,Bravo,Alpha")
         end)
+
+        it("ctrl-click on a deal or a craft searches the Auction House and never links", function()
+            local ns = loadAddon()
+            ns.Deals.Import({ { itemID = 1, name = "Shiny Rock", units = 6, cost = 350, vendor = 100, revenue = 600, profit = 250, cheapest = 50 } })
+            ns.UI.Show()
+            local window = ns.UI.Window()
+            local searched, linked, ctrl = nil, nil, true
+            IsControlKeyDown = function() return ctrl end
+            ChatEdit_InsertLink = function(link) linked = link return true end
+            AuctionHouseFrame = { SearchBar = { SearchBox = { SetText = function(_, t) searched = t end }, StartSearch = function() searched = searched .. "!" end } }
+            local ok, err = pcall(function()
+                click(window.modeButtons.deals)
+                window.rows[1].scripts.OnMouseUp(window.rows[1]) -- Auction House closed
+                assertEqual(searched, nil)
+                assertEqual(linked, nil)
+                ns.Scanner.OnShow()
+                window.rows[1].scripts.OnMouseUp(window.rows[1])
+                assertEqual(searched, "Shiny Rock!")
+                searched = nil
+                click(window.modeButtons.crafts)
+                scanned(ns)
+                ns.UI.SetResultsForTest({ { recipe = ns.Data.Tailoring.recipes[2385], eval = { crafts = 1, units = 1, cost = 1, revenue = 2, profit = 1 }, status = "known" } })
+                window.rows[1].scripts.OnMouseUp(window.rows[1])
+                assertEqual(searched, ns.Data.Items[ns.Data.Tailoring.recipes[2385].out[1]].name .. "!")
+            end)
+            IsControlKeyDown, ChatEdit_InsertLink, AuctionHouseFrame = nil, nil, nil
+            if not ok then error(err, 0) end
+        end)
     end)
 end

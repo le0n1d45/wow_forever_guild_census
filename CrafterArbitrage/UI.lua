@@ -106,7 +106,7 @@ local function showDealTooltip(row, deal)
     GameTooltip:AddLine(string.format("Buying them all costs %s; a vendor pays %s each, %s.", ns.Format.Money(deal.cost),
         ns.Format.Money(deal.vendor), ns.Format.Money(deal.revenue)))
     GameTooltip:AddLine(string.format("Profit %s. The list is as old as the scan.", ns.Format.Money(deal.profit)))
-    GameTooltip:AddLine("Shift-click to search the Auction House for it (or link it in chat).")
+    GameTooltip:AddLine("Ctrl-click to search the Auction House for it; shift-click also links it in chat.")
     GameTooltip:Show()
 end
 
@@ -114,6 +114,7 @@ local function showTooltip(row)
     local result = row.result
     if not result or not GameTooltip then return end
     if result.deal then return showDealTooltip(row, result.deal) end
+    local searchHint = "Ctrl-click to search the Auction House for " .. ns.Format.ItemName(result.recipe.out[1]) .. "."
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:AddLine(result.recipe.name)
     local e = result.eval
@@ -126,6 +127,7 @@ local function showTooltip(row)
                   max = settings().channel == "ah" and "Limited to a share of what is already listed." or "Capped at 200 crafts." }
     if why[e.why] then GameTooltip:AddLine(why[e.why]) end
     for _, line in ipairs(ns.Format.SourceLines(result.recipe, result.status)) do GameTooltip:AddLine(line) end
+    GameTooltip:AddLine(searchHint)
     GameTooltip:Show()
 end
 
@@ -140,7 +142,13 @@ local function addRow(parent, index)
     row.icon:SetSize(ROW_HEIGHT - 4, ROW_HEIGHT - 4)
     row.icon:SetPoint("TOPLEFT", 0, -2)
     row:SetScript("OnMouseUp", function(self)
-        if self.result and self.result.deal then ns.Search.Click(self.result.deal) end
+        local result = self.result
+        if not result then return end
+        if result.deal then
+            ns.Search.Click(result.deal)
+        else
+            ns.Search.Click({ itemID = result.recipe.out[1], name = ns.Format.ItemName(result.recipe.out[1]) })
+        end
     end)
     for _, column in ipairs(COLUMNS) do
         local fs = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")

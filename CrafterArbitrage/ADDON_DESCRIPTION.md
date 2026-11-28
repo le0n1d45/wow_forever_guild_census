@@ -46,6 +46,6 @@ around the minimap.
 
 ---
 
-**Under vendor price:** the same scan also finds auctions listed for less than a vendor pays for the item. Press **Under vendor price** in the window to see them, best profit first: buy them out and sell them to a vendor. Shift-click an item to search the Auction House for it.
+**Under vendor price:** the same scan also finds auctions listed for less than a vendor pays for the item. Press **Under vendor price** in the window to see them, best profit first: buy them out and sell them to a vendor. Ctrl-click (or shift-click) an item to search the Auction House for it.
 
 Click a column heading to sort by it (click again to reverse, a third time to go back to best profit first). **Per unit** shows the profit for each item.
